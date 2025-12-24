@@ -247,6 +247,18 @@ StyledRect {
                 fill: 1
             }
         }
+
+        // Notifications icon
+        WrappedLoader {
+            name: "notifications"
+            active: Config.bar.status.showNotifications
+
+            sourceComponent: MaterialIcon {
+                animate: true
+                text: Notifs.notClosed.length > 0 ? "notifications_unread" : "notifications"
+                color: root.colour
+            }
+        }
     }
 
     component WrappedLoader: Loader {

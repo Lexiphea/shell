@@ -61,6 +61,11 @@ Item {
         }
 
         Popout {
+            name: "notifications"
+            sourceComponent: Notifications {}
+        }
+
+        Popout {
             name: "lockstatus"
             sourceComponent: LockStatus {}
         }

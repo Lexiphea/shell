@@ -99,6 +99,7 @@ JsonObject {
         property bool showBluetooth: true
         property bool showBattery: true
         property bool showLockStatus: true
+        property bool showNotifications: true
     }
 
     component Clock: JsonObject {
