@@ -273,31 +273,31 @@ Item {
                                     enabled: !Audio.muted
 
                                     Component.onCompleted: {
-                                        text = Math.round(Audio.volume * 100).toString();
+                                        text = Audio.outputDisplayPercent.toString();
                                     }
 
                                     Connections {
                                         target: Audio
                                         function onVolumeChanged() {
                                             if (!outputVolumeInput.hasFocus) {
-                                                outputVolumeInput.text = Math.round(Audio.volume * 100).toString();
+                                                outputVolumeInput.text = Audio.outputDisplayPercent.toString();
                                             }
                                         }
                                     }
 
                                     onTextEdited: text => {
-                                        if (hasFocus) {
-                                            const val = parseInt(text);
-                                            if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                Audio.setVolume(val / 100);
+                                            if (hasFocus) {
+                                                const val = parseInt(text);
+                                                if (!isNaN(val) && val >= 0 && val <= 100) {
+                                                    Audio.setVisibleOutputVolume(val / 100);
+                                                }
                                             }
                                         }
-                                    }
 
                                     onEditingFinished: {
                                         const val = parseInt(text);
                                         if (isNaN(val) || val < 0 || val > 100) {
-                                            text = Math.round(Audio.volume * 100).toString();
+                                            text = Audio.outputDisplayPercent.toString();
                                         }
                                     }
                                 }
@@ -318,9 +318,7 @@ Item {
 
                                     StateLayer {
                                         function onClicked(): void {
-                                            if (Audio.sink?.audio) {
-                                                Audio.sink.audio.muted = !Audio.sink.audio.muted;
-                                            }
+                                            Audio.setMuted(!Audio.muted);
                                         }
                                     }
 
@@ -339,13 +337,14 @@ Item {
                                 Layout.fillWidth: true
                                 implicitHeight: Appearance.padding.normal * 3
 
-                                value: Audio.volume
+                                value: Audio.getVisibleOutputVolume()
+                                to: 1
                                 enabled: !Audio.muted
                                 opacity: enabled ? 1 : 0.5
                                 onMoved: {
-                                    Audio.setVolume(value);
+                                    Audio.setVisibleOutputVolume(value);
                                     if (!outputVolumeInput.hasFocus) {
-                                        outputVolumeInput.text = Math.round(value * 100).toString();
+                                        outputVolumeInput.text = Audio.outputDisplayPercent.toString();
                                     }
                                 }
                             }

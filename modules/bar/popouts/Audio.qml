@@ -76,7 +76,7 @@ Item {
         StyledText {
             Layout.topMargin: Appearance.spacing.smaller
             Layout.bottomMargin: -Appearance.spacing.small / 2
-            text: qsTr("Volume (%1)").arg(Audio.muted ? qsTr("Muted") : `${Math.round(Audio.volume * 100)}%`)
+            text: qsTr("Volume (%1)").arg(Audio.muted ? qsTr("Muted") : `${Audio.outputDisplayPercent}%`)
             font.weight: 500
         }
 
@@ -86,9 +86,9 @@ Item {
 
             onWheel: event => {
                 if (event.angleDelta.y > 0)
-                    Audio.incrementVolume();
+                    Audio.adjustVisibleOutputVolume(Config.services.audioIncrement / Audio.maxOutputVolume);
                 else if (event.angleDelta.y < 0)
-                    Audio.decrementVolume();
+                    Audio.adjustVisibleOutputVolume(-(Config.services.audioIncrement / Audio.maxOutputVolume));
             }
 
             StyledSlider {
@@ -96,8 +96,9 @@ Item {
                 anchors.right: parent.right
                 implicitHeight: parent.implicitHeight
 
-                value: Audio.volume
-                onMoved: Audio.setVolume(value)
+                value: Audio.getVisibleOutputVolume()
+                to: 1
+                onMoved: Audio.setVisibleOutputVolume(value)
 
                 Behavior on value {
                     Anim {}

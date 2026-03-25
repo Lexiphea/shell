@@ -110,7 +110,7 @@ StyledRect {
 
             sourceComponent: MaterialIcon {
                 animate: true
-                text: Icons.getVolumeIcon(Audio.volume, Audio.muted)
+                text: Icons.getVolumeIcon(Math.min(1, Audio.volume), Audio.muted)
                 color: root.colour
             }
         }
