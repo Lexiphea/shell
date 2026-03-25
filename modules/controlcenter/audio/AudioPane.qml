@@ -2,15 +2,15 @@ pragma ComponentBehavior: Bound
 
 import ".."
 import "../components"
-import qs.components
-import qs.components.controls
-import qs.components.effects
-import qs.components.containers
-import qs.services
-import qs.config
-import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Widgets
+import qs.components
+import qs.components.containers
+import qs.components.controls
+import qs.components.effects
+import qs.services
+import qs.config
 
 Item {
     id: root
@@ -23,9 +23,9 @@ Item {
         anchors.fill: parent
 
         leftContent: Component {
-
             StyledFlickable {
                 id: leftAudioFlickable
+
                 flickableDirection: Flickable.VerticalFlick
                 contentHeight: leftContent.height
 
@@ -94,6 +94,7 @@ Item {
 
                                     color: Audio.sink?.id === modelData.id ? Colours.layer(Colours.palette.m3surfaceContainer, 2) : "transparent"
                                     radius: Appearance.rounding.normal
+                                    implicitHeight: outputRowLayout.implicitHeight + Appearance.padding.normal * 2
 
                                     StateLayer {
                                         function onClicked(): void {
@@ -126,8 +127,6 @@ Item {
                                             font.weight: Audio.sink?.id === modelData.id ? 500 : 400
                                         }
                                     }
-
-                                    implicitHeight: outputRowLayout.implicitHeight + Appearance.padding.normal * 2
                                 }
                             }
                         }
@@ -172,6 +171,7 @@ Item {
 
                                     color: Audio.source?.id === modelData.id ? Colours.layer(Colours.palette.m3surfaceContainer, 2) : "transparent"
                                     radius: Appearance.rounding.normal
+                                    implicitHeight: inputRowLayout.implicitHeight + Appearance.padding.normal * 2
 
                                     StateLayer {
                                         function onClicked(): void {
@@ -204,8 +204,6 @@ Item {
                                             font.weight: Audio.source?.id === modelData.id ? 500 : 400
                                         }
                                     }
-
-                                    implicitHeight: inputRowLayout.implicitHeight + Appearance.padding.normal * 2
                                 }
                             }
                         }
@@ -217,6 +215,7 @@ Item {
         rightContent: Component {
             StyledFlickable {
                 id: rightAudioFlickable
+
                 flickableDirection: Flickable.VerticalFlick
                 contentHeight: contentLayout.height
 
@@ -265,6 +264,7 @@ Item {
 
                                 StyledInputField {
                                     id: outputVolumeInput
+
                                     Layout.preferredWidth: 70
                                     validator: IntValidator {
                                         bottom: 0
@@ -274,15 +274,6 @@ Item {
 
                                     Component.onCompleted: {
                                         text = Audio.outputDisplayPercent.toString();
-                                    }
-
-                                    Connections {
-                                        target: Audio
-                                        function onVolumeChanged() {
-                                            if (!outputVolumeInput.hasFocus) {
-                                                outputVolumeInput.text = Audio.outputDisplayPercent.toString();
-                                            }
-                                        }
                                     }
 
                                     onTextEdited: text => {
@@ -299,6 +290,16 @@ Item {
                                         if (isNaN(val) || val < 0 || val > 100) {
                                             text = Audio.outputDisplayPercent.toString();
                                         }
+                                    }
+
+                                    Connections {
+                                        function onVolumeChanged() {
+                                            if (!outputVolumeInput.hasFocus) {
+                                                outputVolumeInput.text = Audio.outputDisplayPercent.toString();
+                                            }
+                                        }
+
+                                        target: Audio
                                     }
                                 }
 
@@ -334,6 +335,7 @@ Item {
 
                             StyledSlider {
                                 id: outputVolumeSlider
+
                                 Layout.fillWidth: true
                                 implicitHeight: Appearance.padding.normal * 3
 
@@ -379,6 +381,7 @@ Item {
 
                                 StyledInputField {
                                     id: inputVolumeInput
+
                                     Layout.preferredWidth: 70
                                     validator: IntValidator {
                                         bottom: 0
@@ -388,15 +391,6 @@ Item {
 
                                     Component.onCompleted: {
                                         text = Math.round(Audio.sourceVolume * 100).toString();
-                                    }
-
-                                    Connections {
-                                        target: Audio
-                                        function onSourceVolumeChanged() {
-                                            if (!inputVolumeInput.hasFocus) {
-                                                inputVolumeInput.text = Math.round(Audio.sourceVolume * 100).toString();
-                                            }
-                                        }
                                     }
 
                                     onTextEdited: text => {
@@ -413,6 +407,16 @@ Item {
                                         if (isNaN(val) || val < 0 || val > 100) {
                                             text = Math.round(Audio.sourceVolume * 100).toString();
                                         }
+                                    }
+
+                                    Connections {
+                                        function onSourceVolumeChanged() {
+                                            if (!inputVolumeInput.hasFocus) {
+                                                inputVolumeInput.text = Math.round(Audio.sourceVolume * 100).toString();
+                                            }
+                                        }
+
+                                        target: Audio
                                     }
                                 }
 
@@ -450,6 +454,7 @@ Item {
 
                             StyledSlider {
                                 id: inputVolumeSlider
+
                                 Layout.fillWidth: true
                                 implicitHeight: Appearance.padding.normal * 3
 
@@ -510,6 +515,7 @@ Item {
 
                                         StyledInputField {
                                             id: streamVolumeInput
+
                                             Layout.preferredWidth: 70
                                             validator: IntValidator {
                                                 bottom: 0
@@ -519,15 +525,6 @@ Item {
 
                                             Component.onCompleted: {
                                                 text = Math.round(Audio.getStreamVolume(modelData) * 100).toString();
-                                            }
-
-                                            Connections {
-                                                target: modelData
-                                                function onAudioChanged() {
-                                                    if (!streamVolumeInput.hasFocus && modelData?.audio) {
-                                                        streamVolumeInput.text = Math.round(modelData.audio.volume * 100).toString();
-                                                    }
-                                                }
                                             }
 
                                             onTextEdited: text => {
@@ -544,6 +541,16 @@ Item {
                                                 if (isNaN(val) || val < 0 || val > 100) {
                                                     text = Math.round(Audio.getStreamVolume(modelData) * 100).toString();
                                                 }
+                                            }
+
+                                            Connections {
+                                                function onAudioChanged() {
+                                                    if (!streamVolumeInput.hasFocus && modelData?.audio) {
+                                                        streamVolumeInput.text = Math.round(modelData.audio.volume * 100).toString();
+                                                    }
+                                                }
+
+                                                target: modelData
                                             }
                                         }
 
@@ -592,12 +599,13 @@ Item {
                                         }
 
                                         Connections {
-                                            target: modelData
                                             function onAudioChanged() {
                                                 if (modelData?.audio) {
                                                     value = modelData.audio.volume;
                                                 }
                                             }
+
+                                            target: modelData
                                         }
                                     }
                                 }
