@@ -10,6 +10,11 @@
 
 </div>
 
+> **Disclaimer:**  
+> This project is **forked from [caelestia-dots/shell](https://github.com/caelestia-dots/shell)**.  
+> It may differ in functionality, features, or support compared to the upstream repository.
+> All credits goes to the goat soramane.
+
 https://github.com/user-attachments/assets/0840f496-575c-4ca6-83a8-87bb01a85c5f
 
 ## Components
