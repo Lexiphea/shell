@@ -11,6 +11,7 @@ Slider {
     required property string icon
     property real oldValue
     property bool initialized
+    property real displayValue: value
 
     orientation: Qt.Vertical
 
@@ -85,7 +86,7 @@ Slider {
 
                     target: icon
                     property: "text"
-                    value: Math.round(root.value * 100)
+                    value: Math.round(root.displayValue * 100)
                     when: false
                 }
 

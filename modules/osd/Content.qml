@@ -33,9 +33,9 @@ Item {
         CustomMouseArea {
             function onWheel(event: WheelEvent) {
                 if (event.angleDelta.y > 0)
-                    Audio.incrementVolume();
+                    Audio.adjustVisibleOutputVolume(Config.services.audioIncrement / Audio.maxOutputVolume);
                 else if (event.angleDelta.y < 0)
-                    Audio.decrementVolume();
+                    Audio.adjustVisibleOutputVolume(-(Config.services.audioIncrement / Audio.maxOutputVolume));
             }
 
             implicitWidth: Config.osd.sizes.sliderWidth
@@ -44,10 +44,11 @@ Item {
             FilledSlider {
                 anchors.fill: parent
 
-                icon: Icons.getVolumeIcon(value, root.muted)
-                value: root.volume
-                to: Config.services.maxVolume
-                onMoved: Audio.setVolume(value)
+                icon: Icons.getVolumeIcon(Math.min(1, Audio.volume), root.muted)
+                value: Audio.getVisibleOutputVolume()
+                displayValue: Audio.getVisibleOutputVolume()
+                to: 1
+                onMoved: Audio.setVisibleOutputVolume(value)
             }
         }
 

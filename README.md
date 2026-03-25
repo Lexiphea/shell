@@ -149,6 +149,15 @@ All IPC commands can be accessed via `caelestia shell ...`. For example
 caelestia shell mpris getActive trackTitle
 ```
 
+Output volume is also controllable through shell IPC:
+
+```sh
+caelestia shell audio get
+caelestia shell audio set +5%
+caelestia shell audio set 5%-
+caelestia shell audio toggleMute
+```
+
 The list of IPC commands can be shown via `caelestia shell -s`:
 
 ```
@@ -698,6 +707,18 @@ default, you must create it manually.
         ]
     }
 }
+```
+
+Speaker/output controls can raise the default sink up to `200%` while the visible percentage remains capped at `100`.
+This uses `pactl` for output volume state and control so the shell stays in sync with external PulseAudio-style keybinds such as `pactl set-sink-volume @DEFAULT_SINK@ +/-5%`.
+Microphone and per-application stream controls still use their normal `0..100` range.
+
+Example Hyprland keybinds using shell IPC:
+
+```conf
+bindel = ,XF86AudioRaiseVolume, exec, caelestia shell audio set +5%
+bindel = ,XF86AudioLowerVolume, exec, caelestia shell audio set 5%-
+bindl  = ,XF86AudioMute, exec, caelestia shell audio toggleMute
 ```
 
 </details>
