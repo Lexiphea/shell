@@ -34,6 +34,14 @@ StyledRect {
         if (root.lock.unlocking)
             return;
 
+        if (root.lock.oledBlackActive) {
+            root.lock.showLockUi();
+            event.accepted = true;
+            return;
+        }
+
+        root.lock.restartOledBlackTimer();
+
         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return)
             inputField.placeholder.animate = false;
 

@@ -14,18 +14,93 @@ WlSessionLockSurface {
     required property Pam pam
 
     readonly property alias unlocking: unlockAnim.running
+    property bool oledBlackActive
 
     contentItem.Config.screen: screen.name
     contentItem.Tokens.screen: screen.name
 
-    color: "transparent"
+    color: "black"
+
+    function stopOledBlackTimer(): void {
+        oledBlackActive = false;
+        blackoutDelay.stop();
+    }
+
+    function resetLockVisuals(): void {
+        initAnim.stop();
+        unlockAnim.stop();
+
+        background.opacity = 0;
+        lockContent.opacity = 1;
+        lockContent.implicitWidth = lockContent.size;
+        lockContent.implicitHeight = lockContent.size;
+        lockContent.rotation = 180;
+        lockContent.scale = 0;
+        lockBg.radius = lockContent.radius;
+        content.opacity = 0;
+        content.scale = 0;
+        lockIcon.opacity = 1;
+        lockIcon.rotation = 180;
+
+        initAnim.start();
+    }
+
+    function activateLockSurface(): void {
+        resetLockVisuals();
+        showLockUi();
+    }
+
+    function showLockUi(): void {
+        if (oledBlackActive)
+            oledBlackActive = false;
+        restartOledBlackTimer();
+    }
+
+    function restartOledBlackTimer(): void {
+        blackoutDelay.stop();
+        if (root.lock.locked && root.visible && !root.oledBlackActive)
+            blackoutDelay.start();
+    }
 
     Connections {
+        function onLockStateChanged(): void {
+            if (root.lock.locked)
+                root.activateLockSurface();
+            else
+                root.stopOledBlackTimer();
+        }
+
         function onUnlock(): void {
+            root.stopOledBlackTimer();
             unlockAnim.start();
         }
 
         target: root.lock
+    }
+
+    onVisibleChanged: {
+        if (root.visible && root.lock.locked)
+            activateLockSurface();
+        else
+            stopOledBlackTimer();
+    }
+
+    onUnlockingChanged: {
+        if (unlocking)
+            stopOledBlackTimer();
+    }
+
+    SequentialAnimation {
+        id: blackoutDelay
+
+        PauseAnimation {
+            duration: 15000
+        }
+        PropertyAction {
+            target: root
+            property: "oledBlackActive"
+            value: true
+        }
     }
 
     SequentialAnimation {
@@ -86,8 +161,6 @@ WlSessionLockSurface {
 
     ParallelAnimation {
         id: initAnim
-
-        running: true
 
         Anim {
             target: background
@@ -160,6 +233,7 @@ WlSessionLockSurface {
         anchors.fill: parent
         captureSource: root.screen
         opacity: 0
+        visible: false
 
         layer.enabled: true
         layer.effect: MultiEffect {
@@ -181,7 +255,7 @@ WlSessionLockSurface {
         implicitWidth: size
         implicitHeight: size
 
-        visible: Config.lock.enabled
+        visible: Config.lock.enabled && !root.oledBlackActive
         rotation: 180
         scale: 0
 
@@ -221,5 +295,24 @@ WlSessionLockSurface {
             opacity: 0
             scale: 0
         }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "black"
+        visible: root.oledBlackActive
+        z: 999
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.AllButtons
+        cursorShape: Qt.BlankCursor
+        hoverEnabled: true
+        visible: root.oledBlackActive
+        z: 1000
+        onClicked: root.showLockUi()
+        onPressed: root.showLockUi()
+        onWheel: root.showLockUi()
     }
 }
