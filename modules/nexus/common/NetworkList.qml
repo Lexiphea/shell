@@ -165,7 +165,7 @@ ItemList {
         anchors.right: parent.right
         anchors.margins: 1
         implicitHeight: Nmcli.scanning ? Tokens.rounding.extraSmall : 0
-        indeterminate: true
+        indeterminate: Nmcli.scanning
 
         Behavior on implicitHeight {
             Anim {

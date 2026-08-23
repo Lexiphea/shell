@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -9,280 +10,188 @@ import Caelestia.Config
 Singleton {
     id: root
 
-    property bool connected: false
-    property var status: ({
-            connected: false,
-            state: "disconnected",
-            reason: "",
-            authUrl: "",
-            server: ""
-        })
-
-    property bool connectPending: false
-    property bool disconnectPending: false
-    readonly property bool connecting: connectProc.running || connectPending
-    readonly property bool disconnecting: disconnectProc.running || disconnectPending
-
-    // Internal id of the currently selected provider (persisted). Only one
-    // provider can be selected at a time; empty means none. Keyed by id rather
-    // than name so the selection survives renames.
-    readonly property string selectedProvider: GlobalConfig.utilities.vpn.selectedProvider
-
-    // Live connection stats, refreshed on demand by the UI via refreshStats().
-    property double connectedSince: 0
-    property string bytesIn: ""
-    property string bytesOut: ""
-    property int pingMs: -1
-    property string serverLocation: ""
-
-    // Tracks an in-flight provider switch (by id) that must wait for disconnect.
-    property string pendingSwitchProvider: ""
-
-    // To track whether connect/disconnect procs actually ran
-    property bool connectExited
-    property bool disconnectExited
-
-    // For auto connect on init from config
-    property bool autoConnectPending
-
-    readonly property var providerInput: {
-        const sel = root.selectedProvider;
-        if (sel.length === 0)
-            return "wireguard";
-        const match = GlobalConfig.utilities.vpn.provider.find(p => typeof p === "object" && p.id === sel);
-        return match || "wireguard";
+    readonly property var selectedProviders: providerConfigs.filter(provider => provider.enabled).map(provider => provider.id)
+    readonly property bool connected: providers.some(provider => provider.connected)
+    readonly property bool connecting: providers.some(provider => provider.connecting)
+    readonly property bool disconnecting: providers.some(provider => provider.disconnecting)
+    readonly property var status: {
+        const problem = providers.find(provider => provider.isSelected && (provider.status.state === "needs-auth" || provider.status.state === "error"));
+        if (problem)
+            return problem.status;
+        const activeProvider = providers.find(provider => provider.connected || provider.connecting);
+        return activeProvider ? activeProvider.status : disconnectedStatus();
     }
-
-    // The single point where every configured provider - a built-in name, a
-    // customised built-in, or a fully user-defined entry - is folded into one
-    // uniform endpoint object. Built-in knowledge lives in the adapters below;
-    // config values override adapter defaults; anything unknown falls back to
-    // generic `<name> up/down` commands with an interface-presence status
-    // check. Everything downstream runs off this object and never branches on
-    // a provider name.
-    readonly property var active: {
-        const input = providerInput;
-        const custom = typeof input === "object" ? input : null;
-        const name = custom ? (custom.name || "custom") : String(input);
-        const adapter = adapters.find(a => a.name === name) ?? null;
-        const iface = (custom ? custom.interface : "") || (adapter ? adapter.iface : "") || (adapter ? "" : name);
-        const resolve = c => typeof c === "function" ? c(iface) : c;
-        return {
-            name: name,
-            displayName: (custom ? custom.displayName : "") || resolve(adapter ? adapter.display : null) || name,
-            interface: iface,
-            connectCmd: (custom && custom.connectCmd && custom.connectCmd.length > 0 ? custom.connectCmd : resolve(adapter ? adapter.connectCmd : null)) || [name, "up"],
-            disconnectCmd: (custom && custom.disconnectCmd && custom.disconnectCmd.length > 0 ? custom.disconnectCmd : resolve(adapter ? adapter.disconnectCmd : null)) || [name, "down"],
-            statusCmd: (adapter ? adapter.statusCmd : null) || ["ip", "link", "show"],
-            parse: (adapter ? adapter.parse : null) || (out => root.parseInterfaceStatus(out, iface)),
-            service: adapter ? adapter.service : `${name}d`,
-            connectHint: adapter ? adapter.connectHint : null,
-            registerCmd: adapter ? adapter.registerCmd : null,
-            serverCmd: adapter ? adapter.serverCmd : null,
-            parseServer: adapter ? adapter.parseServer : null
-        };
-    }
-
-    // Kept as thin readouts for the UI.
-    readonly property string providerName: active.name
-    readonly property string interfaceName: active.interface
-    readonly property var currentConfig: active
 
     readonly property var adapters: [wireguardAdapter, warpAdapter, netbirdAdapter, tailscaleAdapter]
-
-    // Live list of configured providers as QtObjects, one entry per provider
-    // with a stable index. Kept in sync with the config below and consumed by
-    // the VPN management UI (mirrors Nmcli's networks / ethernetDevices).
     readonly property list<Provider> providers: []
 
-    // Normalised, plain-data view of the configured providers. Re-evaluated
-    // whenever the config changes; syncProviders() folds it into `providers`.
     readonly property var providerConfigs: {
         const list = GlobalConfig.utilities.vpn.provider;
         const out = [];
         for (let i = 0; i < list.length; i++) {
-            const p = list[i];
-            const isObject = typeof p === "object";
+            const value = list[i];
+            const isObject = typeof value === "object";
             out.push({
                 index: i,
-                id: isObject ? (p.id || "") : "",
-                name: isObject ? (p.name || "custom") : String(p),
-                displayName: isObject ? (p.displayName || p.name || String(p)) : String(p),
-                interface: isObject ? (p.interface || "") : "",
-                connectCmd: isObject && p.connectCmd ? p.connectCmd : [],
-                disconnectCmd: isObject && p.disconnectCmd ? p.disconnectCmd : [],
-                isObject: isObject
+                id: isObject ? (value.id || "") : "",
+                name: isObject ? (value.name || "custom") : String(value),
+                displayName: isObject ? (value.displayName || "") : "",
+                interface: isObject ? (value.interface || "") : "",
+                connectCmd: isObject && value.connectCmd ? value.connectCmd : [],
+                disconnectCmd: isObject && value.disconnectCmd ? value.disconnectCmd : [],
+                enabled: isObject && value.enabled === true
             });
         }
         return out;
     }
 
-    // Sync the normalised config into the `providers` object list, reusing
-    // existing entries by index. Same create/update/destroy diff as
-    // Nmcli.syncEthernetDevices / getNetworks.
+    function disconnectedStatus(): var {
+        return {
+            connected: false,
+            state: "disconnected",
+            reason: "",
+            authUrl: "",
+            server: ""
+        };
+    }
+
     function syncProviders(): void {
         const configs = root.providerConfigs;
-        const rProviders = root.providers;
+        const byId = new Map(configs.map(config => [config.id, config]));
 
-        const newMap = new Map();
-        for (const c of configs)
-            newMap.set(c.index, c);
-
-        for (let i = rProviders.length - 1; i >= 0; i--) {
-            if (!newMap.has(rProviders[i].index)) {
-                const removed = rProviders.splice(i, 1)[0];
+        for (let i = root.providers.length - 1; i >= 0; i--) {
+            if (!byId.has(root.providers[i].providerId)) {
+                const removed = root.providers.splice(i, 1)[0];
                 removed.destroy();
             }
         }
 
-        const existingMap = new Map();
-        for (const rp of rProviders)
-            existingMap.set(rp.index, rp);
-
-        for (const [index, data] of newMap) {
-            const match = existingMap.get(index);
-            if (match)
-                match.lastIpcObject = data;
+        const existing = new Map(root.providers.map(provider => [provider.providerId, provider]));
+        for (const config of configs) {
+            const provider = existing.get(config.id);
+            if (provider)
+                provider.lastIpcObject = config;
             else
-                rProviders.push(providerComp.createObject(root, {
-                    lastIpcObject: data
+                root.providers.push(providerComp.createObject(root, {
+                    lastIpcObject: config
                 }));
         }
     }
 
-    // Generate a stable, opaque internal id for a provider entry.
     function generateId(): string {
         return `vpn-${Date.now().toString(36)}-${Math.floor(Math.random() * 0x1000000).toString(36)}`;
     }
 
-    // Rebuild a provider object for persistence, preserving optional commands.
-    // `id` is the provider's stable internal id.
     function buildProviderObject(id: string, data: var): var {
-        const obj = {
+        const object = {
             id: id,
             name: data.name,
             displayName: data.displayName,
-            interface: data.interface
+            interface: data.interface,
+            enabled: data.enabled === true
         };
         if (data.connectCmd && data.connectCmd.length > 0)
-            obj.connectCmd = data.connectCmd;
+            object.connectCmd = data.connectCmd;
         if (data.disconnectCmd && data.disconnectCmd.length > 0)
-            obj.disconnectCmd = data.disconnectCmd;
-        return obj;
+            object.disconnectCmd = data.disconnectCmd;
+        return object;
     }
 
-    // Persist the whole provider list back to config (file-backed).
-    function writeProviders(providers: var): void {
-        GlobalConfig.utilities.vpn.provider = providers;
+    function writeProviders(entries: var): void {
+        GlobalConfig.utilities.vpn.provider = entries;
     }
 
-    // Resolve the stable internal id of the provider entry at `index`.
     function providerIdAt(index: int): string {
         const entry = GlobalConfig.utilities.vpn.provider[index];
-        return (entry && typeof entry === "object") ? (entry.id || "") : "";
+        return entry && typeof entry === "object" ? (entry.id || "") : "";
     }
 
-    // Add a new provider. data: { name, displayName, interface, connectCmd[],
-    // disconnectCmd[] }. Newly added providers are not selected by default.
+    function providerById(id: string): var {
+        return root.providers.find(provider => provider.providerId === id);
+    }
+
+    function isSelected(id: string): bool {
+        return root.selectedProviders.includes(id);
+    }
+
+    function setSelected(id: string, selected: bool): void {
+        writeProviders(GlobalConfig.utilities.vpn.provider.map(entry => {
+            if (typeof entry !== "object" || entry.id !== id)
+                return entry;
+            return Object.assign({}, entry, {enabled: selected});
+        }));
+    }
+
     function addProvider(data: var): void {
         const current = GlobalConfig.utilities.vpn.provider.slice();
         current.push(buildProviderObject(root.generateId(), data));
         writeProviders(current);
     }
 
-    // Update an existing provider (by index), preserving its internal id so the
-    // selection sticks even when the name changes.
-    function updateProvider(index: int, data: var): void {
+    function commitProviderUpdate(index: int, data: var): void {
         const current = GlobalConfig.utilities.vpn.provider;
         const id = root.providerIdAt(index) || root.generateId();
-        const result = [];
-        for (let i = 0; i < current.length; i++)
-            result.push(i === index ? buildProviderObject(id, data) : current[i]);
-        writeProviders(result);
+        writeProviders(current.map((entry, i) => i === index ? buildProviderObject(id, Object.assign({}, data, {enabled: entry.enabled === true})) : entry));
     }
 
-    // Delete a provider by index. ensureSelection() re-homes the selection to
-    // the first remaining provider if the deleted one was selected.
-    function deleteProvider(index: int): void {
-        const current = GlobalConfig.utilities.vpn.provider;
-        const result = [];
-        for (let i = 0; i < current.length; i++)
-            if (i !== index)
-                result.push(current[i]);
-        writeProviders(result);
-    }
-
-    // Make the provider at `index` the selected one. If a VPN is currently
-    // connected, disconnect first, switch, then reconnect.
-    function setActiveProvider(index: int): void {
-        const id = root.providerIdAt(index);
-        if (id.length === 0)
-            return;
-        if (root.connected) {
-            root.pendingSwitchProvider = id;
-            root.disconnect();
+    function updateProvider(index: int, data: var): void {
+        const provider = root.providerById(root.providerIdAt(index));
+        if (provider.connected || provider.connecting) {
+            provider.pendingUpdate = data;
+            provider.disconnect();
         } else {
-            applySelectedProvider(id);
+            root.commitProviderUpdate(index, data);
         }
     }
 
-    function applySelectedProvider(id: string): void {
-        GlobalConfig.utilities.vpn.selectedProvider = id;
+    function commitProviderDelete(id: string): void {
+        writeProviders(GlobalConfig.utilities.vpn.provider.filter(entry => typeof entry !== "object" || entry.id !== id));
     }
 
-    // Guarantee there is always a valid selection while any provider exists: if
-    // the stored id matches no configured provider, fall back to the first one
-    // (or clear it when the list is empty).
-    function ensureSelection(): void {
-        const configs = root.providerConfigs;
-        if (configs.some(p => p.id === root.selectedProvider))
-            return;
-        const next = configs.length > 0 ? configs[0].id : "";
-        if (next !== root.selectedProvider)
-            GlobalConfig.utilities.vpn.selectedProvider = next;
+    function deleteProvider(index: int): void {
+        const id = root.providerIdAt(index);
+        const provider = root.providerById(id);
+        if (provider.connected || provider.connecting) {
+            provider.deleteAfterDisconnect = true;
+            provider.disconnect();
+        } else {
+            root.commitProviderDelete(id);
+        }
+    }
+
+    function toggleProvider(index: int): void {
+        const provider = root.providerById(root.providerIdAt(index));
+        const select = !root.isSelected(provider.providerId);
+        root.setSelected(provider.providerId, select);
+        select ? provider.connect() : provider.disconnect();
     }
 
     function connect(): void {
-        if (status.state === "needs-auth" && status.authUrl) {
-            emitStatusToast(status);
-            return;
-        }
-        if (!connected && !connecting) {
-            connectPending = true;
-            connectProc.exec(active.connectCmd);
-        }
+        for (const provider of root.providers)
+            if (provider.isSelected)
+                provider.connect();
     }
 
     function disconnect(): void {
-        if (connected && !connecting) {
-            disconnectPending = true;
-            disconnectProc.exec(active.disconnectCmd);
-        }
+        for (const provider of root.providers)
+            if (provider.connected || provider.connecting)
+                provider.disconnect();
     }
 
     function toggle(): void {
-        connected ? disconnect() : connect();
-    }
-
-    function reportConnectFailure(reason: string): void {
-        connectPending = false;
-        connected = false;
-        connectedChanged(); // Force bindings to reeval (mainly for switches)
-        if (GlobalConfig.utilities.toasts.vpnChanged)
-            Toaster.toast(qsTr("VPN connection failed"), reason, "vpn_key_alert");
-    }
-
-    function reportDisconnectFailure(reason: string): void {
-        disconnectPending = false;
-        connectedChanged(); // Force bindings to reeval (mainly for switches)
-        if (GlobalConfig.utilities.toasts.vpnChanged)
-            Toaster.toast(qsTr("VPN disconnection failed"), reason, "vpn_key_alert");
+        root.connected || root.connecting ? root.disconnect() : root.connect();
     }
 
     function checkStatus(): void {
-        if (root.selectedProvider.length > 0) {
-            statusProc.running = true;
-        }
+        for (const provider of root.providers)
+            if (provider.isSelected || provider.connecting || provider.disconnecting)
+                provider.checkStatus();
+    }
+
+    function refreshStats(): void {
+        for (const provider of root.providers)
+            if (provider.isSelected && provider.connected)
+                provider.refreshStats();
     }
 
     function formatBytes(bytes: var): string {
@@ -290,74 +199,32 @@ Singleton {
             return "0 B";
         const units = ["B", "KB", "MB", "GB", "TB"];
         let i = 0;
-        let v = bytes;
-        while (v >= 1024 && i < units.length - 1) {
-            v /= 1024;
+        let value = bytes;
+        while (value >= 1024 && i < units.length - 1) {
+            value /= 1024;
             i++;
         }
-        return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
-    }
-
-    // Refresh live In/Out byte counters, tunnel latency and - for providers
-    // that expose one - the server location.
-    function refreshStats(): void {
-        if (!connected)
-            return;
-        const iface = active.interface;
-        if (iface.length > 0) {
-            statsProc.command = ["sh", "-c", `cat /sys/class/net/${iface}/statistics/rx_bytes /sys/class/net/${iface}/statistics/tx_bytes 2>/dev/null`];
-            statsProc.running = true;
-            // Measure latency over the tunnel by binding the ping to the VPN
-            // interface (-I), so the result reflects the VPN path, not the LAN.
-            if (!pingProc.running) {
-                pingProc.command = ["sh", "-c", `ping -c1 -W2 -I ${iface} 1.1.1.1 2>/dev/null || ping -c1 -W2 1.1.1.1 2>/dev/null`];
-                pingProc.running = true;
-            }
-        }
-        if (active.serverCmd && serverLocation.length === 0)
-            serverProc.exec(active.serverCmd);
+        return `${value.toFixed(value < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
     }
 
     function parseTailscaleStatus(output: string): var {
-        const status = {
-            connected: false,
-            state: "disconnected",
-            reason: "",
-            authUrl: "",
-            server: ""
-        };
-
-        // Handle empty or whitespace-only output
-        if (!output || output.trim().length === 0) {
+        const status = disconnectedStatus();
+        if (!output || output.trim().length === 0 || output.includes("Logged out") || output.includes("Stopped") || output.includes("not running"))
             return status;
-        }
-
-        // Check for common non-JSON states first
-        if (output.includes("Logged out") || output.includes("Stopped") || output.includes("not running") || output.includes("Tailscale is not running")) {
-            status.state = "disconnected";
-            return status;
-        }
-
-        // Try to parse as JSON
         try {
             const data = JSON.parse(output);
             const backendState = data.BackendState || "";
-
             if (backendState === "Running") {
                 status.connected = true;
                 status.state = "connected";
-
-                // Exit node, if one is in use, is the most meaningful "server".
-                try {
-                    const peers = data.Peer || {};
-                    for (const key in peers) {
-                        const p = peers[key];
-                        if (p && p.ExitNode) {
-                            status.server = (p.DNSName || p.HostName || "").replace(/\.$/, "");
-                            break;
-                        }
+                const peers = data.Peer || {};
+                for (const key in peers) {
+                    const peer = peers[key];
+                    if (peer && peer.ExitNode) {
+                        status.server = (peer.DNSName || peer.HostName || "").replace(/\.$/, "");
+                        break;
                     }
-                } catch (e2) {}
+                }
             } else if (backendState === "Starting") {
                 status.state = "connecting";
             } else if (backendState === "NeedsLogin" || backendState === "NeedsMachineAuth") {
@@ -365,48 +232,29 @@ Singleton {
                 status.reason = backendState === "NeedsLogin" ? "Login required" : "Machine authorization required";
                 status.authUrl = data.AuthURL || "";
             }
-        } catch (e) {
-            // JSON parsing failed - treat as disconnected unless it looks like an error
-            if (output.includes("error") || output.includes("Error") || output.includes("failed")) {
-                status.state = "disconnected";
+        } catch (error) {
+            if (output.includes("error") || output.includes("Error") || output.includes("failed"))
                 status.reason = "Tailscale may not be running";
-            } else {
-                status.state = "disconnected";
-            }
         }
         return status;
     }
 
     function parseNetBirdStatus(output: string): var {
-        const status = {
-            connected: false,
-            state: "disconnected",
-            reason: "",
-            authUrl: "",
-            server: ""
-        };
+        const status = disconnectedStatus();
         try {
             const data = JSON.parse(output);
-            const mgmtConnected = data.management?.connected;
-            const signalConnected = data.signal?.connected;
-
-            if (mgmtConnected && signalConnected) {
+            if (data.management?.connected && data.signal?.connected) {
                 status.connected = true;
                 status.state = "connected";
-                // The management server URL is the most stable "server" value.
                 const url = data.management?.url || data.management?.URL || "";
                 if (url)
                     status.server = url.replace(/^https?:\/\//, "").replace(/:\d+$/, "");
             } else if (data.management?.error) {
                 const error = data.management.error;
-                if (error.includes("auth") || error.includes("login")) {
-                    status.state = "needs-auth";
-                    status.reason = "Authentication required";
-                } else {
-                    status.reason = error;
-                }
+                status.state = error.includes("auth") || error.includes("login") ? "needs-auth" : "error";
+                status.reason = error;
             }
-        } catch (e) {
+        } catch (error) {
             status.state = "error";
             status.reason = "Failed to parse status";
         }
@@ -414,18 +262,7 @@ Singleton {
     }
 
     function parseWarpStatus(output: string): var {
-        const status = {
-            connected: false,
-            state: "disconnected",
-            reason: "",
-            authUrl: "",
-            server: ""
-        };
-
-        // Order matters: "Disconnected" contains the substring "Connected",
-        // so the disconnected/registration cases must be checked first. Recent
-        // warp-cli prints lines like "Status update: Connected" /
-        // "Status update: Disconnected\nReason: ...".
+        const status = disconnectedStatus();
         if (output.includes("Registration Missing") || output.includes("registration") || output.includes("register") || output.includes("Unable to connect")) {
             status.state = "needs-auth";
             status.reason = "WARP registration required";
@@ -443,17 +280,8 @@ Singleton {
         return status;
     }
 
-    // Generic status for providers without a status command: the tunnel is up
-    // if its interface shows up in `ip link show`.
     function parseInterfaceStatus(output: string, iface: string): var {
-        const status = {
-            connected: false,
-            state: "disconnected",
-            reason: "",
-            authUrl: "",
-            server: ""
-        };
-
+        const status = disconnectedStatus();
         if (iface && output.includes(iface + ":")) {
             status.connected = true;
             status.state = "connected";
@@ -462,20 +290,17 @@ Singleton {
     }
 
     function parseWarpServer(output: string): string {
-        // Look for an endpoint hint in the tunnel stats output. WARP shows an
-        // "Endpoint" line with the server IP.
-        const lines = output.split("\n");
-        for (const line of lines) {
-            const m = line.match(/Endpoint[^\d]*([\d.]+)/i);
-            if (m)
-                return m[1];
+        for (const line of output.split("\n")) {
+            const match = line.match(/Endpoint[^\d]*([\d.]+)/i);
+            if (match)
+                return match[1];
         }
         return "";
     }
 
     function extractAuthUrl(text: string): string {
-        const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
-        return urlMatch ? urlMatch[1] : "";
+        const match = text.match(/(https?:\/\/[^\s]+)/);
+        return match ? match[1] : "";
     }
 
     function createAuthStatus(authUrl: string): var {
@@ -488,174 +313,63 @@ Singleton {
         };
     }
 
-    function updateStatus(newStatus: var): void {
-        const oldState = status.state;
-        if (newStatus.state === "needs-auth" && !newStatus.authUrl && status.authUrl) {
-            newStatus.authUrl = status.authUrl;
-        }
-
-        status = newStatus;
-        root.connected = newStatus.connected;
-
-        // A fresh status is authoritative; drop any in-flight connect/disconnect wait.
-        root.connectPending = false;
-        root.disconnectPending = false;
-
-        // Surface a server parsed straight out of the status output; providers
-        // with a dedicated server command fill this via refreshStats() instead.
-        if (newStatus.connected && newStatus.server)
-            root.serverLocation = newStatus.server;
-
-        if (oldState !== newStatus.state) {
-            emitStatusToast(newStatus);
-        }
-
-        // Auto connect if config was enabled on init
-        if (root.autoConnectPending) {
-            root.autoConnectPending = false;
-            if (!newStatus.connected)
-                root.connect();
-        }
-    }
-
-    function emitStatusToast(statusObj: var): void {
-        if (!GlobalConfig.utilities.toasts.vpnChanged)
-            return;
-
-        const displayName = active.displayName || "VPN";
-
-        switch (statusObj.state) {
-        case "connected":
-            Toaster.toast(qsTr("VPN connected"), qsTr("Connected to %1").arg(displayName), "vpn_key");
-            break;
-        case "disconnected":
-            Toaster.toast(qsTr("VPN disconnected"), qsTr("Disconnected from %1").arg(displayName), "vpn_key_off");
-            break;
-        case "needs-auth":
-            const authMsg = statusObj.reason || "Authentication required";
-            Toaster.toast(qsTr("VPN authentication required"), qsTr("%1: %2").arg(displayName).arg(authMsg), "vpn_lock");
-            break;
-        case "error":
-            if (status.state === "connected" || status.state === "connecting" || status.state === "needs-auth") {
-                const errMsg = statusObj.reason || "Unknown error";
-                Toaster.toast(qsTr("VPN error"), qsTr("%1: %2").arg(displayName).arg(errMsg), "error");
-            }
-            break;
-        }
-    }
-
-    // Ensure every provider entry is an object carrying a stable internal id,
-    // and fold any legacy per-provider `enabled` flag into the single selection.
-    // Runs once at startup and rewrites the config only if something changed.
     function migrateProviders(): void {
-        const list = GlobalConfig.utilities.vpn.provider;
         const result = [];
-        let selectedId = root.selectedProvider;
         let changed = false;
+        const legacySelection = GlobalConfig.utilities.vpn.selectedProvider;
 
-        for (const p of list) {
-            const isObject = typeof p === "object";
-            const obj = isObject ? Object.assign({}, p) : {
-                name: String(p)
-            };
-            if (!isObject)
-                changed = true;
-            if (!obj.id) {
-                obj.id = root.generateId();
+        for (const value of GlobalConfig.utilities.vpn.provider) {
+            const isObject = typeof value === "object";
+            const object = isObject ? Object.assign({}, value) : {name: String(value)};
+            if (!object.id) {
+                object.id = root.generateId();
                 changed = true;
             }
-            if (obj.enabled === true && selectedId.length === 0)
-                selectedId = obj.id;
-            if ("enabled" in obj) {
-                delete obj.enabled;
+            if (object.id === legacySelection && object.enabled !== true) {
+                object.enabled = true;
                 changed = true;
             }
-            result.push(obj);
+            result.push(object);
         }
 
-        if (selectedId !== root.selectedProvider)
-            GlobalConfig.utilities.vpn.selectedProvider = selectedId;
+        if (legacySelection)
+            GlobalConfig.utilities.vpn.selectedProvider = "";
         if (changed)
             writeProviders(result);
     }
 
-    onConnectedChanged: {
-        // Stamp / clear the connection start time and the per-connection stats.
-        if (connected) {
-            if (connectedSince === 0)
-                connectedSince = Date.now();
-        } else {
-            connectedSince = 0;
-            bytesIn = "";
-            bytesOut = "";
-            serverLocation = "";
-            pingMs = -1;
-        }
-
-        // Update config flag, but not on provider switch
-        if (pendingSwitchProvider.length === 0 && GlobalConfig.utilities.vpn.enabled !== connected)
-            GlobalConfig.utilities.vpn.enabled = connected;
-
-        if (!connected && pendingSwitchProvider.length > 0) {
-            const id = pendingSwitchProvider;
-            pendingSwitchProvider = "";
-            Qt.callLater(() => {
-                applySelectedProvider(id);
-                root.connect();
-            });
+    function emitStatusToast(provider: var, statusObject: var): void {
+        if (!GlobalConfig.utilities.toasts.vpnChanged)
+            return;
+        const name = provider.displayName || "VPN";
+        switch (statusObject.state) {
+        case "connected":
+            Toaster.toast(qsTr("VPN connected"), qsTr("Connected to %1").arg(name), "vpn_key");
+            break;
+        case "disconnected":
+            Toaster.toast(qsTr("VPN disconnected"), qsTr("Disconnected from %1").arg(name), "vpn_key_off");
+            break;
+        case "needs-auth":
+            Toaster.toast(qsTr("VPN authentication required"), qsTr("%1: %2").arg(name).arg(statusObject.reason || "Authentication required"), "vpn_lock");
+            break;
+        case "error":
+            Toaster.toast(qsTr("VPN error"), qsTr("%1: %2").arg(name).arg(statusObject.reason || "Unknown error"), "error");
+            break;
         }
     }
 
-    onStatusChanged: {
-        // Providers that can self-register (WARP) do so on demand.
-        if (status.state === "needs-auth" && active.registerCmd)
-            registerProc.exec(active.registerCmd);
-    }
-
-    onProviderConfigsChanged: {
-        root.syncProviders();
-        root.ensureSelection();
-    }
-
-    onSelectedProviderChanged: {
-        status = {
-            connected: false,
-            state: "disconnected",
-            reason: "",
-            authUrl: "",
-            server: ""
-        };
-        root.connected = false;
-        root.connectPending = false;
-        root.disconnectPending = false;
-        root.serverLocation = "";
-        root.bytesIn = "";
-        root.bytesOut = "";
-        root.pingMs = -1;
-        statusCheckTimer.start();
-    }
+    onProviderConfigsChanged: root.syncProviders()
+    onConnectedChanged: GlobalConfig.utilities.vpn.enabled = connected
 
     Component.onCompleted: {
         root.migrateProviders();
-        root.ensureSelection();
         root.syncProviders();
-        if (root.selectedProvider.length > 0) {
-            root.autoConnectPending = GlobalConfig.utilities.vpn.enabled;
-            statusCheckTimer.start();
-        }
     }
-
-    // ── Provider adapters ───────────────────────────────────────────────────
-    // One adapter per built-in provider, holding everything that is specific
-    // to it. Supporting a new provider means adding one adapter here (plus a
-    // parser if it has a status command) - nothing else changes.
 
     Adapter {
         id: wireguardAdapter
 
         name: "wireguard"
-        // No daemon and no CLI status; the interface comes from config and the
-        // generic interface-presence check reports the state.
         display: iface => iface
         connectCmd: iface => ["pkexec", "wg-quick", "up", iface]
         disconnectCmd: iface => ["pkexec", "wg-quick", "down", iface]
@@ -672,10 +386,10 @@ Singleton {
         connectCmd: ["warp-cli", "connect"]
         disconnectCmd: ["warp-cli", "disconnect"]
         statusCmd: ["warp-cli", "status"]
-        parse: out => root.parseWarpStatus(out)
+        parse: output => root.parseWarpStatus(output)
         registerCmd: ["warp-cli", "registration", "new"]
         serverCmd: ["warp-cli", "tunnel", "stats"]
-        parseServer: out => root.parseWarpServer(out)
+        parseServer: output => root.parseWarpServer(output)
     }
 
     Adapter {
@@ -688,7 +402,7 @@ Singleton {
         connectCmd: ["netbird", "up", "--no-browser"]
         disconnectCmd: ["netbird", "down"]
         statusCmd: ["netbird", "status", "--json"]
-        parse: out => root.parseNetBirdStatus(out)
+        parse: output => root.parseNetBirdStatus(output)
     }
 
     Adapter {
@@ -701,215 +415,26 @@ Singleton {
         connectCmd: ["tailscale", "up"]
         disconnectCmd: ["tailscale", "down"]
         statusCmd: ["tailscale", "status", "--json"]
-        parse: out => root.parseTailscaleStatus(out)
+        parse: output => root.parseTailscaleStatus(output)
         connectHint: error => error.includes("Access denied") || error.includes("checkprefs access denied") ? "Permission denied. Run in terminal: sudo tailscale set --operator=$USER" : ""
     }
 
-    // ── Generic engine ──────────────────────────────────────────────────────
-
-    Process {
-        id: nmMonitor
-
-        running: root.selectedProvider.length > 0
-        command: ["nmcli", "monitor"]
-        stdout: SplitParser {
-            onRead: statusCheckTimer.restart()
-        }
-    }
-
-    Process {
-        id: statusProc
-
-        command: root.active.statusCmd
-        // qmllint disable incompatible-type
-        environment: ({
-                // qmllint enable incompatible-type
-                LANG: "C.UTF-8",
-                LC_ALL: "C.UTF-8"
-            })
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const newStatus = root.active.parse(text);
-                root.updateStatus(newStatus);
-            }
-        }
-        stderr: StdioCollector {
-            onStreamFinished: {
-                if (text.trim().length === 0)
-                    return;
-
-                const daemonDown = text.includes("doesn't appear to be running") || text.includes("failed to connect") || text.includes("daemon is not running") || (text.includes("not running") && root.active.service);
-                if (daemonDown && root.active.service) {
-                    root.updateStatus({
-                        connected: false,
-                        state: "disconnected",
-                        reason: `Service not running (run: sudo systemctl start ${root.active.service})`,
-                        authUrl: "",
-                        server: ""
-                    });
-                }
-            }
-        }
-    }
-
-    Process {
-        id: connectProc
-
-        onRunningChanged: {
-            if (running) {
-                root.connectExited = false;
-                return;
-            }
-
-            if (!root.connectExited) {
-                console.warn(lc, `Failed to start connect command '${command.join(" ")}'`);
-                root.reportConnectFailure(qsTr("Could not start %1. Is it installed?").arg(root.active.displayName));
-            }
+    Connections {
+        function onNetworkEvent(): void {
+            root.checkStatus();
         }
 
-        onExited: exitCode => { // qmllint disable signal-handler-parameters
-            root.connectExited = true;
-
-            // Deferred so an auth URL parsed from the output wins the race.
-            Qt.callLater(() => {
-                if (root.status.state === "needs-auth")
-                    return;
-
-                if (exitCode !== 0) {
-                    console.warn(lc, `Connect command '${command.join(" ")}' failed with exit code`, exitCode);
-                    root.reportConnectFailure(qsTr("Could not connect to %1").arg(root.active.displayName));
-                    return;
-                }
-
-                statusCheckTimer.start();
-            });
-        }
-        stdout: SplitParser {
-            onRead: data => {
-                const authUrl = root.extractAuthUrl(data);
-                if (authUrl) {
-                    root.updateStatus(root.createAuthStatus(authUrl));
-                }
-            }
-        }
-        stderr: StdioCollector {
-            onStreamFinished: {
-                const error = text.trim();
-
-                // Let the provider turn a known failure into an actionable hint.
-                const hint = root.active.connectHint ? root.active.connectHint(error) : "";
-                if (hint) {
-                    root.updateStatus({
-                        connected: false,
-                        state: "disconnected",
-                        reason: hint,
-                        authUrl: "",
-                        server: ""
-                    });
-                    return;
-                }
-
-                const authUrl = root.extractAuthUrl(error);
-
-                if (authUrl) {
-                    root.updateStatus(root.createAuthStatus(authUrl));
-                } else if (error.includes("already exists")) {
-                    root.connectPending = false;
-                    root.connected = true;
-                }
-            }
-        }
-    }
-
-    Process {
-        id: disconnectProc
-
-        onRunningChanged: {
-            if (running) {
-                root.disconnectExited = false;
-                return;
-            }
-
-            if (!root.disconnectExited) {
-                console.warn(lc, `Failed to start disconnect command '${command.join(" ")}'`);
-                root.reportDisconnectFailure(qsTr("Could not start %1. Is it installed?").arg(root.active.displayName));
-            }
-        }
-
-        onExited: { // qmllint disable signal-handler-parameters
-            root.disconnectExited = true;
-            statusCheckTimer.start();
-        }
-        stderr: StdioCollector {
-            onStreamFinished: {
-                const error = text.trim();
-                if (error && !error.includes("[#]")) {
-                    console.warn(lc, "Disconnection error:", error);
-                }
-            }
-        }
-    }
-
-    Process {
-        id: registerProc
-
-        onExited: exitCode => { // qmllint disable signal-handler-parameters
-            if (exitCode === 0) {
-                statusCheckTimer.start();
-            }
-        }
-    }
-
-    // Reads cumulative rx/tx bytes for the active VPN interface from sysfs.
-    Process {
-        id: statsProc
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const nums = text.trim().split("\n").map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
-                if (nums.length >= 2) {
-                    root.bytesIn = root.formatBytes(nums[0]);
-                    root.bytesOut = root.formatBytes(nums[1]);
-                }
-            }
-        }
-    }
-
-    Process {
-        id: pingProc
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const m = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
-                if (m) {
-                    root.pingMs = Math.round(parseFloat(m[1]));
-                } else if (root.connected) {
-                    // Reachable interface but no reply parsed → mark unknown.
-                    root.pingMs = -1;
-                }
-            }
-        }
-    }
-
-    Process {
-        id: serverProc
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.active.parseServer) {
-                    const server = root.active.parseServer(text);
-                    if (server)
-                        root.serverLocation = server;
-                }
-            }
-        }
+        target: Nmcli // qmllint disable incompatible-type
     }
 
     Timer {
-        id: statusCheckTimer
-
-        interval: 500
-        onTriggered: root.checkStatus()
+        running: root.selectedProviders.length > 0 || root.connecting || root.disconnecting
+        repeat: true
+        interval: root.connecting || root.disconnecting ? 5000 : 60000
+        onTriggered: {
+            root.checkStatus();
+            root.refreshStats();
+        }
     }
 
     Component {
@@ -925,29 +450,275 @@ Singleton {
         defaultLogLevel: LoggingCategory.Info
     }
 
-    // A single configured provider, wrapping the normalised config data. Mirrors
-    // Nmcli's AccessPoint / EthernetDevice objects.
     component Provider: QtObject {
+        id: provider
+
         required property var lastIpcObject
         readonly property int index: lastIpcObject.index
         readonly property string providerId: lastIpcObject.id
         readonly property string name: lastIpcObject.name
-        readonly property string displayName: lastIpcObject.displayName
-        readonly property string iface: lastIpcObject.interface
+        readonly property string displayName: active.displayName
+        readonly property string iface: active.interface
         readonly property var connectCmd: lastIpcObject.connectCmd
         readonly property var disconnectCmd: lastIpcObject.disconnectCmd
-        readonly property bool isObject: lastIpcObject.isObject
+        readonly property bool isSelected: root.isSelected(providerId)
+
+        property var status: root.disconnectedStatus()
+        property bool connected: false
+        property bool connectPending: false
+        property bool disconnectPending: false
+        readonly property bool connecting: connectProcess.running || connectPending
+        readonly property bool disconnecting: disconnectProcess.running || disconnectPending
+        property bool connectExited: true
+        property bool disconnectExited: true
+        property bool autoConnectPending: GlobalConfig.utilities.vpn.enabled && isSelected
+        property var pendingUpdate: null
+        property bool deleteAfterDisconnect: false
+        property double connectedSince: 0
+        property string bytesIn: ""
+        property string bytesOut: ""
+        property int pingMs: -1
+        property string serverLocation: ""
+
+        readonly property var active: {
+            const adapter = root.adapters.find(value => value.name === provider.name) ?? null;
+            const iface = provider.lastIpcObject.interface || (adapter ? adapter.iface : "") || (adapter ? "" : provider.name);
+            const resolve = command => typeof command === "function" ? command(iface) : command;
+            return {
+                displayName: provider.lastIpcObject.displayName || resolve(adapter ? adapter.display : null) || provider.name,
+                interface: iface,
+                connectCmd: (provider.connectCmd.length > 0 ? provider.connectCmd : resolve(adapter ? adapter.connectCmd : null)) || [provider.name, "up"],
+                disconnectCmd: (provider.disconnectCmd.length > 0 ? provider.disconnectCmd : resolve(adapter ? adapter.disconnectCmd : null)) || [provider.name, "down"],
+                statusCmd: (adapter ? adapter.statusCmd : null) || ["ip", "link", "show"],
+                parse: (adapter ? adapter.parse : null) || (output => root.parseInterfaceStatus(output, iface)),
+                service: adapter ? adapter.service : `${provider.name}d`,
+                connectHint: adapter ? adapter.connectHint : null,
+                registerCmd: adapter ? adapter.registerCmd : null,
+                serverCmd: adapter ? adapter.serverCmd : null,
+                parseServer: adapter ? adapter.parseServer : null
+            };
+        }
+
+        property Process statusProcess: Process {
+            command: provider.active.statusCmd
+            environment: ({LANG: "C.UTF-8", LC_ALL: "C.UTF-8"}) // qmllint disable incompatible-type
+            stdout: StdioCollector {
+                onStreamFinished: provider.updateStatus(provider.active.parse(text))
+            }
+            stderr: StdioCollector {
+                onStreamFinished: {
+                    if (!text.trim())
+                        return;
+                    const daemonDown = text.includes("doesn't appear to be running") || text.includes("failed to connect") || text.includes("daemon is not running") || text.includes("not running");
+                    if (daemonDown && provider.active.service) {
+                        const next = root.disconnectedStatus();
+                        next.reason = `Service not running (run: sudo systemctl start ${provider.active.service})`;
+                        provider.updateStatus(next);
+                    }
+                }
+            }
+        }
+
+        property Process connectProcess: Process {
+            onRunningChanged: {
+                if (running) {
+                    provider.connectExited = false;
+                } else if (!provider.connectExited) {
+                    provider.connectPending = false;
+                    console.warn(lc, `Failed to start connect command '${command.join(" ")}'`);
+                }
+            }
+            onExited: exitCode => { // qmllint disable signal-handler-parameters
+                provider.connectExited = true;
+                if (exitCode !== 0) {
+                    provider.connectPending = false;
+                    Toaster.toast(qsTr("VPN connection failed"), qsTr("Could not connect to %1").arg(provider.displayName), "vpn_key_alert");
+                } else {
+                    provider.checkTimer.start();
+                }
+            }
+            stdout: SplitParser {
+                onRead: data => {
+                    const url = root.extractAuthUrl(data);
+                    if (url)
+                        provider.updateStatus(root.createAuthStatus(url));
+                }
+            }
+            stderr: StdioCollector {
+                onStreamFinished: {
+                    const error = text.trim();
+                    const hint = provider.active.connectHint ? provider.active.connectHint(error) : "";
+                    const url = root.extractAuthUrl(error);
+                    if (hint) {
+                        const next = root.disconnectedStatus();
+                        next.reason = hint;
+                        provider.updateStatus(next);
+                    } else if (url) {
+                        provider.updateStatus(root.createAuthStatus(url));
+                    } else if (error.includes("already exists")) {
+                        provider.checkTimer.start();
+                    }
+                }
+            }
+        }
+
+        property Process disconnectProcess: Process {
+            onRunningChanged: {
+                if (running) {
+                    provider.disconnectExited = false;
+                } else if (!provider.disconnectExited) {
+                    provider.disconnectPending = false;
+                    console.warn(lc, `Failed to start disconnect command '${command.join(" ")}'`);
+                }
+            }
+            onExited: { // qmllint disable signal-handler-parameters
+                provider.disconnectExited = true;
+                provider.checkTimer.start();
+            }
+        }
+
+        property Process registerProcess: Process {
+            onExited: exitCode => { // qmllint disable signal-handler-parameters
+                if (exitCode === 0)
+                    provider.checkTimer.start();
+            }
+        }
+
+        property Process statsProcess: Process {
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const values = text.trim().split("\n").map(value => parseInt(value.trim(), 10)).filter(value => !isNaN(value));
+                    if (values.length >= 2) {
+                        provider.bytesIn = root.formatBytes(values[0]);
+                        provider.bytesOut = root.formatBytes(values[1]);
+                    }
+                }
+            }
+        }
+
+        property Process pingProcess: Process {
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const match = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
+                    provider.pingMs = match ? Math.round(parseFloat(match[1])) : -1;
+                }
+            }
+        }
+
+        property Process serverProcess: Process {
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    if (provider.active.parseServer) {
+                        const server = provider.active.parseServer(text);
+                        if (server)
+                            provider.serverLocation = server;
+                    }
+                }
+            }
+        }
+
+        property Timer checkTimer: Timer {
+            interval: 500
+            onTriggered: provider.checkStatus()
+        }
+
+        function connect(): void {
+            if (status.state === "needs-auth" && status.authUrl) {
+                root.emitStatusToast(provider, status);
+            } else if (!connected && !connecting) {
+                connectPending = true;
+                connectProcess.exec(active.connectCmd);
+            }
+        }
+
+        function disconnect(): void {
+            if ((connected || connecting) && !disconnecting) {
+                disconnectPending = true;
+                disconnectProcess.exec(active.disconnectCmd);
+            }
+        }
+
+        function checkStatus(): void {
+            if (!statusProcess.running)
+                statusProcess.running = true;
+        }
+
+        function refreshStats(): void {
+            if (!connected)
+                return;
+            if (iface.length > 0) {
+                statsProcess.command = ["sh", "-c", `cat /sys/class/net/${iface}/statistics/rx_bytes /sys/class/net/${iface}/statistics/tx_bytes 2>/dev/null`];
+                statsProcess.running = true;
+                if (!pingProcess.running) {
+                    pingProcess.command = ["sh", "-c", `ping -c1 -W2 -I ${iface} 1.1.1.1 2>/dev/null || ping -c1 -W2 1.1.1.1 2>/dev/null`];
+                    pingProcess.running = true;
+                }
+            }
+            if (active.serverCmd && serverLocation.length === 0)
+                serverProcess.exec(active.serverCmd);
+        }
+
+        function updateStatus(newStatus: var): void {
+            const oldState = status.state;
+            if (newStatus.state === "needs-auth" && !newStatus.authUrl && status.authUrl)
+                newStatus.authUrl = status.authUrl;
+            status = newStatus;
+            connected = newStatus.connected;
+            connectPending = false;
+            disconnectPending = false;
+            if (newStatus.connected && newStatus.server)
+                serverLocation = newStatus.server;
+            if (oldState !== newStatus.state)
+                root.emitStatusToast(provider, newStatus);
+            if (autoConnectPending) {
+                autoConnectPending = false;
+                if (!newStatus.connected)
+                    connect();
+            }
+            if (!newStatus.connected && (oldState !== "disconnected" || deleteAfterDisconnect || pendingUpdate))
+                finishDisconnect();
+            if (newStatus.state === "needs-auth" && active.registerCmd)
+                registerProcess.exec(active.registerCmd);
+        }
+
+        function finishDisconnect(): void {
+            if (deleteAfterDisconnect) {
+                root.commitProviderDelete(providerId);
+                return;
+            }
+            if (pendingUpdate) {
+                const data = pendingUpdate;
+                pendingUpdate = null;
+                root.commitProviderUpdate(index, data);
+                Qt.callLater(() => provider.connect());
+            }
+        }
+
+        onConnectedChanged: {
+            if (connected) {
+                if (connectedSince === 0)
+                    connectedSince = Date.now();
+                if (isSelected)
+                    refreshStats();
+            } else {
+                connectedSince = 0;
+                bytesIn = "";
+                bytesOut = "";
+                serverLocation = "";
+                pingMs = -1;
+            }
+        }
+
+        Component.onCompleted: {
+            if (isSelected)
+                checkTimer.start();
+        }
     }
 
-    // Everything a provider needs to be driven by the generic engine above.
-    // Commands may be plain arrays or functions of the interface name; parse
-    // hooks are optional and fall back to the interface-presence check.
     component Adapter: QtObject {
         required property string name
         property var display
         property string iface
-        // Systemd unit behind the provider's CLI; used for the "service not
-        // running" hint. Empty = daemonless.
         property string service
         property var connectCmd
         property var disconnectCmd

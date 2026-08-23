@@ -6,6 +6,7 @@
 #include <qimage.h>
 #include <qimagereader.h>
 #include <qloggingcategory.h>
+#include <qpainter.h>
 #include <qrunnable.h>
 #include <qthreadpool.h>
 
@@ -89,14 +90,46 @@ private:
             }
         }
 
-        // Schedule cache job (this call will return the original image, but later ones will use cache)
-        ImageCacher::instance()->schedule(path, cachePath, size, m_fillMode);
-
-        m_image = QImage(path);
-        if (m_image.isNull()) {
-            m_error = QStringLiteral("Failed to decode source: ") + path;
+        QImageReader sourceReader(path);
+        const QSize sourceSize = sourceReader.size();
+        if (!sourceSize.isValid() || sourceSize.isEmpty()) {
+            m_error = QStringLiteral("Could not determine source size for: ") + path;
             qCWarning(lcCProv).noquote() << m_error;
+            return;
         }
+
+        Qt::AspectRatioMode scaleMode;
+        switch (m_fillMode) {
+        case ImageCacher::FillMode::Crop:
+            scaleMode = Qt::KeepAspectRatioByExpanding;
+            break;
+        case ImageCacher::FillMode::Fit:
+            scaleMode = Qt::KeepAspectRatio;
+            break;
+        case ImageCacher::FillMode::Stretch:
+            scaleMode = Qt::IgnoreAspectRatio;
+            break;
+        }
+
+        sourceReader.setScaledSize(sourceSize.scaled(size, scaleMode));
+        QImage image = sourceReader.read();
+        if (image.isNull()) {
+            m_error = QStringLiteral("Failed to decode source: ") + path + QStringLiteral(": ") + sourceReader.errorString();
+            qCWarning(lcCProv).noquote() << m_error;
+            return;
+        }
+
+        if (m_fillMode == ImageCacher::FillMode::Stretch) {
+            m_image = image;
+        } else {
+            m_image = QImage(size, QImage::Format_ARGB32);
+            m_image.fill(Qt::transparent);
+
+            QPainter painter(&m_image);
+            painter.drawImage((size.width() - image.width()) / 2, (size.height() - image.height()) / 2, image);
+        }
+
+        ImageCacher::instance()->schedule(cachePath, m_image);
     }
 
     QString m_id;

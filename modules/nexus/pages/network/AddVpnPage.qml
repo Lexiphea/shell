@@ -26,10 +26,6 @@ PageBase {
         return t.length > 0 ? t.split(/\s+/) : [];
     }
 
-    function arrEq(a: var, b: var): bool {
-        return a.length === b.length && a.every((x, i) => x === b[i]);
-    }
-
     function submit(): void {
         const name = nameField.text.trim();
         if (name.length === 0) {
@@ -47,25 +43,7 @@ PageBase {
         };
 
         if (editing) {
-            const needsReload = existing.providerId === VPN.selectedProvider && VPN.connected && (existing.name !== name || existing.iface !== data.interface || !arrEq(existing.connectCmd, data.connectCmd) || !arrEq(existing.disconnectCmd, data.disconnectCmd));
-            if (needsReload)
-                VPN.disconnect();
             VPN.updateProvider(editIndex, data);
-            if (needsReload) {
-                if (!VPN.connecting && !VPN.disconnecting) {
-                    VPN.connect();
-                } else if (VPN.disconnecting) {
-                    let onConnChanged = () => {
-                        if (onConnChanged && !VPN.disconnecting) {
-                            VPN.disconnectingChanged.disconnect(onConnChanged);
-                            onConnChanged = null;
-                            if (!VPN.connected)
-                                VPN.connect();
-                        }
-                    };
-                    VPN.disconnectingChanged.connect(onConnChanged);
-                }
-            }
         } else {
             VPN.addProvider(data);
         }
@@ -184,8 +162,6 @@ PageBase {
                 icon: "delete_forever"
                 text: qsTr("Delete")
                 onClicked: {
-                    if (root.existing.providerId === VPN.selectedProvider && VPN.connected)
-                        VPN.disconnect();
                     VPN.deleteProvider(root.existing.index);
                     root.nState.closeSubPage();
                 }

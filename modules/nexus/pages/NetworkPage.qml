@@ -120,21 +120,8 @@ PageBase {
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
             checked: VPN.connected
-            // Connectable as long as there's a provider and we're not mid-switch.
-            disabled: VPN.connecting || VPN.disconnecting || VPN.providers.length === 0
+            disabled: VPN.connecting || VPN.disconnecting || VPN.selectedProviders.length === 0
             onToggled: VPN.toggle()
-
-            Timer {
-                running: root.visible
-                repeat: true
-                triggeredOnStart: true
-                interval: 5000
-                onTriggered: {
-                    VPN.checkStatus();
-                    if (VPN.connected)
-                        VPN.refreshStats();
-                }
-            }
         }
 
         ItemList {
@@ -152,20 +139,17 @@ PageBase {
                 id: provider
 
                 required property var modelData // QML types are annoying (causes null errors on destruction if typed correctly)
-                readonly property bool isSelected: modelData.providerId === VPN.selectedProvider
-                readonly property bool isConnected: isSelected && VPN.connected
+                readonly property bool isSelected: modelData.isSelected
+                readonly property bool isConnected: modelData.connected
 
                 anchors.left: providerList.list.contentItem.left
                 anchors.right: providerList.list.contentItem.right
                 implicitHeight: providerLayout.implicitHeight + providerLayout.anchors.margins * 2
 
                 StateLayer {
-                    disabled: provider.isSelected
+                    disabled: provider.modelData.connecting || provider.modelData.disconnecting
                     radius: Tokens.rounding.extraSmall
-                    onClicked: {
-                        if (!provider.isSelected)
-                            VPN.setActiveProvider(provider.modelData.index);
-                    }
+                    onClicked: VPN.toggleProvider(provider.modelData.index)
                 }
 
                 RowLayout {
@@ -211,17 +195,17 @@ PageBase {
                             text: {
                                 if (!provider.isSelected)
                                     return qsTr("Tap to select");
-                                if (VPN.connecting)
+                                if (provider.modelData.connecting)
                                     return qsTr("Connecting...");
-                                if (VPN.disconnecting)
+                                if (provider.modelData.disconnecting)
                                     return qsTr("Disconnecting...");
-                                switch (VPN.status.state) {
+                                switch (provider.modelData.status.state) {
                                 case "connected":
                                     return qsTr("Connected");
                                 case "needs-auth":
-                                    return VPN.status.reason || qsTr("Authentication required");
+                                    return provider.modelData.status.reason || qsTr("Authentication required");
                                 case "error":
-                                    return VPN.status.reason || qsTr("An error occurred");
+                                    return provider.modelData.status.reason || qsTr("An error occurred");
                                 default:
                                     return qsTr("Selected");
                                 }
@@ -229,7 +213,7 @@ PageBase {
                             color: {
                                 if (!provider.isSelected)
                                     return Colours.palette.m3onSurfaceVariant;
-                                switch (VPN.status.state) {
+                                switch (provider.modelData.status.state) {
                                 case "connected":
                                     return Colours.palette.m3primary;
                                 case "needs-auth":
@@ -308,11 +292,11 @@ PageBase {
                                         implicitWidth: Math.round(Tokens.font.body.small.pointSize * 0.7)
                                         implicitHeight: implicitWidth
                                         radius: Tokens.rounding.full
-                                        color: VPN.pingMs <= 80 ? Colours.palette.m3primary : VPN.pingMs <= 150 ? Colours.palette.m3tertiary : Colours.palette.m3error
+                                        color: provider.modelData.pingMs <= 80 ? Colours.palette.m3primary : provider.modelData.pingMs <= 150 ? Colours.palette.m3tertiary : Colours.palette.m3error
                                     }
 
                                     StyledText {
-                                        text: qsTr("%1 ms").arg(VPN.pingMs)
+                                        text: provider.modelData.pingMs < 0 ? qsTr("—") : qsTr("%1 ms").arg(provider.modelData.pingMs)
                                         color: Colours.palette.m3outline
                                         font: Tokens.font.label.small
                                         elide: Text.ElideRight
