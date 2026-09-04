@@ -16,14 +16,8 @@ QtObject {
     property var locks: new Set()
 
     property date time: new Date()
-    property string timeStr: qsTr("now")
-
-    readonly property Timer timeStrTimer: Timer {
-        running: !notif.closed
-        repeat: true
-        interval: 5000
-        onTriggered: notif.updateTimeStr()
-    }
+    required property real ageClock
+    readonly property string timeStr: notif.formatTime(ageClock)
 
     property Notification notification
     property string notificationId
@@ -168,28 +162,18 @@ QtObject {
         target: notif.notification
     }
 
-    function updateTimeStr(): void {
-        const diff = Date.now() - time.getTime();
-        const m = Math.floor(diff / 60000);
+    function formatTime(now: real): string {
+        const m = Math.floor((now - time.getTime()) / 60000);
+        if (m < 1)
+            return qsTr("now");
 
-        if (m < 1) {
-            timeStr = qsTr("now");
-            timeStrTimer.interval = 5000;
-        } else {
-            const h = Math.floor(m / 60);
-            const d = Math.floor(h / 24);
-
-            if (d > 0) {
-                timeStr = `${d}d`;
-                timeStrTimer.interval = 3600000;
-            } else if (h > 0) {
-                timeStr = `${h}h`;
-                timeStrTimer.interval = 300000;
-            } else {
-                timeStr = `${m}m`;
-                timeStrTimer.interval = m < 10 ? 30000 : 60000;
-            }
-        }
+        const h = Math.floor(m / 60);
+        const d = Math.floor(h / 24);
+        if (d > 0)
+            return `${d}d`;
+        if (h > 0)
+            return `${h}h`;
+        return `${m}m`;
     }
 
     function maybeTriggerDummyImageLoader(): void {

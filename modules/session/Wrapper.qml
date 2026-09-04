@@ -28,6 +28,7 @@ Item {
     Loader {
         id: content
 
+        asynchronous: true
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
 

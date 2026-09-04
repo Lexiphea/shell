@@ -13,25 +13,33 @@ Item {
 
     property string source: Wallpapers.current
     property CachingImage current
+    property list<CachingImage> images: []
     property bool completed
 
-    onSourceChanged: {
-        if (!source)
+    function updateImage(): void {
+        if (!completed)
+            return;
+
+        if (!source) {
+            const oldImages = images;
+            images = [];
             current = null;
-        else
-            current = imgComp.createObject(this, {
-                path: source
-            });
+            for (const image of oldImages)
+                image.destroy();
+            return;
+        }
+
+        current = imgComp.createObject(this, {
+            path: source
+        });
+        images = [...images, current];
     }
 
+    onSourceChanged: updateImage()
+
     Component.onCompleted: {
-        if (source)
-            Qt.callLater(() => {
-                current = imgComp.createObject(this, {
-                    path: source
-                });
-                completed = true;
-            });
+        completed = true;
+        updateImage();
     }
 
     Loader {
@@ -127,7 +135,10 @@ Item {
             Timer {
                 running: root.current !== img && root.current?.status === Image.Ready
                 interval: anim.duration
-                onTriggered: img.destroy()
+                onTriggered: {
+                    root.images = root.images.filter(image => image !== img);
+                    img.destroy();
+                }
             }
         }
     }

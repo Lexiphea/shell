@@ -20,6 +20,8 @@ Singleton {
     property alias dnd: props.dnd
 
     property bool loaded
+    property double ageClock: Date.now()
+    readonly property int historyLimit: 50
 
     function hasFullscreen(): bool {
         for (const monitor of Hypr.monitors.values) {
@@ -50,6 +52,13 @@ Singleton {
     onListChanged: {
         if (loaded)
             saveTimer.restart();
+    }
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: root.ageClock = Date.now()
     }
 
     Timer {
@@ -99,6 +108,8 @@ Singleton {
                 notification: notif
             });
             root.list = [comp, ...root.list];
+            for (const old of root.list.slice(root.historyLimit))
+                old.close();
         }
     }
 
@@ -108,7 +119,8 @@ Singleton {
         printErrors: false
         path: `${Paths.state}/notifs.json`
         onLoaded: {
-            const data = JSON.parse(text());
+            const data = JSON.parse(text()).sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, root.historyLimit);
+            const list = [];
             for (const notif of data) {
                 const properties = Object.assign({}, notif);
 
@@ -117,9 +129,9 @@ Singleton {
                     properties.notificationId = properties.id;
 
                 delete properties.id;
-                root.list.push(notifComp.createObject(root, properties));
+                list.push(notifComp.createObject(root, properties));
             }
-            root.list.sort((a, b) => b.time - a.time);
+            root.list = list;
             root.loaded = true;
         }
         onLoadFailed: err => {
@@ -169,6 +181,8 @@ Singleton {
     Component {
         id: notifComp
 
-        NotifData {}
+        NotifData {
+            ageClock: root.ageClock
+        }
     }
 }

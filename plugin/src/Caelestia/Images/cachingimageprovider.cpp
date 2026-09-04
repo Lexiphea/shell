@@ -16,6 +16,17 @@ namespace caelestia::images {
 
 namespace {
 
+struct DecodePool {
+    DecodePool() { pool.setMaxThreadCount(4); }
+
+    QThreadPool pool;
+};
+
+QThreadPool& decodePool() {
+    static DecodePool s_pool;
+    return s_pool.pool;
+}
+
 class CachingImageResponse final : public QQuickImageResponse, public QRunnable {
 public:
     CachingImageResponse(const QString& id, const QSize& requestedSize, ImageCacher::FillMode fillMode)
@@ -146,7 +157,7 @@ CachingImageProvider::CachingImageProvider(FillMode fillMode)
 
 QQuickImageResponse* CachingImageProvider::requestImageResponse(const QString& id, const QSize& requestedSize) {
     auto* const response = new CachingImageResponse(id, requestedSize, m_fillMode);
-    QThreadPool::globalInstance()->start(response);
+    decodePool().start(response);
     return response;
 }
 

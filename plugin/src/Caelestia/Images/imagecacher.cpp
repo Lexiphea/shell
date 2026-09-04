@@ -15,6 +15,17 @@ namespace caelestia::images {
 
 namespace {
 
+struct CacheWritePool {
+    CacheWritePool() { pool.setMaxThreadCount(2); }
+
+    QThreadPool pool;
+};
+
+QThreadPool& cacheWritePool() {
+    static CacheWritePool s_pool;
+    return s_pool.pool;
+}
+
 QString fillSuffix(ImageCacher::FillMode fillMode) {
     switch (fillMode) {
     case ImageCacher::FillMode::Crop:
@@ -77,7 +88,7 @@ void ImageCacher::schedule(const QString& cachePath, const QImage& image) {
         m_inflight.insert(cachePath);
     }
 
-    QThreadPool::globalInstance()->start([this, cachePath, image]() {
+    cacheWritePool().start([this, cachePath, image]() {
         runJob(cachePath, image);
         QMutexLocker locker(&m_mutex);
         m_inflight.remove(cachePath);

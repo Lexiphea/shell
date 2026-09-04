@@ -46,6 +46,7 @@ Item {
     Loader {
         id: content
 
+        asynchronous: true
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
