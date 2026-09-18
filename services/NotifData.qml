@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Services.Notifications
 import Caelestia
 import Caelestia.Config
+import Caelestia.I18n
 import qs.services
 import qs.utils
 
@@ -165,15 +166,15 @@ QtObject {
     function formatTime(now: real): string {
         const m = Math.floor((now - time.getTime()) / 60000);
         if (m < 1)
-            return qsTr("now");
+            return Tr.tr("now");
 
         const h = Math.floor(m / 60);
         const d = Math.floor(h / 24);
         if (d > 0)
-            return `${d}d`;
+            return Tr.trCtx("%1d", "abbreviated notification age, days").arg(d);
         if (h > 0)
-            return `${h}h`;
-        return `${m}m`;
+            return Tr.trCtx("%1h", "abbreviated notification age, hours").arg(h);
+        return Tr.trCtx("%1m", "abbreviated notification age, minutes").arg(m);
     }
 
     function maybeTriggerDummyImageLoader(): void {

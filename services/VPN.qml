@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Caelestia
 import Caelestia.Config
+import Caelestia.I18n
 
 Singleton {
     id: root
@@ -25,21 +26,22 @@ Singleton {
     readonly property var adapters: [wireguardAdapter, warpAdapter, netbirdAdapter, tailscaleAdapter]
     readonly property list<Provider> providers: []
 
+    readonly property list<string> optionalKeys: ["displayName", "interface", "connectCmd", "disconnectCmd"]
+
     readonly property var providerConfigs: {
-        const list = GlobalConfig.utilities.vpn.provider;
+        const list = GlobalConfig.utilities.vpn.provider.values;
         const out = [];
         for (let i = 0; i < list.length; i++) {
             const value = list[i];
-            const isObject = typeof value === "object";
             out.push({
                 index: i,
-                id: isObject ? (value.id || "") : "",
-                name: isObject ? (value.name || "custom") : String(value),
-                displayName: isObject ? (value.displayName || "") : "",
-                interface: isObject ? (value.interface || "") : "",
-                connectCmd: isObject && value.connectCmd ? value.connectCmd : [],
-                disconnectCmd: isObject && value.disconnectCmd ? value.disconnectCmd : [],
-                enabled: isObject && value.enabled === true
+                id: value.id,
+                name: value.name || "custom",
+                displayName: value.displayName,
+                interface: value.interface,
+                connectCmd: value.connectCmd,
+                disconnectCmd: value.disconnectCmd,
+                enabled: value.enabled
             });
         }
         return out;
@@ -82,28 +84,20 @@ Singleton {
         return `vpn-${Date.now().toString(36)}-${Math.floor(Math.random() * 0x1000000).toString(36)}`;
     }
 
-    function buildProviderObject(id: string, data: var): var {
-        const object = {
+    function buildProviderProps(id: string, data: var): var {
+        const props = {
             id: id,
             name: data.name,
-            displayName: data.displayName,
-            interface: data.interface,
             enabled: data.enabled === true
         };
-        if (data.connectCmd && data.connectCmd.length > 0)
-            object.connectCmd = data.connectCmd;
-        if (data.disconnectCmd && data.disconnectCmd.length > 0)
-            object.disconnectCmd = data.disconnectCmd;
-        return object;
-    }
-
-    function writeProviders(entries: var): void {
-        GlobalConfig.utilities.vpn.provider = entries;
+        for (const key of root.optionalKeys)
+            if (data[key].length > 0)
+                props[key] = data[key];
+        return props;
     }
 
     function providerIdAt(index: int): string {
-        const entry = GlobalConfig.utilities.vpn.provider[index];
-        return entry && typeof entry === "object" ? (entry.id || "") : "";
+        return GlobalConfig.utilities.vpn.provider.at(index)?.id ?? "";
     }
 
     function providerById(id: string): var {
@@ -115,23 +109,28 @@ Singleton {
     }
 
     function setSelected(id: string, selected: bool): void {
-        writeProviders(GlobalConfig.utilities.vpn.provider.map(entry => {
-            if (typeof entry !== "object" || entry.id !== id)
-                return entry;
-            return Object.assign({}, entry, {enabled: selected});
-        }));
+        const entry = GlobalConfig.utilities.vpn.provider.values.find(value => value.id === id);
+        if (entry)
+            entry.enabled = selected;
     }
 
     function addProvider(data: var): void {
-        const current = GlobalConfig.utilities.vpn.provider.slice();
-        current.push(buildProviderObject(root.generateId(), data));
-        writeProviders(current);
+        GlobalConfig.utilities.vpn.provider.insert(root.buildProviderProps(root.generateId(), data));
     }
 
     function commitProviderUpdate(index: int, data: var): void {
-        const current = GlobalConfig.utilities.vpn.provider;
-        const id = root.providerIdAt(index) || root.generateId();
-        writeProviders(current.map((entry, i) => i === index ? buildProviderObject(id, Object.assign({}, data, {enabled: entry.enabled === true})) : entry));
+        const entry = GlobalConfig.utilities.vpn.provider.at(index);
+        if (!entry)
+            return;
+        if (!entry.id)
+            entry.id = root.generateId();
+        entry.name = data.name;
+        for (const key of root.optionalKeys) {
+            if (data[key].length > 0)
+                entry[key] = data[key];
+            else
+                entry.resetOption(key);
+        }
     }
 
     function updateProvider(index: int, data: var): void {
@@ -145,7 +144,10 @@ Singleton {
     }
 
     function commitProviderDelete(id: string): void {
-        writeProviders(GlobalConfig.utilities.vpn.provider.filter(entry => typeof entry !== "object" || entry.id !== id));
+        const list = GlobalConfig.utilities.vpn.provider;
+        const index = list.values.findIndex(entry => entry.id === id);
+        if (index >= 0)
+            list.remove(index);
     }
 
     function deleteProvider(index: int): void {
@@ -194,19 +196,6 @@ Singleton {
                 provider.refreshStats();
     }
 
-    function formatBytes(bytes: var): string {
-        if (!bytes || bytes <= 0)
-            return "0 B";
-        const units = ["B", "KB", "MB", "GB", "TB"];
-        let i = 0;
-        let value = bytes;
-        while (value >= 1024 && i < units.length - 1) {
-            value /= 1024;
-            i++;
-        }
-        return `${value.toFixed(value < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
-    }
-
     function parseTailscaleStatus(output: string): var {
         const status = disconnectedStatus();
         if (!output || output.trim().length === 0 || output.includes("Logged out") || output.includes("Stopped") || output.includes("not running"))
@@ -229,12 +218,12 @@ Singleton {
                 status.state = "connecting";
             } else if (backendState === "NeedsLogin" || backendState === "NeedsMachineAuth") {
                 status.state = "needs-auth";
-                status.reason = backendState === "NeedsLogin" ? "Login required" : "Machine authorization required";
+                status.reason = backendState === "NeedsLogin" ? Tr.mark("Login required") : Tr.mark("Machine authorisation required");
                 status.authUrl = data.AuthURL || "";
             }
         } catch (error) {
             if (output.includes("error") || output.includes("Error") || output.includes("failed"))
-                status.reason = "Tailscale may not be running";
+                status.reason = Tr.mark("Tailscale may not be running");
         }
         return status;
     }
@@ -256,7 +245,7 @@ Singleton {
             }
         } catch (error) {
             status.state = "error";
-            status.reason = "Failed to parse status";
+            status.reason = Tr.mark("Failed to parse status");
         }
         return status;
     }
@@ -265,7 +254,7 @@ Singleton {
         const status = disconnectedStatus();
         if (output.includes("Registration Missing") || output.includes("registration") || output.includes("register") || output.includes("Unable to connect")) {
             status.state = "needs-auth";
-            status.reason = "WARP registration required";
+            status.reason = Tr.mark("WARP registration required");
         } else if (output.includes("Disconnected")) {
             status.state = "disconnected";
         } else if (output.includes("Connecting")) {
@@ -275,7 +264,7 @@ Singleton {
             status.state = "connected";
         } else {
             status.state = "error";
-            status.reason = "Unknown WARP status";
+            status.reason = Tr.mark("Unknown WARP status");
         }
         return status;
     }
@@ -307,53 +296,42 @@ Singleton {
         return {
             connected: false,
             state: "needs-auth",
-            reason: "Authentication required",
+            reason: Tr.mark("Authentication required"),
             authUrl: authUrl,
             server: ""
         };
     }
 
     function migrateProviders(): void {
-        const result = [];
-        let changed = false;
         const legacySelection = GlobalConfig.utilities.vpn.selectedProvider;
-
-        for (const value of GlobalConfig.utilities.vpn.provider) {
-            const isObject = typeof value === "object";
-            const object = isObject ? Object.assign({}, value) : {name: String(value)};
-            if (!object.id) {
-                object.id = root.generateId();
-                changed = true;
-            }
-            if (object.id === legacySelection && object.enabled !== true) {
-                object.enabled = true;
-                changed = true;
-            }
-            result.push(object);
+        for (const entry of GlobalConfig.utilities.vpn.provider.values) {
+            if (!entry.id)
+                entry.id = root.generateId();
+            if (entry.id === legacySelection)
+                entry.enabled = true;
         }
-
         if (legacySelection)
             GlobalConfig.utilities.vpn.selectedProvider = "";
-        if (changed)
-            writeProviders(result);
     }
 
     function emitStatusToast(provider: var, statusObject: var): void {
         if (!GlobalConfig.utilities.toasts.vpnChanged)
             return;
-        const name = provider.displayName || "VPN";
+        const name = provider.displayName || Tr.tr("VPN");
         switch (statusObject.state) {
         case "connected":
-            Toaster.toast(qsTr("VPN connected"), qsTr("Connected to %1").arg(name), "vpn_key");
+            Toaster.toast(Tr.tr("VPN connected"), Tr.tr("Connected to %1").arg(name), "vpn_key");
             break;
         case "disconnected":
-            Toaster.toast(qsTr("VPN disconnected"), qsTr("Disconnected from %1").arg(name), "vpn_key_off");
+            Toaster.toast(Tr.tr("VPN disconnected"), Tr.tr("Disconnected from %1").arg(name), "vpn_key_off");
             break;
         case "needs-auth":
-            Toaster.toast(qsTr("VPN authentication required"), qsTr("%1: %2").arg(name).arg(statusObject.reason || "Authentication required"), "vpn_lock");
+            const authMsg = statusObject.reason ? Tr.trMarked(statusObject.reason) : Tr.tr("Authentication required");
+            Toaster.toast(Tr.tr("VPN authentication required"), Tr.trCtx("%1: %2", "vpn name and reason").arg(name).arg(authMsg), "vpn_lock");
             break;
         case "error":
-            Toaster.toast(qsTr("VPN error"), qsTr("%1: %2").arg(name).arg(statusObject.reason || "Unknown error"), "error");
+            const errMsg = statusObject.reason ? Tr.trMarked(statusObject.reason) : Tr.tr("Unknown error");
+            Toaster.toast(Tr.tr("VPN error"), Tr.trCtx("%1: %2", "vpn name and reason").arg(name).arg(errMsg), "error");
             break;
         }
     }
@@ -373,7 +351,8 @@ Singleton {
         display: iface => iface
         connectCmd: iface => ["pkexec", "wg-quick", "up", iface]
         disconnectCmd: iface => ["pkexec", "wg-quick", "down", iface]
-        connectHint: error => error.includes("Unknown device type") || error.includes("Protocol not supported") ? "WireGuard module not loaded. Run: sudo modprobe wireguard" : ""
+        // TRANSLATORS: %1 = a shell command, leave it untranslated
+        connectHint: error => error.includes("Unknown device type") || error.includes("Protocol not supported") ? Tr.mark("WireGuard module not loaded. Run: %1", ["sudo modprobe wireguard"]) : ""
     }
 
     Adapter {
@@ -416,7 +395,8 @@ Singleton {
         disconnectCmd: ["tailscale", "down"]
         statusCmd: ["tailscale", "status", "--json"]
         parse: output => root.parseTailscaleStatus(output)
-        connectHint: error => error.includes("Access denied") || error.includes("checkprefs access denied") ? "Permission denied. Run in terminal: sudo tailscale set --operator=$USER" : ""
+        // TRANSLATORS: %1 = a shell command, leave it untranslated
+        connectHint: error => error.includes("Access denied") || error.includes("checkprefs access denied") ? Tr.mark("Permission denied. Run in terminal: %1", ["sudo tailscale set --operator=$USER"]) : ""
     }
 
     Connections {
@@ -512,7 +492,8 @@ Singleton {
                     const daemonDown = text.includes("doesn't appear to be running") || text.includes("failed to connect") || text.includes("daemon is not running") || text.includes("not running");
                     if (daemonDown && provider.active.service) {
                         const next = root.disconnectedStatus();
-                        next.reason = `Service not running (run: sudo systemctl start ${provider.active.service})`;
+                        // TRANSLATORS: %1 = a shell command, leave it untranslated
+                        next.reason = Tr.mark("Service not running (run: %1)", [`sudo systemctl start ${provider.active.service}`]);
                         provider.updateStatus(next);
                     }
                 }
@@ -532,7 +513,7 @@ Singleton {
                 provider.connectExited = true;
                 if (exitCode !== 0) {
                     provider.connectPending = false;
-                    Toaster.toast(qsTr("VPN connection failed"), qsTr("Could not connect to %1").arg(provider.displayName), "vpn_key_alert");
+                    Toaster.toast(Tr.tr("VPN connection failed"), Tr.tr("Could not connect to %1").arg(provider.displayName), "vpn_key_alert");
                 } else {
                     provider.checkTimer.start();
                 }
@@ -589,8 +570,8 @@ Singleton {
                 onStreamFinished: {
                     const values = text.trim().split("\n").map(value => parseInt(value.trim(), 10)).filter(value => !isNaN(value));
                     if (values.length >= 2) {
-                        provider.bytesIn = root.formatBytes(values[0]);
-                        provider.bytesOut = root.formatBytes(values[1]);
+                        provider.bytesIn = Units.formatBytes(values[0]);
+                        provider.bytesOut = Units.formatBytes(values[1]);
                     }
                 }
             }

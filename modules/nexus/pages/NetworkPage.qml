@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
@@ -12,7 +13,7 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    title: qsTr("Network")
+    title: Tr.tr("Network")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -59,7 +60,7 @@ PageBase {
         ToggleRow {
             Layout.topMargin: Nmcli.hasAvailableEthernet ? Tokens.spacing.large : 0
             first: true
-            text: qsTr("Wi-Fi")
+            text: Tr.tr("Wi-Fi")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
             checked: Nmcli.wifiEnabled
@@ -84,7 +85,8 @@ PageBase {
             clip: true
 
             icon: "expand_content"
-            text: qsTr("Show all networks (%1)").arg(Nmcli.networks.length)
+            // TRANSLATORS: %1 = number of networks found
+            text: Tr.tr("Show all networks (%1)").arg(Nmcli.networks.length)
             trailingIcon: "chevron_right"
             onClicked: root.nState.openSubPage(5) // All networks sub-page
 
@@ -98,7 +100,7 @@ PageBase {
         // Saved networks button
         RowButton {
             icon: "bookmark"
-            text: qsTr("Saved networks")
+            text: Tr.tr("Saved networks")
             trailingIcon: "chevron_right"
             onClicked: root.nState.openSubPage(6) // Saved networks sub-page
         }
@@ -106,7 +108,7 @@ PageBase {
         RowButton {
             last: true
             icon: "add"
-            text: qsTr("Add network")
+            text: Tr.tr("Add network")
             disabled: !Nmcli.wifiEnabled
             onClicked: root.nState.openSubPage(2) // Add network sub-page
         }
@@ -116,7 +118,7 @@ PageBase {
             Layout.topMargin: Tokens.spacing.large
             Layout.fillWidth: true
             first: true
-            text: qsTr("VPN")
+            text: Tr.tr("VPN")
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
             checked: VPN.connected
@@ -129,7 +131,7 @@ PageBase {
 
             showList: true
             placeholderIcon: "add_circle"
-            placeholderText: qsTr("No VPN providers configured")
+            placeholderText: Tr.tr("No VPN providers configured")
 
             model: ScriptModel {
                 values: [...VPN.providers]
@@ -185,7 +187,7 @@ PageBase {
 
                         StyledText {
                             Layout.fillWidth: true
-                            text: provider.modelData.displayName
+                            text: provider.modelData.displayName || provider.modelData.name
                             font: Tokens.font.body.medium
                             elide: Text.ElideRight
                         }
@@ -194,20 +196,20 @@ PageBase {
                             Layout.fillWidth: true
                             text: {
                                 if (!provider.isSelected)
-                                    return qsTr("Tap to select");
+                                    return Tr.tr("Tap to select");
                                 if (provider.modelData.connecting)
-                                    return qsTr("Connecting...");
+                                    return Tr.tr("Connecting...");
                                 if (provider.modelData.disconnecting)
-                                    return qsTr("Disconnecting...");
+                                    return Tr.tr("Disconnecting...");
                                 switch (provider.modelData.status.state) {
                                 case "connected":
-                                    return qsTr("Connected");
+                                    return Tr.trCtx("Connected", "vpn state");
                                 case "needs-auth":
-                                    return provider.modelData.status.reason || qsTr("Authentication required");
+                                    return provider.modelData.status.reason ? Tr.trMarked(provider.modelData.status.reason) : Tr.tr("Authentication required");
                                 case "error":
-                                    return provider.modelData.status.reason || qsTr("An error occurred");
+                                    return provider.modelData.status.reason ? Tr.trMarked(provider.modelData.status.reason) : Tr.tr("An error occurred");
                                 default:
-                                    return qsTr("Selected");
+                                    return Tr.tr("Selected");
                                 }
                             }
                             color: {
@@ -254,7 +256,7 @@ PageBase {
 
                                 StyledText {
                                     Layout.alignment: Qt.AlignRight
-                                    text: qsTr("Interface")
+                                    text: Tr.trCtx("Interface", "network interface")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font: Tokens.font.label.small
                                     elide: Text.ElideRight
@@ -276,7 +278,7 @@ PageBase {
 
                                 StyledText {
                                     Layout.alignment: Qt.AlignRight
-                                    text: qsTr("Current Ping")
+                                    text: Tr.trCtx("Current ping", "round-trip latency to the VPN endpoint")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font: Tokens.font.label.small
                                     elide: Text.ElideRight
@@ -296,7 +298,7 @@ PageBase {
                                     }
 
                                     StyledText {
-                                        text: provider.modelData.pingMs < 0 ? qsTr("—") : qsTr("%1 ms").arg(provider.modelData.pingMs)
+                                        text: provider.modelData.pingMs < 0 ? "—" : Tr.tr("%1 ms").arg(provider.modelData.pingMs)
                                         color: Colours.palette.m3outline
                                         font: Tokens.font.label.small
                                         elide: Text.ElideRight
@@ -325,7 +327,7 @@ PageBase {
         RowButton {
             last: true
             icon: "add"
-            text: qsTr("Add provider")
+            text: Tr.tr("Add provider")
             onClicked: {
                 root.nState.editingVpnIndex = -1;
                 root.nState.openSubPage(4); // Add/edit provider sub-page
