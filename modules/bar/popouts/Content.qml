@@ -67,12 +67,12 @@ Item {
                                 (passwordPopout.item as WirelessPassword).network = (networkPopout.item as Network).passwordNetwork;
                             }
                         }
-                        // Also try after a short delay in case networkPopout.item wasn't ready
+                        // Also try on the next tick in case networkPopout.item wasn't ready
                         Qt.callLater(() => {
                             if (passwordPopout.item && (networkPopout.item as Network)?.passwordNetwork) {
                                 (passwordPopout.item as WirelessPassword).network = (networkPopout.item as Network).passwordNetwork;
                             }
-                        }, 100);
+                        });
                     }
                 }
 

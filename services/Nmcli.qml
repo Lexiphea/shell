@@ -309,10 +309,10 @@ Singleton {
         if (connectionName && connectionName.length > 0) {
             executeCommand([root.nmcliCommandConnection, "up", connectionName], result => {
                 if (result.success) {
-                    Qt.callLater(() => {
+                    delay(() => {
                         getEthernetInterfaces(() => {});
                         if (interfaceName && interfaceName.length > 0) {
-                            Qt.callLater(() => {
+                            delay(() => {
                                 getEthernetDeviceDetails(interfaceName, () => {});
                             }, 1000);
                         }
@@ -324,9 +324,9 @@ Singleton {
         } else if (interfaceName && interfaceName.length > 0) {
             executeCommand([root.nmcliCommandDevice, "connect", interfaceName], result => {
                 if (result.success) {
-                    Qt.callLater(() => {
+                    delay(() => {
                         getEthernetInterfaces(() => {});
-                        Qt.callLater(() => {
+                        delay(() => {
                             getEthernetDeviceDetails(interfaceName, () => {});
                         }, 1000);
                     }, 500);
@@ -360,7 +360,7 @@ Singleton {
         executeCommand([root.nmcliCommandConnection, "down", connectionName], result => {
             if (result.success) {
                 root.ethernetDeviceDetails = null;
-                Qt.callLater(() => {
+                delay(() => {
                     getEthernetInterfaces(() => {});
                 }, 500);
             }
@@ -466,7 +466,7 @@ Singleton {
 
             if (!result.success && root.pendingConnection && retries < maxRetries) {
                 console.warn(lc, "Connection failed, retrying... (attempt " + (retries + 1) + "/" + maxRetries + ")");
-                Qt.callLater(() => {
+                delay(() => {
                     connectWireless(ssid, password, bssid, callback, retries + 1);
                 }, 1000);
             } else if (!result.success && root.pendingConnection) {} else if (result.success && callback) {} else if (!result.success && !root.pendingConnection) {
@@ -507,7 +507,7 @@ Singleton {
         executeCommand([root.nmcliCommandConnection, "show", ssid], result => {
             if (result.success) {
                 executeCommand([root.nmcliCommandConnection, "delete", ssid], deleteResult => {
-                    Qt.callLater(() => {
+                    delay(() => {
                         if (callback)
                             callback();
                     }, 300);
@@ -796,7 +796,7 @@ Singleton {
 
         executeCommand([root.nmcliCommandConnection, "delete", connectionName], result => {
             if (result.success) {
-                Qt.callLater(() => {
+                delay(() => {
                     loadSavedConnections(() => {});
                 }, 500);
             }
@@ -1387,12 +1387,19 @@ Singleton {
         return details;
     }
 
+    function delay(callback: var, interval: int): void {
+        delayComp.createObject(root, {
+            callback,
+            interval
+        });
+    }
+
     function refreshOnConnectionChange(): void {
         getNetworks(networks => {
             const newActive = root.active;
 
             if (newActive && newActive.active) {
-                Qt.callLater(() => {
+                delay(() => {
                     if (root.wirelessInterfaces.length > 0) {
                         const activeWireless = root.wirelessInterfaces.find(iface => {
                             return isConnectedState(iface.state);
@@ -1419,7 +1426,7 @@ Singleton {
             getWirelessInterfaces(() => {});
             getEthernetInterfaces(() => {
                 if (root.activeEthernet && root.activeEthernet.connected) {
-                    Qt.callLater(() => {
+                    delay(() => {
                         getEthernetDeviceDetails(root.activeEthernet.iface, () => {});
                     }, 500);
                 }
@@ -1433,7 +1440,7 @@ Singleton {
         loadSavedConnections(() => {});
         getEthernetInterfaces(() => {});
 
-        Qt.callLater(() => {
+        delay(() => {
             if (root.wirelessInterfaces.length > 0) {
                 const activeWireless = root.wirelessInterfaces.find(iface => {
                     return isConnectedState(iface.state);
@@ -1458,6 +1465,20 @@ Singleton {
         id: commandProc
 
         CommandProcess {}
+    }
+
+    Component {
+        id: delayComp
+
+        Timer {
+            property var callback
+
+            running: true
+            onTriggered: {
+                callback();
+                destroy();
+            }
+        }
     }
 
     Component {
