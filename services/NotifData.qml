@@ -35,6 +35,8 @@ QtObject {
     property list<var> actions
 
     readonly property bool hasFullscreen: {
+        if (!popup)
+            return false;
         const monitor = Hypr.focusedMonitor;
         const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
         if (specialName) {

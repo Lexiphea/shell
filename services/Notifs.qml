@@ -59,8 +59,9 @@ Singleton {
 
     Timer {
         interval: 5000
-        running: true
+        running: root.list.length > 0
         repeat: true
+        triggeredOnStart: true
         onTriggered: root.ageClock = Date.now()
     }
 
