@@ -11,6 +11,7 @@ import Caelestia.I18n
 Singleton {
     id: root
 
+    property int refCount: 0
     readonly property var selectedProviders: providerConfigs.filter(provider => provider.enabled).map(provider => provider.id)
     readonly property bool connected: providers.some(provider => provider.connected)
     readonly property bool connecting: providers.some(provider => provider.connecting)
@@ -407,6 +408,11 @@ Singleton {
         target: Nmcli // qmllint disable incompatible-type
     }
 
+    onRefCountChanged: {
+        if (refCount === 1)
+            refreshStats();
+    }
+
     Timer {
         running: root.selectedProviders.length > 0 || root.connecting || root.disconnecting
         repeat: true
@@ -625,7 +631,7 @@ Singleton {
         }
 
         function refreshStats(): void {
-            if (!connected)
+            if (!connected || root.refCount === 0)
                 return;
             if (iface.length > 0) {
                 statsProcess.command = ["sh", "-c", `cat /sys/class/net/${iface}/statistics/rx_bytes /sys/class/net/${iface}/statistics/tx_bytes 2>/dev/null`];

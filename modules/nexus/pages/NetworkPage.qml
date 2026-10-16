@@ -7,6 +7,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
+import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
@@ -14,6 +15,10 @@ PageBase {
     id: root
 
     title: Tr.tr("Network")
+
+    readonly property Ref vpnRef: Ref {
+        service: VPN
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
