@@ -24,13 +24,13 @@ Region {
     R {
         panel: root.panels.dashboard
         y: 0
-        height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.borderThickness
+        height: (root.panels.dashboard.offsetScale < 1 ? panel.height : 0) + root.borderThickness
     }
 
     R {
         panel: root.panels.launcher
         y: root.win.height - height
-        height: panel.height * (1 - root.panels.launcher.offsetScale) + root.borderThickness
+        height: (root.panels.launcher.offsetScale < 1 ? panel.height : 0) + root.borderThickness
     }
 
     R {
@@ -38,7 +38,7 @@ Region {
 
         panel: root.panels.sessionWrapper
         x: root.win.width - width
-        width: panel.width * (1 - root.panels.session.offsetScale) + root.borderThickness + sidebarRegion.width
+        width: (root.panels.session.offsetScale < 1 ? panel.width : 0) + root.borderThickness + sidebarRegion.width
     }
 
     R {
@@ -46,13 +46,13 @@ Region {
 
         panel: root.panels.sidebar
         x: root.win.width - width
-        width: panel.width * (1 - root.panels.sidebar.offsetScale) + root.borderThickness
+        width: (root.panels.sidebar.offsetScale < 1 ? panel.width : 0) + root.borderThickness
     }
 
     R {
         panel: root.panels.osdWrapper
         x: root.win.width - width
-        width: panel.width * (1 - root.panels.osd.offsetScale) + root.borderThickness + sessionRegion.width
+        width: (root.panels.osd.offsetScale < 1 ? panel.width : 0) + root.borderThickness + sessionRegion.width
     }
 
     R {
@@ -64,12 +64,12 @@ Region {
     R {
         panel: root.panels.utilities
         y: root.win.height - height
-        height: panel.height * (1 - root.panels.utilities.offsetScale) + root.borderThickness
+        height: (root.panels.utilities.offsetScale < 1 ? panel.height : 0) + root.borderThickness
     }
 
     R {
         panel: root.panels.popoutsWrapper
-        width: panel.width * (1 - root.panels.popoutsWrapper.offsetScale)
+        width: root.panels.popoutsWrapper.offsetScale < 1 ? panel.width : 0
     }
 
     component R: Region {
