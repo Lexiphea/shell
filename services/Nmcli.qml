@@ -1013,7 +1013,7 @@ Singleton {
     }
 
     function getWirelessSSIDs(interfaceName: string, callback: var): void {
-        let cmd = ["-t", "-f", root.networkListFields, root.nmcliCommandDevice, root.nmcliCommandWifi, "list"];
+        let cmd = ["-t", "-f", root.networkListFields, root.nmcliCommandDevice, root.nmcliCommandWifi, "list", "--rescan", "no"];
         if (interfaceName && interfaceName.length > 0) {
             cmd.push(root.connectionParamIfname, interfaceName);
         }
@@ -1730,12 +1730,19 @@ Singleton {
                 LC_ALL: "C.UTF-8"
             })
         stdout: SplitParser {
-            onRead: {
-                root.refreshOnConnectionChange();
-                root.networkEvent();
-            }
+            onRead: monitorDebounceTimer.restart()
         }
         onExited: monitorRestartTimer.start() // qmllint disable signal-handler-parameters
+    }
+
+    Timer {
+        id: monitorDebounceTimer
+
+        interval: 300
+        onTriggered: {
+            root.refreshOnConnectionChange();
+            root.networkEvent();
+        }
     }
 
     Timer {
