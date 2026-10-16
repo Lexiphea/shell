@@ -21,6 +21,7 @@ StyledClippingRect {
     readonly property int activeWsId: monitor.activeWorkspace?.id ?? 1
     readonly property int activeWsIdx: workspaceIndex(activeWsId)
     readonly property int shown: Math.max(1, Config.bar.workspaces.shown)
+    readonly property real nonAnimHeight: workspaces.layoutHeight + workspaces.anchors.margins * 2
 
     readonly property var wsIds: {
         if (Config.bar.workspaces.showUnoccupied)
@@ -66,7 +67,7 @@ StyledClippingRect {
     }
 
     implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: workspaces.layoutHeight + workspaces.anchors.margins * 2
+    implicitHeight: nonAnimHeight
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
