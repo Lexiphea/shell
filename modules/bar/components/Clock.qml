@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.misc
 import qs.services
 
 StyledRect {
@@ -125,6 +126,10 @@ StyledRect {
 
                     font: root.font.build()
                     text: Time.format("ss")
+                }
+
+                Ref {
+                    service: Time
                 }
             }
         }

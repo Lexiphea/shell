@@ -5,6 +5,9 @@ import Quickshell
 import Caelestia.I18n
 
 Singleton {
+    id: root
+
+    property int refCount: 0
     property alias enabled: clock.enabled
     readonly property date date: clock.date
     readonly property int hours: clock.hours
@@ -24,6 +27,6 @@ Singleton {
     SystemClock {
         id: clock
 
-        precision: SystemClock.Seconds
+        precision: root.refCount > 0 ? SystemClock.Seconds : SystemClock.Minutes
     }
 }
