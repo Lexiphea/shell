@@ -94,7 +94,7 @@ void ImageCacher::schedule(const QString& cachePath, const QImage& image) {
         m_inflight.insert(cachePath);
     }
 
-    cacheWritePool().start([this, cachePath, image]() {
+    cacheWritePool().start([this, cachePath, image] {
         runJob(cachePath, image);
         const QMutexLocker locker(&m_mutex);
         // NOLINTNEXTLINE(clang-analyzer-core.CallAndMessage) m_inflight is a value member, not a pointer
