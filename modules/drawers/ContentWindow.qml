@@ -83,20 +83,9 @@ StyledWindow {
         CAnim {}
     }
 
+    // Keep fullscreen notifications and OSD visible without interrupting mouse capture.
     Region {
         id: emptyRegion
-
-        x: panels.notifications.x + bar.implicitWidth
-        y: panels.notifications.y + root.borderThickness
-        width: panels.notifications.width
-        height: panels.notifications.height
-
-        Region {
-            x: root.width - width
-            y: panels.osdWrapper.y + root.borderThickness
-            width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + root.borderThickness
-            height: panels.osd.height
-        }
     }
 
     Regions {

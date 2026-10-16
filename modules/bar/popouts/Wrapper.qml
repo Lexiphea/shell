@@ -45,6 +45,12 @@ Item {
     }
 
     function detach(mode: string): void {
+        if (mode === "audio") {
+            Quickshell.execDetached(Config.general.apps.audio);
+            close();
+            return;
+        }
+
         setAnims(true);
         if (mode === "winfo") {
             detachedMode = mode;

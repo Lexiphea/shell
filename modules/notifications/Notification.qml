@@ -30,6 +30,8 @@ StyledRect {
     x: implicitWidth
     Component.onCompleted: {
         x = 0;
+        // Break the delegate binding so the locked object survives delayed removal.
+        modelData = modelData;
         modelData.lock(this);
     }
     Component.onDestruction: modelData.unlock(this)

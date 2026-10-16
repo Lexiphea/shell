@@ -57,13 +57,11 @@ QtObject {
     readonly property LazyLoader dummyImageLoader: LazyLoader {
         active: false
 
-        // qmllint disable uncreatable-type
-        PanelWindow {
-            // qmllint enable uncreatable-type
-            implicitWidth: TokenConfig.sizes.notifs.image
-            implicitHeight: TokenConfig.sizes.notifs.image
-            color: "transparent"
-            mask: Region {}
+        // Reuse a window: mapping a cache-only layer can interrupt game mouse capture.
+        Item {
+            parent: ShellState.componentsFor(Screens.screens[0])?.rootWindow?.contentItem ?? null
+            width: TokenConfig.sizes.notifs.image
+            height: TokenConfig.sizes.notifs.image
 
             Image {
                 function tryCache(): void {
