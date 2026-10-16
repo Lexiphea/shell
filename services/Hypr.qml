@@ -123,7 +123,7 @@ Singleton {
     Connections {
         function onRawEvent(event: HyprlandEvent): void {
             const n = event.name;
-            if (n.endsWith("v2"))
+            if (n.endsWith("v2") || n === "activewindow" || n === "windowtitle")
                 return;
 
             if (n === "configreloaded") {

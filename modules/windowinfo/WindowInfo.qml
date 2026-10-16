@@ -15,6 +15,8 @@ Item {
     implicitWidth: child.implicitWidth
     implicitHeight: screen.height * Tokens.sizes.winfo.heightMult
 
+    Component.onCompleted: Hyprland.refreshToplevels()
+
     RowLayout {
         id: child
 
