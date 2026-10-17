@@ -15,6 +15,7 @@ StyledRect {
 
     required property var props
     required property ScreenState screenState
+    readonly property list<string> soundArgs: props.recordingSound ? ["-s"] : []
     readonly property real nonAnimHeight: btnLayout.implicitHeight + listOrControls.implicitHeight + layout.spacing + layout.anchors.margins * 2
 
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
@@ -91,27 +92,32 @@ StyledRect {
                         icon: "fullscreen"
                         text: Tr.tr("Record fullscreen")
                         activeText: Tr.trCtx("Fullscreen", "recording mode")
-                        onClicked: Recorder.start()
+                        onClicked: Recorder.start(root.soundArgs)
                     },
                     MenuItem {
                         icon: "screenshot_region"
                         text: Tr.tr("Record region")
                         activeText: Tr.trCtx("Region", "recording mode")
-                        onClicked: Recorder.start(["-r"])
+                        onClicked: Recorder.start([...root.soundArgs, "-r"])
                     },
                     MenuItem {
-                        icon: "select_to_speak"
-                        text: Tr.tr("Record fullscreen with sound")
-                        activeText: Tr.trCtx("Fullscreen", "recording mode")
-                        onClicked: Recorder.start(["-s"])
-                    },
-                    MenuItem {
-                        icon: "volume_up"
-                        text: Tr.tr("Record region with sound")
-                        activeText: Tr.trCtx("Region", "recording mode")
-                        onClicked: Recorder.start(["-sr"])
+                        icon: "select_window"
+                        text: Tr.tr("Record window")
+                        activeText: Tr.trCtx("Window", "recording mode")
+                        onClicked: Recorder.start(root.soundArgs, true)
                     }
                 ]
+            }
+
+            IconButton {
+                disabled: Recorder.running
+                isRound: true
+                isToggle: true
+                checked: root.props.recordingSound
+                type: IconButton.Tonal
+                label.animate: true
+                icon: internalChecked ? "volume_up" : "volume_off"
+                onClicked: root.props.recordingSound = internalChecked
             }
         }
 

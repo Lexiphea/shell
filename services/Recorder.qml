@@ -12,13 +12,14 @@ Singleton {
     readonly property alias elapsed: props.elapsed
     property int refCount: 0
     property bool needsStart
-    property list<string> startArgs
+    property list<string> startCmd
+    readonly property string windowRegion: "r=$({ hyprctl monitors -j; hyprctl clients -j; } | jq -rs '[.[0][] | .activeWorkspace.id, .specialWorkspace.id] as $ws | .[1][] | select(.mapped and (.hidden | not) and (.workspace.id | IN($ws[]))) | \"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"' | slurp -r -f '%wx%h+%x+%y') && set -- -r \"$r\" \"$@\" && "
     property bool needsStop
     property bool needsPause
 
-    function start(extraArgs = []): void {
+    function start(extraArgs = [], window = false): void {
         needsStart = true;
-        startArgs = extraArgs;
+        startCmd = ["sh", "-c", (window ? windowRegion : "") + "exec caelestia record \"$@\" >/dev/null 2>&1", "sh", ...extraArgs];
         checkProc.running = true;
     }
 
@@ -58,7 +59,7 @@ Singleton {
                 commandProc.exec(["caelestia", "record", "-p"]);
                 props.paused = !props.paused;
             } else if (!running && root.needsStart) {
-                commandProc.exec(["caelestia", "record", ...root.startArgs]);
+                commandProc.exec(root.startCmd);
                 props.running = true;
                 props.paused = false;
                 props.elapsed = 0;
@@ -95,12 +96,11 @@ Singleton {
         onTriggered: checkProc.running = true
     }
 
-    Connections {
-        function onSecondsChanged(): void {
-            props.elapsed++;
-        }
+    Timer {
+        interval: 1000
+        running: props.running && !props.paused
+        repeat: true
 
-        enabled: props.running && !props.paused
-        target: Time // qmllint disable incompatible-type
+        onTriggered: props.elapsed++
     }
 }
