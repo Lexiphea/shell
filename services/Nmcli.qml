@@ -214,65 +214,58 @@ Singleton {
         });
     }
 
-    function getWirelessInterfaces(callback: var): void {
-        executeCommand(["-t", "-f", root.deviceStatusFields, root.nmcliCommandDevice, "status"], result => {
-            const interfaces = parseDeviceStatusOutput(result.output, root.deviceTypeWifi);
-            root.wirelessInterfaces = interfaces;
-            if (callback)
-                callback(interfaces);
-        });
+    function getEthernetInterfaces(callback: var): void {
+        getDeviceStatus(output => applyEthernetStatus(output, callback));
     }
 
-    function getEthernetInterfaces(callback: var): void {
-        executeCommand(["-t", "-f", root.deviceStatusFields, root.nmcliCommandDevice, "status"], result => {
-            const interfaces = parseDeviceStatusOutput(result.output, root.deviceTypeEthernet);
-            const applyInterfaces = filtered => {
-                const devices = filtered.map(iface => ({
-                            interface: iface.device,
-                            type: iface.type,
-                            state: iface.state,
-                            connection: iface.connection,
-                            connected: isConnectedState(iface.state),
-                            ipAddress: "",
-                            gateway: "",
-                            dns: [],
-                            subnet: "",
-                            macAddress: "",
-                            speed: ""
-                        }));
+    function applyEthernetStatus(output: string, callback: var): void {
+        const interfaces = parseDeviceStatusOutput(output, root.deviceTypeEthernet);
+        const applyInterfaces = filtered => {
+            const devices = filtered.map(iface => ({
+                        interface: iface.device,
+                        type: iface.type,
+                        state: iface.state,
+                        connection: iface.connection,
+                        connected: isConnectedState(iface.state),
+                        ipAddress: "",
+                        gateway: "",
+                        dns: [],
+                        subnet: "",
+                        macAddress: "",
+                        speed: ""
+                    }));
 
-                root.ethernetInterfaces = filtered;
-                syncEthernetDevices(devices);
-                if (callback)
-                    callback(filtered);
-            };
+            root.ethernetInterfaces = filtered;
+            syncEthernetDevices(devices);
+            if (callback)
+                callback(filtered);
+        };
 
-            if (interfaces.length === 0) {
-                applyInterfaces([]);
+        if (interfaces.length === 0) {
+            applyInterfaces([]);
+            return;
+        }
+
+        // NetworkManager reports container/VM veth pairs (Docker, Podman,
+        // etc.) as type "ethernet" too, so they'd show up here like real
+        // connections. A physical NIC always has
+        // /sys/class/net/<iface>/device; veth/bridge/tun interfaces
+        // never do, so that's how we tell them apart.
+        const proc = physicalCheckProc.createObject(root);
+        proc.callback = result => {
+            if (!result.success) {
+                console.warn(lc, `Failed to classify ethernet interfaces (exited: ${result.exitCode}); keeping the unfiltered list.`);
+                applyInterfaces(interfaces);
                 return;
             }
 
-            // NetworkManager reports container/VM veth pairs (Docker, Podman,
-            // etc.) as type "ethernet" too, so they'd show up here like real
-            // connections. A physical NIC always has
-            // /sys/class/net/<iface>/device; veth/bridge/tun interfaces
-            // never do, so that's how we tell them apart.
-            const proc = physicalCheckProc.createObject(root);
-            proc.callback = result => {
-                if (!result.success) {
-                    console.warn(lc, `Failed to classify ethernet interfaces (exited: ${result.exitCode}); keeping the unfiltered list.`);
-                    applyInterfaces(interfaces);
-                    return;
-                }
+            const physicalSet = result.output.trim().split("\n").filter(l => l.length > 0);
+            const filtered = interfaces.filter(iface => physicalSet.includes(iface.device));
 
-                const physicalSet = result.output.trim().split("\n").filter(l => l.length > 0);
-                const filtered = interfaces.filter(iface => physicalSet.includes(iface.device));
+            applyInterfaces(filtered);
+        };
 
-                applyInterfaces(filtered);
-            };
-
-            proc.exec(["sh", "-c", 'test -d /sys/class/net || exit 1; for i do [ -e "/sys/class/net/$i/device" ] && printf "%s\\n" "$i"; done; exit 0', "sh", ...interfaces.map(iface => iface.device)]);
-        });
+        proc.exec(["sh", "-c", 'test -d /sys/class/net || exit 1; for i do [ -e "/sys/class/net/$i/device" ] && printf "%s\\n" "$i"; done; exit 0', "sh", ...interfaces.map(iface => iface.device)]);
     }
 
     // Sync a list of ethernet devices to the existing device list. Same logic as getNetworks
@@ -967,7 +960,7 @@ Singleton {
     }
 
     function getNetworks(callback: var): void {
-        executeCommand(["-g", root.networkDetailFields, "d", "w"], result => {
+        executeCommand(["-g", root.networkDetailFields, "d", "w", "list", "--rescan", "no"], result => {
             if (!result.success) {
                 if (callback)
                     callback([]);
@@ -1408,28 +1401,21 @@ Singleton {
                             getWirelessDeviceDetails(activeWireless.device, () => {});
                         }
                     }
-
-                    if (root.ethernetInterfaces.length > 0) {
-                        const activeEthernet = root.ethernetInterfaces.find(iface => {
-                            return isConnectedState(iface.state);
-                        });
-                        if (activeEthernet && activeEthernet.device) {
-                            getEthernetDeviceDetails(activeEthernet.device, () => {});
-                        }
-                    }
                 }, 500);
             } else {
                 root.wirelessDeviceDetails = null;
                 root.ethernetDeviceDetails = null;
             }
 
-            getWirelessInterfaces(() => {});
-            getEthernetInterfaces(() => {
-                if (root.activeEthernet && root.activeEthernet.connected) {
-                    delay(() => {
-                        getEthernetDeviceDetails(root.activeEthernet.iface, () => {});
-                    }, 500);
-                }
+            getDeviceStatus(output => {
+                root.wirelessInterfaces = parseDeviceStatusOutput(output, root.deviceTypeWifi);
+                applyEthernetStatus(output, () => {
+                    if (root.activeEthernet && root.activeEthernet.connected) {
+                        delay(() => {
+                            getEthernetDeviceDetails(root.activeEthernet.iface, () => {});
+                        }, 500);
+                    }
+                });
             });
         });
     }
