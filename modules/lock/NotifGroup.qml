@@ -8,6 +8,7 @@ import Quickshell.Services.Notifications
 import Caelestia.Config
 import qs.components
 import qs.components.effects
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -51,6 +52,10 @@ StyledRect {
     clip: true
     radius: Tokens.rounding.large
     color: root.urgency === "critical" ? Colours.palette.m3secondaryContainer : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+
+    Ref {
+        service: Notifs
+    }
 
     RowLayout {
         id: content

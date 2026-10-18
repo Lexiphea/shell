@@ -22,6 +22,7 @@ Singleton {
 
     property bool loaded
     property double ageClock: Date.now()
+    property int refCount: 0
     readonly property int historyLimit: 50
 
     function hasFullscreen(): bool {
@@ -59,7 +60,7 @@ Singleton {
 
     Timer {
         interval: 5000
-        running: root.list.length > 0
+        running: root.list.length > 0 && root.refCount > 0
         repeat: true
         triggeredOnStart: true
         onTriggered: root.ageClock = Date.now()

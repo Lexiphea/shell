@@ -9,6 +9,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.components.effects
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -40,6 +41,10 @@ StyledRect {
         Anim {
             easing: Tokens.anim.emphasizedDecel
         }
+    }
+
+    Ref {
+        service: Notifs
     }
 
     MouseArea {
