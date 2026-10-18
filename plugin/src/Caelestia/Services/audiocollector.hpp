@@ -55,6 +55,7 @@ private:
     pw_stream* m_stream;
     spa_source* m_timer;
     bool m_idle;
+    int m_pausedTicks;
 
     std::stop_token m_token;
     AudioCollector* m_collector;

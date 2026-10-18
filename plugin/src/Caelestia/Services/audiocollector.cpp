@@ -26,6 +26,7 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     , m_stream(nullptr)
     , m_timer(nullptr)
     , m_idle(true)
+    , m_pausedTicks(0)
     , m_token(std::move(token))
     , m_collector(collector) {
     pw_init(nullptr, nullptr);
@@ -105,7 +106,7 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     pw_deinit();
 }
 
-void PipeWireWorker::handleTimeout(void* data, uint64_t expirations) {
+void PipeWireWorker::handleTimeout(void* data, uint64_t /*expirations*/) {
     auto* self = static_cast<PipeWireWorker*>(data);
 
     if (self->m_token.stop_requested()) {
@@ -114,7 +115,7 @@ void PipeWireWorker::handleTimeout(void* data, uint64_t expirations) {
     }
 
     if (!self->m_idle) {
-        if (expirations < 10) {
+        if (++self->m_pausedTicks < 10) {
             self->m_collector->clearBuffer();
         } else {
             self->m_idle = true;
@@ -126,6 +127,7 @@ void PipeWireWorker::handleTimeout(void* data, uint64_t expirations) {
 
 void PipeWireWorker::streamStateChanged(pw_stream_state state) {
     m_idle = false;
+    m_pausedTicks = 0;
     switch (state) {
     case PW_STREAM_STATE_PAUSED: {
         timespec timeout = { .tv_sec = 0, .tv_nsec = 10 * SPA_NSEC_PER_MSEC };
