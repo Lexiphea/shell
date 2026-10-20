@@ -82,6 +82,7 @@ StyledRect {
         opacity: IdleInhibitor.enabled ? 1 : 0
         scale: IdleInhibitor.enabled ? 1 : 0.5
 
+        active: false
         Component.onCompleted: active = Qt.binding(() => opacity > 0)
 
         sourceComponent: StyledRect {
