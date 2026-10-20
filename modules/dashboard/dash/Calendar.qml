@@ -140,7 +140,7 @@ CustomMouseArea {
                     }
 
                     anchors.centerIn: parent
-                    text: grid.title
+                    text: `${grid.locale.standaloneMonthName(root.currMonth)} ${root.currYear}`
                     color: Colours.palette.m3primary
                     font: Tokens.font.title.builders.small.capitalisation(Font.Capitalize).build()
                 }
@@ -181,41 +181,60 @@ CustomMouseArea {
                 x: root.animTranslate
             }
 
-            MonthGrid {
+            Grid {
                 id: grid
 
-                month: root.currMonth
-                year: root.currYear
+                readonly property var locale: Qt.locale()
+                readonly property list<var> days: {
+                    const first = new Date(root.currYear, root.currMonth, 1);
+                    const offset = (first.getDay() - locale.firstDayOfWeek + 7) % 7;
+                    const today = new Date().toDateString();
+                    return Array.from({
+                        length: 42
+                    }, (_, i) => {
+                        const date = new Date(root.currYear, root.currMonth, 1 - offset + i);
+                        return {
+                            date,
+                            today: date.toDateString() === today
+                        };
+                    });
+                }
 
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.right: parent.right
 
+                columns: 7
                 spacing: 3
-                locale: Qt.locale()
 
-                delegate: Item {
-                    id: dayItem
+                Repeater {
+                    model: grid.days.length
 
-                    required property var model
+                    Item {
+                        id: dayItem
 
-                    implicitWidth: implicitHeight
-                    implicitHeight: text.implicitHeight + Tokens.padding.small
+                        required property int index
+                        readonly property var day: grid.days[index]
 
-                    StyledText {
-                        id: text
+                        width: (grid.width - grid.spacing * (grid.columns - 1)) / grid.columns
+                        implicitHeight: text.implicitHeight + Tokens.padding.small
 
-                        anchors.centerIn: parent
+                        StyledText {
+                            id: text
 
-                        horizontalAlignment: Text.AlignHCenter
-                        text: grid.locale.toString(dayItem.model.day)
-                        color: {
-                            const dayOfWeek = dayItem.model.date.getDay();
-                            if (dayOfWeek === 0 || dayOfWeek === 6)
-                                return Colours.palette.m3tertiary;
+                            anchors.centerIn: parent
 
-                            return Colours.palette.m3onSurfaceVariant;
+                            horizontalAlignment: Text.AlignHCenter
+                            text: grid.locale.toString(dayItem.day.date.getDate())
+                            color: {
+                                const dayOfWeek = dayItem.day.date.getDay();
+                                if (dayOfWeek === 0 || dayOfWeek === 6)
+                                    return Colours.palette.m3tertiary;
+
+                                return Colours.palette.m3onSurfaceVariant;
+                            }
+                            opacity: dayItem.day.today || dayItem.day.date.getMonth() === root.currMonth ? 1 : 0.4
+                            font: Tokens.font.body.small
                         }
-                        opacity: dayItem.model.today || dayItem.model.month === grid.month ? 1 : 0.4
-                        font: Tokens.font.body.small
                     }
                 }
             }
@@ -223,7 +242,7 @@ CustomMouseArea {
             MaterialShape {
                 id: todayIndicator
 
-                readonly property Item todayItem: grid.contentItem.children.find(c => c.model.today) ?? null
+                readonly property Item todayItem: grid.children.find(c => c.day?.today) ?? null
                 property Item today
 
                 onTodayItemChanged: {
@@ -234,7 +253,7 @@ CustomMouseArea {
                 x: today ? today.x + (today.width - implicitWidth) / 2 : 0
                 y: today ? today.y - Tokens.padding.extraSmall - 1 : 0
 
-                implicitSize: today ? Math.max(today.implicitWidth, today.implicitHeight) + Tokens.padding.extraSmall * 2 : 0
+                implicitSize: today ? today.implicitHeight + Tokens.padding.extraSmall * 2 : 0
                 shape: MaterialShape.Sunny
 
                 clip: true
