@@ -56,10 +56,7 @@ PathView {
     Component.onCompleted: currentIndex = Wallpapers.list.findIndex(w => w.path === Wallpapers.actualCurrent)
     Component.onDestruction: Wallpapers.stopPreview()
 
-    onCurrentItemChanged: {
-        if (currentItem)
-            Wallpapers.preview((currentItem as WallpaperItem).modelData.path);
-    }
+    onCurrentItemChanged: previewTimer.restart()
 
     implicitWidth: Math.min(numItems, count) * itemWidth
     pathItemCount: numItems
@@ -92,6 +89,16 @@ PathView {
         PathLine {
             x: root.width
             relativeY: 0
+        }
+    }
+
+    Timer {
+        id: previewTimer
+
+        interval: 150
+        onTriggered: {
+            if (root.currentItem)
+                Wallpapers.preview((root.currentItem as WallpaperItem).modelData.path);
         }
     }
 

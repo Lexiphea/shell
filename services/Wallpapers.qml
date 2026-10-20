@@ -43,7 +43,7 @@ Searcher {
         showPreview = true;
 
         if (Colours.scheme === "dynamic")
-            getPreviewColoursProc.running = true;
+            getPreviewColoursProc.exec(["caelestia", "wallpaper", "-p", path, ...smartArg]);
     }
 
     function stopPreview(): void {
@@ -114,7 +114,6 @@ Searcher {
     Process {
         id: getPreviewColoursProc
 
-        command: ["caelestia", "wallpaper", "-p", root.previewPath, ...root.smartArg]
         stdout: StdioCollector {
             onStreamFinished: {
                 Colours.load(text, true);
