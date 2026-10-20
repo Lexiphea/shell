@@ -92,6 +92,8 @@ Item {
         elideWidth: root.maxHeight - icon.height
 
         onTextChanged: {
+            if (elidedText === root.current.text)
+                return;
             const next = root.current === text1 ? text2 : text1;
             next.text = elidedText;
             root.current = next;
