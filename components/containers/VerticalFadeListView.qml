@@ -25,7 +25,7 @@ StyledListView {
     flickableDirection: Flickable.VerticalFlick
     orientation: ListView.Vertical
 
-    layer.enabled: true
+    layer.enabled: topFadeOpacity < 1 || bottomFadeOpacity < 1
     layer.effect: Mask {
         maskSource: mask
 

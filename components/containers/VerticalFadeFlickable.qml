@@ -24,7 +24,7 @@ StyledFlickable {
 
     flickableDirection: Flickable.VerticalFlick
 
-    layer.enabled: true
+    layer.enabled: topFadeOpacity < 1 || bottomFadeOpacity < 1
     layer.effect: Mask {
         maskSource: mask
 
