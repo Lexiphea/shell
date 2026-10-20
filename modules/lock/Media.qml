@@ -9,7 +9,7 @@ import qs.components.controls
 import qs.components.images
 import qs.services
 
-StyledClippingRect {
+ClipRect {
     id: root
 
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2

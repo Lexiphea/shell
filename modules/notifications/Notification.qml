@@ -128,7 +128,7 @@ StyledRect {
                 height: TokenConfig.sizes.notifs.image
                 visible: root.hasImage || root.hasAppIcon
 
-                sourceComponent: StyledClippingRect {
+                sourceComponent: ClipRect {
                     radius: Tokens.rounding.full
                     color: root.badgeColour
                     implicitWidth: TokenConfig.sizes.notifs.image

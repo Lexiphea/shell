@@ -96,7 +96,7 @@ StyledRect {
                 }
             }
 
-            ClippingRectangle {
+            ClipRect {
                 anchors.fill: parent
                 color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3error : root.urgency === NotificationUrgency.Low ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 3) : Colours.palette.m3secondaryContainer
                 radius: Tokens.rounding.full
