@@ -138,17 +138,12 @@ Item {
                         required property int index
                         required property var modelData
 
+                        readonly property bool inView: (implicitWidth > 0 || view.dragging) && view.contentX < x + implicitWidth && view.contentX + view.implicitWidth > x
+
                         Layout.alignment: Qt.AlignTop
 
+                        active: index === view.currentIndex || inView
                         sourceComponent: modelData.component
-
-                        Component.onCompleted: active = Qt.binding(() => {
-                            if (index === view.currentIndex)
-                                return true;
-                            const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
-                            const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
-                            return (vx >= x && vx <= x + implicitWidth) || (vex >= x && vex <= x + implicitWidth);
-                        })
                     }
                 }
             }
