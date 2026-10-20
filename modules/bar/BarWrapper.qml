@@ -78,7 +78,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
 
-        active: root.shouldBeVisible
+        active: root.shouldBeVisible || root.visible
 
         sourceComponent: Bar {
             width: root.contentWidth
