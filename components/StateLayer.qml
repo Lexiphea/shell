@@ -116,6 +116,7 @@ MouseArea {
         id: circle
 
         anchors.fill: parent
+        visible: opacity > 0
         opacity: 0
         preferredRendererType: Shape.CurveRenderer
 
