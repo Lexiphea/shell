@@ -40,7 +40,7 @@ Item {
     }
 
     ServiceRef {
-        service: Audio.beatTracker
+        service: (Players.active?.isPlaying ?? false) ? Audio.beatTracker : null
     }
 
     CircularProgress {
