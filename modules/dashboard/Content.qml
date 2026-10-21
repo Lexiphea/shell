@@ -46,6 +46,7 @@ Item {
         return allTabs.filter(tab => tab.enabled);
     }
 
+    readonly property bool ready: (view.currentItem as Loader)?.status === Loader.Ready
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
 
@@ -184,10 +185,14 @@ Item {
     }
 
     Behavior on implicitWidth {
+        enabled: root.visible
+
         Anim {}
     }
 
     Behavior on implicitHeight {
+        enabled: root.visible
+
         Anim {}
     }
 }

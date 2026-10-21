@@ -29,7 +29,7 @@ Item {
 
     readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 0
     readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
-    property real offsetScale: shouldBeActive ? 0 : 1
+    property real offsetScale: shouldBeActive && (content.item as Content)?.ready ? 0 : 1
 
     visible: offsetScale < 1
     anchors.topMargin: (-implicitHeight - 5) * offsetScale
@@ -44,6 +44,7 @@ Item {
     Loader {
         id: content
 
+        asynchronous: true
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
