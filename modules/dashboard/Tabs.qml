@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Templates
 import Quickshell
 import Caelestia.Config
 import qs.components
@@ -16,11 +15,21 @@ Item {
     required property ScreenState screenState
     required property var tabs
 
-    readonly property alias count: bar.count
+    readonly property alias count: repeater.count
+    readonly property int currentIndex: screenState.dashboardTab
+    readonly property Item currentItem: {
+        bar.children; // Trigger update when delegates are added or removed
+        return repeater.itemAt(currentIndex);
+    }
+
+    onCountChanged: {
+        if (count > 0)
+            screenState.dashboardTab = Math.min(screenState.dashboardTab, count - 1);
+    }
 
     implicitHeight: bar.implicitHeight + bar.anchors.topMargin + indicator.implicitHeight + indicator.anchors.topMargin + separator.implicitHeight
 
-    TabBar {
+    RowLayout {
         id: bar
 
         anchors.left: parent.left
@@ -28,30 +37,16 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: Tokens.sizes.dashboard.tabIndicatorSpacing
 
-        currentIndex: root.screenState.dashboardTab
-        onCurrentIndexChanged: root.screenState.dashboardTab = currentIndex
-
-        implicitHeight: contentHeight
-        background: null
-        contentItem: RowLayout {
-            spacing: 0
-
-            Repeater {
-                model: bar.contentModel
-            }
-        }
+        spacing: 0
 
         Repeater {
+            id: repeater
+
             model: ScriptModel {
                 values: root.tabs
             }
 
-            delegate: Tab {
-                required property var modelData
-
-                iconName: modelData.iconName
-                text: modelData.text
-            }
+            delegate: Tab {}
         }
     }
 
@@ -62,19 +57,19 @@ Item {
         anchors.topMargin: 5
 
         implicitWidth: {
-            const tab = bar.currentItem;
+            const tab = root.currentItem;
             if (tab)
                 return tab.implicitWidth;
-            const width = (root.nonAnimWidth - bar.spacing * (bar.count - 1)) / bar.count;
+            const width = (root.nonAnimWidth - bar.spacing * (root.count - 1)) / root.count;
             return width;
         }
         implicitHeight: 3
 
         x: {
-            const tab = bar.currentItem;
-            const width = (root.nonAnimWidth - bar.spacing * (bar.count - 1)) / bar.count;
+            const tab = root.currentItem;
+            const width = (root.nonAnimWidth - bar.spacing * (root.count - 1)) / root.count;
             const tabWidth = tab?.implicitWidth ?? width;
-            return width * bar.currentIndex + (width - tabWidth) / 2;
+            return width * root.currentIndex + (width - tabWidth) / 2;
         }
 
         clip: true
@@ -109,77 +104,68 @@ Item {
         color: Colours.palette.m3outlineVariant
     }
 
-    component Tab: TabButton {
+    component Tab: CustomMouseArea {
         id: tab
 
-        required property string iconName
-        readonly property bool current: TabBar.tabBar.currentItem === this
+        required property var modelData
+        required property int index
+        readonly property bool current: index === root.currentIndex
+
+        function onWheel(event: WheelEvent): void {
+            if (event.angleDelta.y < 0)
+                root.screenState.dashboardTab = Math.min(root.screenState.dashboardTab + 1, root.count - 1);
+            else if (event.angleDelta.y > 0)
+                root.screenState.dashboardTab = Math.max(root.screenState.dashboardTab - 1, 0);
+        }
 
         Layout.fillWidth: true
         Layout.preferredWidth: 1 // Uniform width across all tabs
-        implicitWidth: implicitContentWidth
-        implicitHeight: implicitContentHeight
-        background: null
+        implicitWidth: Math.max(icon.width, label.width)
+        implicitHeight: icon.height + label.height
 
-        contentItem: CustomMouseArea {
-            id: mouse
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
 
-            function onWheel(event: WheelEvent): void {
-                if (event.angleDelta.y < 0)
-                    root.screenState.dashboardTab = Math.min(root.screenState.dashboardTab + 1, bar.count - 1);
-                else if (event.angleDelta.y > 0)
-                    root.screenState.dashboardTab = Math.max(root.screenState.dashboardTab - 1, 0);
-            }
+        onPressed: root.screenState.dashboardTab = index
 
-            implicitWidth: Math.max(icon.width, label.width)
-            implicitHeight: icon.height + label.height
+        StateLayer {
+            anchors.fill: undefined
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            implicitHeight: parent.height + Tokens.sizes.dashboard.tabIndicatorSpacing * 2
 
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            radius: Tokens.rounding.medium
+            color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurface
+            onClicked: root.screenState.dashboardTab = tab.index
+        }
 
-            onPressed: root.screenState.dashboardTab = tab.TabBar.index
+        MaterialIcon {
+            id: icon
 
-            StateLayer {
-                id: stateLayer
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: label.top
 
-                anchors.fill: undefined
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                implicitHeight: parent.height + Tokens.sizes.dashboard.tabIndicatorSpacing * 2
+            text: tab.modelData.iconName
+            color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            fill: tab.current ? 1 : 0
+            fontStyle: Tokens.font.icon.medium
 
-                radius: Tokens.rounding.medium
-                color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                onClicked: root.screenState.dashboardTab = tab.TabBar.index
-            }
-
-            MaterialIcon {
-                id: icon
-
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: label.top
-
-                text: tab.iconName
-                color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                fill: tab.current ? 1 : 0
-                fontStyle: Tokens.font.icon.medium
-
-                Behavior on fill {
-                    Anim {
-                        type: Anim.DefaultEffects
-                    }
+            Behavior on fill {
+                Anim {
+                    type: Anim.DefaultEffects
                 }
             }
+        }
 
-            StyledText {
-                id: label
+        StyledText {
+            id: label
 
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
 
-                text: tab.text
-                color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-            }
+            text: tab.modelData.text
+            color: tab.current ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
         }
     }
 }

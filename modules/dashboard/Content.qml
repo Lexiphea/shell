@@ -83,7 +83,7 @@ Item {
 
             readonly property int currentIndex: root.screenState.dashboardTab
             readonly property Item currentItem: {
-                repeater.count; // Trigger update on count change
+                row.children; // Trigger update when delegates are added or removed
                 return repeater.itemAt(currentIndex);
             }
 

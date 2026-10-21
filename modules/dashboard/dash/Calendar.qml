@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import M3Shapes
 import Caelestia.Config
@@ -156,19 +155,28 @@ CustomMouseArea {
             }
         }
 
-        DayOfWeekRow {
+        Row {
             id: daysRow
 
             Layout.fillWidth: true
-            locale: grid.locale
+            Layout.preferredWidth: 0
+            Layout.topMargin: 6
+            Layout.bottomMargin: 6
+            spacing: grid.spacing
 
-            delegate: StyledText {
-                required property var model
+            Repeater {
+                model: grid.columns
 
-                horizontalAlignment: Text.AlignHCenter
-                text: model.shortName
-                font: Tokens.font.body.builders.small.weight(Font.Medium).build()
-                color: (model.day === 0 || model.day === 6) ? Colours.palette.m3tertiary : Colours.palette.m3onSurface
+                StyledText {
+                    required property int index
+                    readonly property int day: (grid.locale.firstDayOfWeek + index) % 7
+
+                    width: grid.cellWidth
+                    horizontalAlignment: Text.AlignHCenter
+                    text: grid.locale.standaloneDayName(day, Locale.ShortFormat)
+                    font: Tokens.font.body.builders.small.weight(Font.Medium).build()
+                    color: (day === 0 || day === 6) ? Colours.palette.m3tertiary : Colours.palette.m3onSurface
+                }
             }
         }
 
@@ -185,6 +193,7 @@ CustomMouseArea {
                 id: grid
 
                 readonly property var locale: Qt.locale()
+                readonly property real cellWidth: (width - spacing * (columns - 1)) / columns
                 readonly property list<var> days: {
                     const first = new Date(root.currYear, root.currMonth, 1);
                     const offset = (first.getDay() - locale.firstDayOfWeek + 7) % 7;
@@ -215,7 +224,7 @@ CustomMouseArea {
                         required property int index
                         readonly property var day: grid.days[index]
 
-                        width: (grid.width - grid.spacing * (grid.columns - 1)) / grid.columns
+                        width: grid.cellWidth
                         implicitHeight: text.implicitHeight + Tokens.padding.small
 
                         StyledText {
