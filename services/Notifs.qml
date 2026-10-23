@@ -149,6 +149,16 @@ Singleton {
         onPressed: ipc.clear()
     }
 
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "toggleDnd"
+        description: "Toggle do not disturb"
+        onPressed: {
+            PersistentState.doNotDisturb = !PersistentState.doNotDisturb;
+        }
+    }
+
     IpcHandler {
         id: ipc
 
