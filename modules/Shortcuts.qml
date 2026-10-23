@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Caelestia
+import Caelestia.Config
 import qs.components.misc
 import qs.services
 import qs.modules.nexus
@@ -53,6 +54,7 @@ Scope {
     DrawerShortcut {
         name: "sidebar"
         description: "Toggle sidebar"
+        available: Config.sidebar.enabled
     }
 
     DrawerShortcut {
@@ -130,8 +132,10 @@ Scope {
         // qmllint enable unresolved-type
         id: shortcut
 
+        property bool available: true
+
         onPressed: {
-            if (root.hasFullscreen)
+            if (root.hasFullscreen || !shortcut.available)
                 return;
             const screenState = ShellState.forActive();
             screenState[shortcut.name] = !screenState[shortcut.name];
