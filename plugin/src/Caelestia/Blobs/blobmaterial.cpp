@@ -77,7 +77,9 @@ bool BlobMaterialShader::updateUniformData(RenderState& state, QSGMaterial* newM
     // Inverted radius (offset 116)
     memcpy(buf->data() + 116, &mat->m_invertedRadius, 4);
 
-    // Padding at 120-127 (skip)
+    // Device pixel ratio (offset 120), padding at 124-127 (skip)
+    const float dpr = state.devicePixelRatio();
+    memcpy(buf->data() + 120, &dpr, 4);
 
     // Inverted outer (offset 128, 16 bytes)
     memcpy(buf->data() + 128, mat->m_invertedOuter, 16);

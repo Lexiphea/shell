@@ -16,6 +16,7 @@ layout(std140, binding = 0) uniform buf {
     vec4 color;
     int hasInverted;
     float invertedRadius;
+    float dpr;
     vec4 invertedOuter;
     vec4 invertedInner;
     vec4 rectData[80];
@@ -65,7 +66,10 @@ float smaxSharpA(float a, float b, float k) {
 }
 
 void main() {
+    // Snap to the device pixel centre: each renderer interpolates this over a different quad, and the
+    // resulting float noise would flip ownership where two SDFs tie, leaving pixels no renderer draws
     vec2 pixel = vec2(paddedX, paddedY) + qt_TexCoord0 * vec2(paddedW, paddedH);
+    pixel = (floor(pixel * dpr) + 0.5) / dpr;
 
     // Phase 1: compute per-rect SDF, track owner. We can't smin yet because excluded
     // pairs need to skip the smooth blend, which requires pairwise pass below.
@@ -256,11 +260,12 @@ void main() {
         }
     }
 
-    // Each renderer only outputs pixels it owns, but allow rendering
-    // blend zones to prevent gaps (mergedSdf < smoothFactor means in blend)
+    // Each renderer only outputs pixels it owns, so every pixel is drawn exactly once and
+    // translucent overlaps aren't doubly opaque. An owner is always within smoothFactor of
+    // its shape, which its quad (padded by at least smoothFactor) covers, so this leaves no gaps
     // myIndex == -1: inverted rect renders border-owned pixels
     // myIndex >= 0: individual rect renders its owned pixels
-    if (owner != myIndex && mergedSdf > smoothFactor)
+    if (owner != myIndex)
         discard;
 
     float fw = fwidth(mergedSdf);
