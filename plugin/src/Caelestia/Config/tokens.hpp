@@ -12,16 +12,17 @@ namespace caelestia::config {
 class AnimCurves : public settings::ObjectNode {
     CONFIG_NODE(AnimCurves, settings::ObjectNode)
 
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, emphasized,
-        DEFAULT_ARG({ 0.05, 0, 2.0 / 15.0, 0.06, 1.0 / 6.0, 0.4, 5.0 / 24.0, 0.82, 0.25, 1, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, emphasizedAccel, DEFAULT_ARG({ 0.3, 0, 0.8, 0.15, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, emphasizedDecel, DEFAULT_ARG({ 0.05, 0.7, 0.1, 1, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, standard, DEFAULT_ARG({ 0.2, 0, 0, 1, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, standardAccel, DEFAULT_ARG({ 0.3, 0, 1, 1, 1, 1 }))
+    // Matched to the Hyprland config: entering/moving uses easeOutQuint (front-loaded, so it reacts
+    // instantly and settles without a crawl or bounce), and exits are linear rather than easing in slowly
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, emphasized, DEFAULT_ARG({ 0.23, 1, 0.32, 1, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, emphasizedAccel, DEFAULT_ARG({ 0, 0, 1, 1, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, emphasizedDecel, DEFAULT_ARG({ 0.23, 1, 0.32, 1, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, standard, DEFAULT_ARG({ 0.23, 1, 0.32, 1, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, standardAccel, DEFAULT_ARG({ 0, 0, 1, 1, 1, 1 }))
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, standardDecel, DEFAULT_ARG({ 0, 0, 0, 1, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveFastSpatial, DEFAULT_ARG({ 0.42, 1.67, 0.21, 0.9, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveDefaultSpatial, DEFAULT_ARG({ 0.38, 1.21, 0.22, 1, 1, 1 }))
-    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSlowSpatial, DEFAULT_ARG({ 0.39, 1.29, 0.35, 0.98, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveFastSpatial, DEFAULT_ARG({ 0.23, 1, 0.32, 1, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveDefaultSpatial, DEFAULT_ARG({ 0.23, 1, 0.32, 1, 1, 1 }))
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSlowSpatial, DEFAULT_ARG({ 0.23, 1, 0.32, 1, 1, 1 }))
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveFastEffects, DEFAULT_ARG({ 0.31, 0.94, 0.34, 1, 1, 1 }))
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveDefaultEffects, DEFAULT_ARG({ 0.34, 0.8, 0.34, 1, 1, 1 }))
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSlowEffects, DEFAULT_ARG({ 0.34, 0.88, 0.34, 1, 1, 1 }))
@@ -81,16 +82,16 @@ class FontSizeTokens : public settings::ObjectNode {
 class AnimDurationTokens : public settings::ObjectNode {
     CONFIG_NODE(AnimDurationTokens, settings::ObjectNode)
 
-    CONFIG_GLOBAL_PROPERTY(int, small, 200)
-    CONFIG_GLOBAL_PROPERTY(int, normal, 400)
-    CONFIG_GLOBAL_PROPERTY(int, large, 600)
-    CONFIG_GLOBAL_PROPERTY(int, extraLarge, 1000)
-    CONFIG_GLOBAL_PROPERTY(int, expressiveFastSpatial, 350)
-    CONFIG_GLOBAL_PROPERTY(int, expressiveDefaultSpatial, 500)
-    CONFIG_GLOBAL_PROPERTY(int, expressiveSlowSpatial, 650)
-    CONFIG_GLOBAL_PROPERTY(int, expressiveFastEffects, 150)
-    CONFIG_GLOBAL_PROPERTY(int, expressiveDefaultEffects, 200)
-    CONFIG_GLOBAL_PROPERTY(int, expressiveSlowEffects, 300)
+    CONFIG_GLOBAL_PROPERTY(int, small, 50)
+    CONFIG_GLOBAL_PROPERTY(int, normal, 100)
+    CONFIG_GLOBAL_PROPERTY(int, large, 150)
+    CONFIG_GLOBAL_PROPERTY(int, extraLarge, 200)
+    CONFIG_GLOBAL_PROPERTY(int, expressiveFastSpatial, 90)
+    CONFIG_GLOBAL_PROPERTY(int, expressiveDefaultSpatial, 125)
+    CONFIG_GLOBAL_PROPERTY(int, expressiveSlowSpatial, 160)
+    CONFIG_GLOBAL_PROPERTY(int, expressiveFastEffects, 40)
+    CONFIG_GLOBAL_PROPERTY(int, expressiveDefaultEffects, 60)
+    CONFIG_GLOBAL_PROPERTY(int, expressiveSlowEffects, 90)
 };
 
 class AppearanceTokens : public settings::ObjectNode {

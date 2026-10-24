@@ -176,34 +176,32 @@ ColumnLayout {
             running: false
 
             ParallelAnimation {
-                NumberAnimation {
+                Anim {
                     target: activeRow
                     property: "opacity"
                     to: 0.0
-                    duration: 70
+                    type: Anim.FastEffects
                 }
-                NumberAnimation {
+                Anim {
                     target: activeRow
                     property: "scale"
                     to: 0.92
-                    duration: 70
+                    type: Anim.FastEffects
                 }
             }
 
             ParallelAnimation {
-                NumberAnimation {
+                Anim {
                     target: activeRow
                     property: "opacity"
                     to: 1.0
-                    duration: 160
-                    easing.type: Easing.OutCubic
+                    type: Anim.Standard
                 }
-                NumberAnimation {
+                Anim {
                     target: activeRow
                     property: "scale"
                     to: 1.0
-                    duration: 220
-                    easing.type: Easing.OutBack
+                    type: Anim.StandardLarge
                 }
             }
         }
