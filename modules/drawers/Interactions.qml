@@ -139,7 +139,7 @@ CustomMouseArea {
         if (panels.sidebar.offsetScale === 1) {
             const showSidebar = pressed && dragStart.x > sidebarX;
 
-            if (Config.sidebar.showOnHover && showSidebarHover && !screenState.sidebar)
+            if (Config.sidebar.showOnHover && Config.sidebar.enabled && showSidebarHover && !screenState.sidebar)
                 screenState.sidebar = true;
 
             // Show/hide session on drag
@@ -166,7 +166,7 @@ CustomMouseArea {
             }
 
             // Show/hide sidebar on hover
-            if (Config.sidebar.showOnHover && !pressed) {
+            if (Config.sidebar.showOnHover && Config.sidebar.enabled && !pressed) {
                 if (showSidebarHover && !screenState.sidebar) {
                     screenState.sidebar = true;
                 } else if (!sidebarShortcutActive) {
