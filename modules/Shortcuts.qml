@@ -9,7 +9,6 @@ import qs.modules.nexus
 Scope {
     id: root
 
-    property bool launcherInterrupted
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
 
     // qmllint disable unresolved-type
@@ -64,22 +63,12 @@ Scope {
         // qmllint enable unresolved-type
         name: "launcher"
         description: "Toggle launcher"
-        onPressed: root.launcherInterrupted = false
-        onReleased: {
-            if (!root.launcherInterrupted && !root.hasFullscreen) {
-                const screenState = ShellState.forActive();
-                screenState.launcher = !screenState.launcher;
-            }
-            root.launcherInterrupted = false;
+        onPressed: {
+            if (root.hasFullscreen)
+                return;
+            const screenState = ShellState.forActive();
+            screenState.launcher = !screenState.launcher;
         }
-    }
-
-    // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
-        name: "launcherInterrupt"
-        description: "Interrupt launcher keybind"
-        onPressed: root.launcherInterrupted = true
     }
 
     // qmllint disable unresolved-type

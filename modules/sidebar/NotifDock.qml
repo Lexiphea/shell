@@ -23,7 +23,19 @@ Item {
     anchors.fill: parent
     anchors.margins: Tokens.padding.medium
 
-    Component.onCompleted: Notifs.list.forEach(n => n.popup = false)
+    Component.onCompleted: {
+        if (screenState.sidebar)
+            Notifs.list.forEach(n => n.popup = false);
+    }
+
+    Connections {
+        function onSidebarChanged(): void {
+            if (root.screenState.sidebar)
+                Notifs.list.forEach(n => n.popup = false);
+        }
+
+        target: root.screenState
+    }
 
     Item {
         id: title

@@ -32,7 +32,8 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
 
-        active: root.shouldBeActive || root.visible
+        // Preloaded on the focused monitor so the animation starts immediately
+        active: Config.session.enabled && (root.screenState.focused || root.visible)
 
         sourceComponent: Content {
             screenState: root.screenState

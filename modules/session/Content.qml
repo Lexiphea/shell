@@ -27,11 +27,19 @@ Column {
 
         KeyNavigation.down: shutdown
 
-        Component.onCompleted: forceActiveFocus()
+        Component.onCompleted: {
+            if (root.screenState.session)
+                forceActiveFocus();
+        }
 
         Connections {
             function onLauncherChanged(): void {
-                if (!root.screenState.launcher)
+                if (!root.screenState.launcher && root.screenState.session)
+                    logout.forceActiveFocus();
+            }
+
+            function onSessionChanged(): void {
+                if (root.screenState.session)
                     logout.forceActiveFocus();
             }
 
@@ -86,6 +94,9 @@ Column {
         required property list<string> command
 
         function exec(): void {
+            // The panel stays loaded while hidden and can keep focus, so ignore stray keys then
+            if (!root.screenState.session)
+                return;
             if (!SessionManager.exec(command))
                 Quickshell.execDetached(command);
         }

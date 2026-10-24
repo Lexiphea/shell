@@ -1,7 +1,11 @@
 import Quickshell
+import qs.services
 
 PersistentProperties {
     required property ShellScreen modelData
+
+    // Whether this screen's monitor has focus. Panels stay preloaded only here
+    readonly property bool focused: Hypr.monitorFor(modelData) === Hypr.focusedMonitor
 
     // Drawer visibilities
     property bool bar

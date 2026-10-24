@@ -98,7 +98,8 @@ Item {
         anchors.left: parent.left
 
         asynchronous: true
-        active: root.shouldBeActive || root.visible
+        // Preloaded on the focused monitor so the animation starts immediately
+        active: Config.osd.enabled && (root.screenState.focused || root.visible)
 
         sourceComponent: Content {
             monitor: root.monitor
