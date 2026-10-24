@@ -9,6 +9,7 @@ import qs.components
 import qs.components.controls
 import qs.components.images
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
@@ -182,10 +183,30 @@ PageBase {
             Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
 
             text: Tr.tr("Transparency")
-            // TRANSLATORS: %1/%2 = opacity values from 0 to 1 for the base surface and layered surfaces
-            subtext: Tr.tr("Base %1, layers %2").arg(Colours.transparency.base).arg(Colours.transparency.layers)
             checked: Colours.transparency.enabled
             onToggled: GlobalConfig.appearance.transparency.enabled = checked
+        }
+
+        SliderRow {
+            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+
+            visible: Colours.transparency.enabled
+            icon: "opacity"
+            label: Tr.tr("Base opacity")
+            valueLabel: Strings.percentOne(value)
+            value: GlobalConfig.appearance.transparency.base
+            onMoved: v => GlobalConfig.appearance.transparency.base = v
+        }
+
+        SliderRow {
+            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+
+            visible: Colours.transparency.enabled
+            icon: "layers"
+            label: Tr.tr("Layer opacity")
+            valueLabel: Strings.percentOne(value)
+            value: GlobalConfig.appearance.transparency.layers
+            onMoved: v => GlobalConfig.appearance.transparency.layers = v
         }
 
         ToggleRow {
