@@ -9,6 +9,10 @@ Item {
     required property var modelData
     required property var list
 
+    function activate(): void {
+        modelData?.onClicked(list);
+    }
+
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
     anchors.left: parent?.left
@@ -16,7 +20,7 @@ Item {
 
     StateLayer {
         radius: Tokens.rounding.large
-        onClicked: root.modelData?.onClicked(root.list)
+        onClicked: root.activate()
     }
 
     Item {

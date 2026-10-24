@@ -25,17 +25,13 @@ Singleton {
         return obj;
     }) : []
 
-    function transformSearch(search: string): string {
-        return search;
-    }
-
     function selector(item: var): string {
         // Only for fzf
         return item[key];
     }
 
     function query(search: string): var {
-        search = transformSearch(search.trim().replace(/\s+/g, " "));
+        search = search.trim().replace(/\s+/g, " ");
         if (!search)
             return [...list];
 

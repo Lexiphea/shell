@@ -12,10 +12,6 @@ import qs.utils
 Searcher {
     id: root
 
-    function transformSearch(search: string): string {
-        return search.slice(GlobalConfig.launcher.actionPrefix.length);
-    }
-
     list: variants.instances
     useFuzzy: GlobalConfig.launcher.useFuzzy.actions
 
@@ -44,7 +40,7 @@ Searcher {
                 return;
 
             if (command[0] === "autocomplete" && command.length > 1) {
-                list.search.text = `${GlobalConfig.launcher.actionPrefix}${command[1]} `;
+                list.search.text = `${command[1]} `;
             } else if (command[0] === "setMode" && command.length > 1) {
                 list.screenState.launcher = false;
                 Colours.setMode(command[1]);

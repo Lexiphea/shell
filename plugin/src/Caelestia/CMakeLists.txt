@@ -3,7 +3,7 @@ qml_module(caelestia-core
     INCLUDE_PREFIX core
     SOURCES
         cutils.cpp
-        qalculator.cpp
+        soulver.cpp
         requests.cpp
         toaster.cpp
         circularbuffer.cpp
@@ -11,7 +11,6 @@ qml_module(caelestia-core
         Qt::Gui
         Qt::Quick
         Qt::Concurrent
-        PkgConfig::Qalculate
 )
 target_link_libraries(caelestia-core PUBLIC caelestia-util)
 

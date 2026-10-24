@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.components.containers
@@ -18,50 +19,38 @@ StyledListView {
 
     property string displayText
 
-    readonly property string requestedState: stateForText(search.text)
-    readonly property string displayState: stateForText(displayText)
+    // Raycast style inline calculator. Like vicinae, it only shows when nothing else matches so it never takes
+    // Enter from an app, unless the query starts with "=" to force it
+    readonly property var calc: results.calc
+    readonly property var results: {
+        const values = Apps.search(displayText).concat(Actions.query(displayText));
+        const query = displayText.trim();
+        const forced = query.startsWith("=");
+        if (!forced && (values.length > 0 || query.length < 3))
+            return { values };
+
+        const expr = forced ? query.slice(1) : query;
+        const result = Soulver.eval(expr);
+        if (!result || result.value === expr.trim())
+            return { values };
+        values.unshift(calcEntry);
+        return { values, calc: Object.assign({ question: expr.trim() }, result) };
+    }
 
     function syncDisplayText(): void {
-        if (screenState.launcher && requestedState === displayState)
+        if (screenState.launcher)
             displayText = search.text;
     }
 
-    function stateForText(text: string): string {
-        const prefix = GlobalConfig.launcher.actionPrefix;
-        if (text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
-                if (text.startsWith(`${prefix}${action} `))
-                    return action;
-
-            return "actions";
-        }
-
-        return "apps";
-    }
-
-    function resultsForText(text: string): var {
-        switch (stateForText(text)) {
-        case "actions":
-            return Actions.query(text);
-        case "calc":
-            return [0];
-        case "scheme":
-            return Schemes.query(text);
-        case "variant":
-            return M3Variants.query(text);
-        default:
-            return Apps.search(text);
-        }
-    }
-
     model: ScriptModel {
-        values: root.resultsForText(root.displayText)
+        values: root.results.values
         onValuesChanged: root.currentIndex = 0
     }
 
     spacing: Tokens.spacing.small
     orientation: Qt.Vertical
-    implicitHeight: (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    // The calculator card is double height
+    implicitHeight: (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing + (calc ? Tokens.sizes.launcher.itemHeight : 0)
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -82,135 +71,12 @@ StyledListView {
         }
     }
 
-    state: screenState.launcher ? requestedState : displayState
-
-    onStateChanged: {
-        if (state === "scheme" || state === "variant")
-            Schemes.reload();
-    }
-
     Component.onCompleted: displayText = search.text
 
-    states: [
-        State {
-            name: "apps"
-
-            PropertyChanges {
-                root.delegate: appItem
-            }
-        },
-        State {
-            name: "actions"
-
-            PropertyChanges {
-                root.delegate: actionItem
-            }
-        },
-        State {
-            name: "calc"
-
-            PropertyChanges {
-                root.delegate: calcItem
-            }
-        },
-        State {
-            name: "scheme"
-
-            PropertyChanges {
-                root.delegate: schemeItem
-            }
-        },
-        State {
-            name: "variant"
-
-            PropertyChanges {
-                root.delegate: variantItem
-            }
-        }
-    ]
-
-    transitions: Transition {
-        SequentialAnimation {
-            ParallelAnimation {
-                Anim {
-                    target: root
-                    property: "opacity"
-                    from: 1
-                    to: 0
-                    duration: Tokens.anim.durations.small
-                    easing: Tokens.anim.standardAccel
-                }
-                Anim {
-                    target: root
-                    property: "scale"
-                    from: 1
-                    to: 0.9
-                    duration: Tokens.anim.durations.small
-                    easing: Tokens.anim.standardAccel
-                }
-            }
-            PropertyAction {
-                target: root
-                property: "delegate"
-                value: null
-            }
-            ScriptAction {
-                script: root.displayText = root.search.text
-            }
-            PropertyAction {
-                target: root
-                property: "delegate"
-            }
-            ParallelAnimation {
-                Anim {
-                    target: root
-                    property: "opacity"
-                    from: 0
-                    to: 1
-                    duration: Tokens.anim.durations.small
-                    easing: Tokens.anim.standardDecel
-                }
-                Anim {
-                    target: root
-                    property: "scale"
-                    from: 0.9
-                    to: 1
-                    duration: Tokens.anim.durations.small
-                    easing: Tokens.anim.standardDecel
-                }
-            }
-            PropertyAction {
-                targets: [root.add, root.remove]
-                property: "enabled"
-                value: true
-            }
-        }
-    }
+    delegate: appItem
 
     StyledScrollBar.vertical: StyledScrollBar {
         flickable: root
-    }
-
-    add: Transition {
-        enabled: !root.state
-
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            from: 0
-            to: 1
-        }
-    }
-
-    remove: Transition {
-        enabled: !root.state
-
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            from: 1
-            to: 0
-        }
     }
 
     move: Transition {
@@ -247,42 +113,51 @@ StyledListView {
         }
     }
 
+    QtObject {
+        id: calcEntry
+    }
+
     Component {
         id: appItem
 
-        AppItem {
-            screenState: root.screenState
+        Loader {
+            id: entry
+
+            required property var modelData
+
+            function activate(): void {
+                item.activate();
+            }
+
+            anchors.left: parent?.left
+            anchors.right: parent?.right
+
+            sourceComponent: modelData === calcEntry ? soulverItem : (modelData as DesktopEntry) ? desktopEntry : actionEntry
+
+            Component {
+                id: desktopEntry
+
+                AppItem {
+                    modelData: entry.modelData as DesktopEntry
+                    screenState: root.screenState
+                }
+            }
+
+            Component {
+                id: actionEntry
+
+                ActionItem {
+                    modelData: entry.modelData
+                    list: root
+                }
+            }
         }
     }
 
     Component {
-        id: actionItem
+        id: soulverItem
 
-        ActionItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: calcItem
-
-        CalcItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: schemeItem
-
-        SchemeItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: variantItem
-
-        VariantItem {
+        SoulverItem {
             list: root
         }
     }

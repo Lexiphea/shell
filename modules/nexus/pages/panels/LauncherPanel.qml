@@ -32,32 +32,11 @@ PageBase {
         }
 
         ToggleRow {
+            last: true
             text: Tr.tr("Show on hover")
             subtext: Tr.tr("Reveal when the cursor reaches the screen edge")
             checked: Config.launcher.showOnHover
             onToggled: GlobalConfig.launcher.showOnHover = checked
-        }
-
-        TextFieldRow {
-            id: prefixRow
-
-            last: true
-            label: Tr.tr("Action prefix")
-            subtext: Tr.tr("Prefix used to run actions in the launcher")
-            errorText: Tr.tr("Prefix must not be alphanumeric")
-            value: GlobalConfig.launcher.actionPrefix === ">" ? "" : GlobalConfig.launcher.actionPrefix // TODO: replace with empty only when not loaded once loaded state is exposed
-            placeholderText: ">"
-            maximumLength: 1
-            smallField: true
-            validate: /^[^a-zA-Z0-9\s]$/
-            onEditingFinished: value => {
-                if (!field.valid)
-                    return;
-                /// TODO: replace with GlobalConfig.launcher.resetOption("actionPrefix") on empty commit when reset is fixed
-                GlobalConfig.launcher.actionPrefix = value || ">";
-                if (GlobalConfig.launcher.actionPrefix === ">")
-                    clear();
-            }
         }
 
         // Display
@@ -132,18 +111,6 @@ PageBase {
             text: Tr.tr("Actions")
             checked: GlobalConfig.launcher.useFuzzy.actions
             onToggled: GlobalConfig.launcher.useFuzzy.actions = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Schemes")
-            checked: GlobalConfig.launcher.useFuzzy.schemes
-            onToggled: GlobalConfig.launcher.useFuzzy.schemes = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Variants")
-            checked: GlobalConfig.launcher.useFuzzy.variants
-            onToggled: GlobalConfig.launcher.useFuzzy.variants = checked
         }
 
         ToggleRow {

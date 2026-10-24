@@ -11,7 +11,6 @@
   lm_sensors,
   swappy,
   wl-clipboard,
-  libqalculate,
   bash,
   hyprland,
   material-symbols,
@@ -46,7 +45,6 @@
       lm_sensors
       swappy
       wl-clipboard
-      libqalculate
       bash
       hyprland
     ]
@@ -95,7 +93,7 @@
     };
 
     nativeBuildInputs = [cmake ninja pkg-config];
-    buildInputs = [qt6.qtbase qt6.qtdeclarative qt6.qtshadertools libqalculate pipewire aubio libcava fftw lm_sensors];
+    buildInputs = [qt6.qtbase qt6.qtdeclarative qt6.qtshadertools pipewire aubio libcava fftw lm_sensors];
 
     dontWrapQtApps = true;
     cmakeFlags =

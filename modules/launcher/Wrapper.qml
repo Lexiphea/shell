@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.modules.launcher.services
@@ -37,7 +38,7 @@ Item {
     implicitWidth: content.implicitWidth || 630 // Hard coded fallback for first open
     opacity: 1 - offsetScale
 
-    Component.onCompleted: Qt.callLater(() => Apps) // Load apps on init
+    Component.onCompleted: Qt.callLater(() => [Apps, Soulver]) // Load apps and the calculator on init
 
     Behavior on offsetScale {
         Anim {}
@@ -50,7 +51,8 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        active: root.shouldBeActive || root.visible
+        // Kept alive between opens so the launcher doesn't rebuild every time it is shown
+        active: Config.launcher.enabled
 
         sourceComponent: Content {
             screenState: root.screenState
