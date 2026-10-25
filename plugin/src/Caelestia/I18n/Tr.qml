@@ -3,6 +3,10 @@ pragma Singleton
 import Caelestia.I18n
 
 TranslatorInternal {
+    function formatDateTime(date: date, fmt: var): string {
+        return date.toLocaleString(locale, fmt);
+    }
+
     // No-op so the flag var isn't optimised away
     function _unused(v: var): void {
     }

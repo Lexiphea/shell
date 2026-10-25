@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import M3Shapes
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.components.effects
@@ -196,7 +197,7 @@ CustomMouseArea {
             Grid {
                 id: grid
 
-                readonly property var locale: Qt.locale()
+                readonly property var locale: Tr.locale
                 readonly property real cellWidth: (width - spacing * (columns - 1)) / columns
                 readonly property list<var> days: {
                     const first = new Date(root.currYear, root.currMonth, 1);
