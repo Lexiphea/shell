@@ -111,9 +111,10 @@ void BlobGroup::markShapeDirty(BlobShape* source) {
 
     touch(source);
 
-    // Use cached padded rects to find spatial neighbors
+    // Neighbours of both the old and new position need updating, or a large move can skip shapes it lands next to
+    const QRectF current = source->paddedSceneRect(source->mapToScene(QPointF(0, 0)), static_cast<float>(m_smoothing));
     const qreal pad = m_smoothing * 2.0;
-    const QRectF srcRect = source->m_paddedSceneRect.adjusted(-pad, -pad, pad, pad);
+    const QRectF srcRect = source->m_paddedSceneRect.united(current).adjusted(-pad, -pad, pad, pad);
 
     for (auto* shape : std::as_const(m_shapes)) {
         if (shape != source && srcRect.intersects(shape->m_paddedSceneRect))
