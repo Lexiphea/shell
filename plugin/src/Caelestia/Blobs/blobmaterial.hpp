@@ -11,7 +11,6 @@ inline constexpr int k_maxRects = 16;
 
 struct BlobRectData {
     float cx = 0, cy = 0, hw = 0, hh = 0;
-    float offsetX = 0, offsetY = 0;
     float minEig = 1.0f;
     // Inverse of 2x2 deformation matrix, column-major for GLSL
     float invDeform[4] = { 1, 0, 0, 1 };
@@ -28,7 +27,6 @@ class BlobMaterial : public QSGMaterial {
 public:
     [[nodiscard]] QSGMaterialType* type() const override;
     [[nodiscard]] QSGMaterialShader* createShader(QSGRendererInterface::RenderMode mode) const override;
-    int compare(const QSGMaterial* other) const override;
 
     float m_paddedX = 0;
     float m_paddedY = 0;

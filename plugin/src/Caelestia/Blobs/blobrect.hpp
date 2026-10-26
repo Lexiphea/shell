@@ -73,6 +73,7 @@ protected:
 
 private:
     void checkAtRest(float speed);
+    void resetDeform();
 
     // Physics state
     QPointF m_prevScenePos;
@@ -107,15 +108,11 @@ private:
     static qsizetype excludeCount(QQmlListProperty<BlobRect>* prop);
     static BlobRect* excludeAt(QQmlListProperty<BlobRect>* prop, qsizetype index);
     static void excludeClear(QQmlListProperty<BlobRect>* prop);
-    static void excludeReplace(QQmlListProperty<BlobRect>* prop, qsizetype index, BlobRect* rect);
-    static void excludeRemoveLast(QQmlListProperty<BlobRect>* prop);
 
     static void excludeCornersAppend(QQmlListProperty<BlobRect>* prop, BlobRect* rect);
     static qsizetype excludeCornersCount(QQmlListProperty<BlobRect>* prop);
     static BlobRect* excludeCornersAt(QQmlListProperty<BlobRect>* prop, qsizetype index);
     static void excludeCornersClear(QQmlListProperty<BlobRect>* prop);
-    static void excludeCornersReplace(QQmlListProperty<BlobRect>* prop, qsizetype index, BlobRect* rect);
-    static void excludeCornersRemoveLast(QQmlListProperty<BlobRect>* prop);
 };
 
 } // namespace caelestia::blobs

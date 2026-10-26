@@ -19,14 +19,6 @@ QSGMaterialShader* BlobMaterial::createShader(QSGRendererInterface::RenderMode m
     return new BlobMaterialShader;
 }
 
-int BlobMaterial::compare(const QSGMaterial* other) const {
-    if (this < other)
-        return -1;
-    if (this > other)
-        return 1;
-    return 0;
-}
-
 BlobMaterialShader::BlobMaterialShader() {
     setShaderFileName(VertexStage, u":/shaders/blob.vert.qsb"_s);
     setShaderFileName(FragmentStage, u":/shaders/blob.frag.qsb"_s);
@@ -96,7 +88,7 @@ bool BlobMaterialShader::updateUniformData(RenderState& state, QSGMaterial* newM
         float maskAsFloat;
         memcpy(&maskAsFloat, &r.excludeMask, sizeof(float));
         const float d0[4] = { r.cx, r.cy, r.hw, r.hh };
-        const float d1[4] = { maskAsFloat, r.offsetX, r.offsetY, r.minEig };
+        const float d1[4] = { maskAsFloat, 0.0f, 0.0f, r.minEig };
         const float d3[4] = { r.screenHalfX, r.screenHalfY, 0.0f, 0.0f };
         memcpy(buf->data() + base, d0, 16);
         memcpy(buf->data() + base + 16, d1, 16);

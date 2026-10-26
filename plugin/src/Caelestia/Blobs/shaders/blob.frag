@@ -3,6 +3,7 @@
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 
+// Must match blob.vert
 layout(std140, binding = 0) uniform buf {
     mat4 qt_Matrix;
     float qt_Opacity;
@@ -36,19 +37,12 @@ float sdRoundedBox4(vec2 p, vec2 center, vec2 halfSize, vec4 r) {
     return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
 }
 
-float sdBox(vec2 p, vec2 center, vec2 halfSize) {
-    vec2 d = abs(p - center) - halfSize;
-    return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0);
-}
-
 float smin(float a, float b, float k) {
     // Circular smooth min — the blend fillet is a true circular arc of radius k,
-    // tangent to both surfaces (not a polynomial/squircle curve). Deviates from
-    // min(a, b) only in the corner region where BOTH a < k and b < k (unlike the
-    // cubic it replaced, which deviated over the whole band |a - b| < k). Always
-    // <= min(a, b); max blend depth at a == b is (sqrt(2) - 1) * k. It is C1 but
-    // not C2 at the support boundary, so a circular-arc fillet shows the usual
-    // line-meets-arc curvature step — by design, that is the "circular" look.
+    // tangent to both surfaces. Deviates from min(a, b) only in the corner region
+    // where BOTH a < k and b < k. Always <= min(a, b); max blend depth at a == b is
+    // (sqrt(2) - 1) * k. It is C1 but not C2 at the support boundary, so the fillet
+    // shows the usual line-meets-arc curvature step — that is the "circular" look.
     return max(k, min(a, b)) - length(max(vec2(k) - vec2(a, b), vec2(0.0)));
 }
 
@@ -60,8 +54,7 @@ float smax(float a, float b, float k) {
 float smaxSharpA(float a, float b, float k) {
     // Circular smax variant that keeps a's boundary sharp (no inward rounding at
     // a = 0). Used for the frame outer edge so it always fills to the edges.
-    float sm = min(-k, max(a, b)) + length(max(vec2(a, b) + vec2(k), vec2(0.0)));
-    float blend = (sm - max(a, b)) * smoothstep(0.0, k * 0.5, -a);
+    float blend = (smax(a, b, k) - max(a, b)) * smoothstep(0.0, k * 0.5, -a);
     return max(a, b) + blend;
 }
 
@@ -71,21 +64,21 @@ void main() {
     vec2 pixel = vec2(paddedX, paddedY) + qt_TexCoord0 * vec2(paddedW, paddedH);
     pixel = (floor(pixel * dpr) + 0.5) / dpr;
 
-    // Phase 1: compute per-rect SDF, track owner. We can't smin yet because excluded
-    // pairs need to skip the smooth blend, which requires pairwise pass below.
+    // Phase 1: per-rect SDF, hard-min baseline and owner. The smooth blend comes later
+    // because excluded pairs must skip it, which needs the pairwise pass.
     float dArr[16];
     int owner = -2;
     float minDist = 1e10;
+    float mergedSdf = 1e10;
 
     for (int i = 0; i < rectCount; i++) {
         vec4 rect = rectData[i * 5];         // cx, cy, hw, hh
-        vec4 props = rectData[i * 5 + 1];    // excludeMask(int bits), offsetX, offsetY, minEig
+        vec4 props = rectData[i * 5 + 1];    // excludeMask(int bits), 0, 0, minEig
         vec4 invDm = rectData[i * 5 + 2];    // inverse deform matrix
         vec4 sh = rectData[i * 5 + 3];       // screenHalfX, screenHalfY, 0, 0
         vec4 radii = rectData[i * 5 + 4];    // effective per-corner radii (tr, br, bl, tl)
 
-        // Offset center for asymmetric deformation
-        vec2 center = rect.xy + props.yz;
+        vec2 center = rect.xy;
 
         // AABB early-out: skip rects far from this pixel
         vec2 extent = sh.xy + vec2(smoothFactor * 1.5);
@@ -148,38 +141,26 @@ void main() {
         }
 
         dArr[i] = d;
+        mergedSdf = min(mergedSdf, d);
         if (d < smoothFactor && d < minDist) {
             minDist = d;
             owner = i;
         }
     }
 
-    // Phase 2: hard-min baseline over all rects.
-    float mergedSdf = 1e10;
-    for (int i = 0; i < rectCount; i++) {
-        mergedSdf = min(mergedSdf, dArr[i]);
-    }
+    // Each renderer only outputs pixels it owns, so every pixel is drawn exactly once and
+    // translucent overlaps aren't doubly opaque. An owner is always within smoothFactor of
+    // its shape, which its quad (padded by at least smoothFactor) covers, so this leaves no gaps.
+    // myIndex == -1: inverted rect renders border-owned pixels
+    // myIndex >= 0: individual rect renders its owned pixels
+    // The frame can only take a pixel from a rect, never give one, so a rect renderer that
+    // doesn't own the pixel yet can skip everything below.
+    if (myIndex >= 0 && owner != myIndex)
+        discard;
 
-    // Phase 3: pair-wise smin contributions, skipping excluded pairs. Pair smin <= min,
-    // so taking the min over all non-excluded pair smins gives the smoothly-merged SDF.
-    for (int i = 0; i < rectCount; i++) {
-        if (dArr[i] >= 1e9)
-            continue;
-        int excludeMask = floatBitsToInt(rectData[i * 5 + 1].x);
-        for (int j = i + 1; j < rectCount; j++) {
-            if (dArr[j] >= 1e9)
-                continue;
-            if ((excludeMask & (1 << j)) != 0)
-                continue;
-            // Circular smin deviates from min only where BOTH dArr are < smoothFactor.
-            if (max(dArr[i], dArr[j]) >= smoothFactor)
-                continue;
-            mergedSdf = min(mergedSdf, smin(dArr[i], dArr[j], smoothFactor));
-        }
-    }
-
+    float dFrame = 1e10;
     if (hasInverted != 0) {
-        float dOuter = sdBox(pixel, invertedOuter.xy, invertedOuter.zw) - 1.0;
+        float dOuter = sdRoundedBox(pixel, invertedOuter.xy, invertedOuter.zw, 0.0) - 1.0;
         float dInner = sdRoundedBox(pixel, invertedInner.xy, invertedInner.zw, invertedRadius);
 
         // Border sinks: track the opposite rect edge, clamped to border thickness
@@ -192,22 +173,25 @@ void main() {
         float outerLeft = invertedOuter.x - invertedOuter.z;
         float outerRight = invertedOuter.x + invertedOuter.z;
 
+        // Sink onset / residual overlap: how far a rect must penetrate the border before
+        // the inner wall recedes to form its pocket. Too low and the wall recedes faster
+        // than the junction can stay convex, denting the inner edge inward near the rect's
+        // (squared) corners; too high and the rect nestles too deep before the wall yields.
+        // Half the circular smin gap-closing distance, (2-sqrt2)k/2.
+        float preOff = smoothFactor * (2.0 - sqrt(2.0)) * 0.5;
+        float s = smoothFactor * 2.0;
+
+        // Perpendicular proximity: full strength in border, fade inside inner area
+        float topZone = 1.0 - smoothstep(innerTop, innerTop + smoothFactor, pixel.y);
+        float botZone = smoothstep(innerBot - smoothFactor, innerBot, pixel.y);
+        float leftZone = 1.0 - smoothstep(innerLeft, innerLeft + smoothFactor, pixel.x);
+        float rightZone = smoothstep(innerRight - smoothFactor, innerRight, pixel.x);
+
         float sinkValue = 0.0;
         for (int i = 0; i < rectCount; i++) {
-            vec4 rect = rectData[i * 5];
-            vec4 sinkProps = rectData[i * 5 + 1];
+            // Screen-space center and pre-computed AABB half-extents
+            vec2 ctr = rectData[i * 5].xy;
             vec2 sinkSh = rectData[i * 5 + 3].xy;
-
-            // Screen-space center (with offset) and pre-computed AABB half-extents
-            vec2 ctr = rect.xy + sinkProps.yz;
-
-            // Sink onset / residual overlap: how far a rect must penetrate the border before
-            // the inner wall recedes to form its pocket. Too low and the wall recedes faster
-            // than the junction can stay convex, denting the inner edge inward near the rect's
-            // (squared) corners; too high and the rect nestles too deep before the wall yields.
-            // Tuned between the old cubic blend depth (k/6, too shallow) and the circular blend
-            // depth ((sqrt2-1)k): half the circular smin gap-closing distance, (2-sqrt2)k/2.
-            float preOff = smoothFactor * (2.0 - sqrt(2.0)) * 0.5;
 
             // Top border: track rect's BOTTOM edge, only within border thickness
             float topPen = clamp(innerTop - (ctr.y + sinkSh.y) - preOff, 0.0, innerTop - outerTop);
@@ -221,17 +205,14 @@ void main() {
             // Right border: track rect's LEFT edge
             float rightPen = clamp((ctr.x - sinkSh.x) - innerRight - preOff, 0.0, outerRight - innerRight);
 
+            // No penetration means no sink
+            if (max(max(topPen, botPen), max(leftPen, rightPen)) <= 0.0)
+                continue;
+
             // Lateral distance from pixel to rect's extent along each edge
             float hLat = max(abs(pixel.x - ctr.x) - sinkSh.x, 0.0);
             float vLat = max(abs(pixel.y - ctr.y) - sinkSh.y, 0.0);
 
-            // Perpendicular proximity: full strength in border, fade inside inner area
-            float topZone = 1.0 - smoothstep(innerTop, innerTop + smoothFactor, pixel.y);
-            float botZone = smoothstep(innerBot - smoothFactor, innerBot, pixel.y);
-            float leftZone = 1.0 - smoothstep(innerLeft, innerLeft + smoothFactor, pixel.x);
-            float rightZone = smoothstep(innerRight - smoothFactor, innerRight, pixel.x);
-
-            float s = smoothFactor * 2.0;
             float sink = max(
                 max(topPen * smoothstep(s, 0.0, hLat) * topZone,
                     botPen * smoothstep(s, 0.0, hLat) * botZone),
@@ -252,21 +233,33 @@ void main() {
         float minThick = min(min(innerTop - outerTop, outerBot - innerBot),
                              min(innerLeft - outerLeft, outerRight - innerRight));
         float kFrame = clamp(min(smoothFactor, minThick - 1.0), 1.0, smoothFactor);
-        float dFrame = smaxSharpA(dOuter, -dInner, kFrame);
+        dFrame = smaxSharpA(dOuter, -dInner, kFrame);
 
-        mergedSdf = smin(mergedSdf, dFrame, smoothFactor);
-        if (dFrame < minDist) {
+        if (dFrame < minDist)
             owner = -1;
+    }
+
+    if (owner != myIndex)
+        discard;
+
+    // Phase 2: pair-wise smin contributions, skipping excluded pairs. Pair smin <= min,
+    // so taking the min over all non-excluded pair smins gives the smoothly-merged SDF.
+    // Circular smin deviates from min only where BOTH distances are < smoothFactor.
+    for (int i = 0; i < rectCount; i++) {
+        if (dArr[i] >= smoothFactor)
+            continue;
+        int excludeMask = floatBitsToInt(rectData[i * 5 + 1].x);
+        for (int j = i + 1; j < rectCount; j++) {
+            if (dArr[j] >= smoothFactor)
+                continue;
+            if ((excludeMask & (1 << j)) != 0)
+                continue;
+            mergedSdf = min(mergedSdf, smin(dArr[i], dArr[j], smoothFactor));
         }
     }
 
-    // Each renderer only outputs pixels it owns, so every pixel is drawn exactly once and
-    // translucent overlaps aren't doubly opaque. An owner is always within smoothFactor of
-    // its shape, which its quad (padded by at least smoothFactor) covers, so this leaves no gaps
-    // myIndex == -1: inverted rect renders border-owned pixels
-    // myIndex >= 0: individual rect renders its owned pixels
-    if (owner != myIndex)
-        discard;
+    if (hasInverted != 0)
+        mergedSdf = smin(mergedSdf, dFrame, smoothFactor);
 
     float fw = fwidth(mergedSdf);
     float alpha = 1.0 - smoothstep(-fw, fw, mergedSdf);

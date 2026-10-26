@@ -5,6 +5,7 @@ layout(location = 1) in vec2 qt_VertexTexCoord;
 
 layout(location = 0) out vec2 qt_TexCoord0;
 
+// Must match blob.frag
 layout(std140, binding = 0) uniform buf {
     mat4 qt_Matrix;
     float qt_Opacity;
@@ -18,6 +19,7 @@ layout(std140, binding = 0) uniform buf {
     vec4 color;
     int hasInverted;
     float invertedRadius;
+    float dpr;
     vec4 invertedOuter;
     vec4 invertedInner;
     vec4 rectData[80];

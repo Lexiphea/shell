@@ -3,8 +3,6 @@
 #include <qsggeometry.h>
 #include <qsgnode.h>
 
-#include <cstring>
-
 #include "blobgroup.hpp"
 #include "blobmaterial.hpp"
 
@@ -116,26 +114,7 @@ QSGNode* BlobInvertedRect::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData
 
     node->markDirty(QSGNode::DirtyGeometry);
 
-    // Update material uniforms
-    auto* material = static_cast<BlobMaterial*>(node->material());
-    material->m_paddedX = m_cachedPaddedX;
-    material->m_paddedY = m_cachedPaddedY;
-    material->m_paddedW = m_cachedPaddedW;
-    material->m_paddedH = m_cachedPaddedH;
-    material->m_smoothFactor = pad;
-    material->m_myIndex = m_cachedMyIndex;
-    material->m_color = m_group->color();
-    material->m_hasInverted = m_cachedHasInverted ? 1 : 0;
-    material->m_invertedRadius = m_cachedInvertedRadius;
-    memcpy(material->m_invertedOuter, m_cachedInvertedOuter, sizeof(m_cachedInvertedOuter));
-    memcpy(material->m_invertedInner, m_cachedInvertedInner, sizeof(m_cachedInvertedInner));
-
-    const int count = static_cast<int>(m_cachedRects.size());
-    material->m_rectCount = count;
-    for (int i = 0; i < count; ++i)
-        material->m_rects[i] = m_cachedRects[i];
-
-    node->markDirty(QSGNode::DirtyMaterial);
+    updateMaterial(node);
 
     return node;
 }
@@ -154,8 +133,7 @@ void BlobInvertedRect::setBorderLeft(qreal v) {
         return;
     m_borderLeft = v;
     emit borderLeftChanged();
-    if (m_group)
-        m_group->markDirty();
+    markGroupDirty();
 }
 
 qreal BlobInvertedRect::borderRight() const {
@@ -167,8 +145,7 @@ void BlobInvertedRect::setBorderRight(qreal v) {
         return;
     m_borderRight = v;
     emit borderRightChanged();
-    if (m_group)
-        m_group->markDirty();
+    markGroupDirty();
 }
 
 qreal BlobInvertedRect::borderTop() const {
@@ -180,8 +157,7 @@ void BlobInvertedRect::setBorderTop(qreal v) {
         return;
     m_borderTop = v;
     emit borderTopChanged();
-    if (m_group)
-        m_group->markDirty();
+    markGroupDirty();
 }
 
 qreal BlobInvertedRect::borderBottom() const {
@@ -193,8 +169,7 @@ void BlobInvertedRect::setBorderBottom(qreal v) {
         return;
     m_borderBottom = v;
     emit borderBottomChanged();
-    if (m_group)
-        m_group->markDirty();
+    markGroupDirty();
 }
 
 bool BlobInvertedRect::isInvertedRect() const {

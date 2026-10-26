@@ -2,6 +2,7 @@
 
 #include <qmatrix4x4.h>
 #include <qquickitem.h>
+#include <qsgnode.h>
 #include <qvector.h>
 
 #include "blobmaterial.hpp"
@@ -61,13 +62,15 @@ protected:
     void updatePaddedBounds(float pad);
     void collectNearbyRects(float pad, QVector<BlobShape*>& rectShapes);
     void computeExcludeMasks(const QVector<BlobShape*>& rectShapes);
-    [[nodiscard]] bool isNearInvertedBorder(float cx, float cy, float hw, float hh, float margin) const;
+    [[nodiscard]] bool isNearInvertedBorder(const QRectF& inner, qreal margin) const;
     void cacheInvertedRect(float pad);
     void accumulateNeighbourFill(qsizetype index, const QVector<BlobShape*>& rectShapes, const float cornerX[4],
         const float cornerY[4], float smoothFactor, float factors[4]) const;
     void accumulateInvertedFill(
         const float cornerX[4], const float cornerY[4], float smoothFactor, float factors[4]) const;
     void applyCornerFill(float smoothFactor, const QVector<BlobShape*>& rectShapes);
+    void updateMaterial(QSGGeometryNode* node) const;
+    void markGroupDirty() const;
 
     BlobGroup* m_group = nullptr;
     qreal m_radius = 0;
@@ -75,11 +78,8 @@ protected:
     QMatrix4x4 m_centeredDeformMatrix;
 
     // Cached data from updatePolish
-    float m_cachedPaddedX = 0;
-    float m_cachedPaddedY = 0;
-    float m_cachedPaddedW = 0;
-    float m_cachedPaddedH = 0;
     QRectF m_localPaddedRect;
+    QRectF m_paddedSceneRect;
     QVector<BlobRectData> m_cachedRects;
     int m_cachedMyIndex = -2;
     float m_pendingDx = 0;

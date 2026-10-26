@@ -134,6 +134,12 @@ StyledWindow {
     }
 
     Item {
+        id: blobLayer
+
+        // Sidebar and utilities merge into one shape until the sidebar slides away
+        readonly property bool sidebarDetached: panels.sidebar.offsetScale > 0.08
+        readonly property real sidebarCornerProgress: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3))
+
         anchors.fill: parent
         opacity: root.surfaceColour.a
 
@@ -145,14 +151,16 @@ StyledWindow {
         }
 
         BlobInvertedRect {
+            readonly property real borderExtra: -anchors.margins - root.sdfBorderOffset
+
             anchors.fill: parent
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: bar.implicitWidth - anchors.margins - root.sdfBorderOffset
-            borderRight: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderTop: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderBottom: root.borderThickness - anchors.margins - root.sdfBorderOffset
+            borderLeft: bar.implicitWidth + borderExtra
+            borderRight: root.borderThickness + borderExtra
+            borderTop: root.borderThickness + borderExtra
+            borderBottom: root.borderThickness + borderExtra
         }
 
         PanelBg {
@@ -184,8 +192,8 @@ StyledWindow {
             panel: panels.sidebar
             deformAmount: 0.03
             implicitHeight: panel.height * (1 / rawDeformMatrix.m22) + 2
-            exclude: panels.sidebar.offsetScale > 0.08 ? [] : [utilsBg]
-            bottomLeftRadius: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            exclude: blobLayer.sidebarDetached ? [] : [utilsBg]
+            bottomLeftRadius: blobLayer.sidebarCornerProgress * radius
         }
 
         PanelBg {
@@ -208,8 +216,8 @@ StyledWindow {
 
             panel: panels.utilities
             deformAmount: panels.sidebar.visible ? 0.1 : 0.15
-            exclude: panels.sidebar.offsetScale > 0.08 ? [] : [sidebarBg]
-            topLeftRadius: Math.max(0, Math.min(1, panels.sidebar.offsetScale / 0.3)) * radius
+            exclude: blobLayer.sidebarDetached ? [] : [sidebarBg]
+            topLeftRadius: blobLayer.sidebarCornerProgress * radius
         }
 
         PanelBg {
