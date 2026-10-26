@@ -69,7 +69,7 @@ QString ImageCacher::cachePathFor(const QString& sourcePath, const QSize& size, 
     hash.addData(QByteArrayView("\0", 1));
     hash.addData(QByteArray::number(info.lastModified().toMSecsSinceEpoch()));
 
-    const QString filename = u"%1@%2x%3-%4.png"_s.arg(QString::fromLatin1(hash.result().toHex()),
+    const QString filename = u"%1@%2x%3-%4.webp"_s.arg(QString::fromLatin1(hash.result().toHex()),
         QString::number(size.width()), QString::number(size.height()), fillSuffix(fillMode));
 
     return cacheDir() + u'/' + filename;
@@ -81,7 +81,15 @@ ImageCacher* ImageCacher::instance() {
 }
 
 ImageCacher::ImageCacher(QObject* parent)
-    : QObject(parent) {}
+    : QObject(parent) {
+    // The cache used to be PNG, so clear out any files left from before the switch to WebP
+    cacheWritePool().start([] {
+        QDir dir(cacheDir());
+        const QStringList pngs = dir.entryList({ u"*.png"_s }, QDir::Files);
+        for (const QString& name : pngs)
+            dir.remove(name);
+    });
+}
 
 void ImageCacher::schedule(const QString& cachePath, const QImage& image) {
     if (cachePath.isEmpty())
@@ -113,7 +121,7 @@ void ImageCacher::runJob(const QString& cachePath, const QImage& image) {
     }
 
     QSaveFile saveFile(cachePath);
-    if (!saveFile.open(QIODevice::WriteOnly) || !image.save(&saveFile, "PNG") || !saveFile.commit()) {
+    if (!saveFile.open(QIODevice::WriteOnly) || !image.save(&saveFile, "WEBP", 90) || !saveFile.commit()) {
         qCWarning(
             lcCacher, "Failed to save to %s: %s", qUtf8Printable(cachePath), qUtf8Printable(saveFile.errorString()));
         return;

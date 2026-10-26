@@ -117,8 +117,13 @@ void CachingImageResponse::process() {
             size.setHeight(qRound(size.width() * sourceSize.height() / static_cast<qreal>(sourceSize.width())));
     }
 
+    // Only small images (thumbnails, avatars) use the lossy disk cache. Full-screen images like the wallpaper
+    // are decoded straight from the source instead, so they never lose quality to a re-encode
+    constexpr qint64 k_maxCachedArea = 1024 * 1024;
+    const bool useCache = static_cast<qint64>(size.width()) * size.height() <= k_maxCachedArea;
+
     // Try to use cached image
-    const auto cachePath = ImageCacher::cachePathFor(path, size, m_fillMode);
+    const auto cachePath = useCache ? ImageCacher::cachePathFor(path, size, m_fillMode) : QString();
     if (!cachePath.isEmpty()) {
         QImageReader cacheReader(cachePath);
         if (cacheReader.canRead()) {
