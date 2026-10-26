@@ -2,7 +2,8 @@ pragma Singleton
 
 import Quickshell
 import Quickshell.Io
-import Quickshell.Wayland
+import Quickshell.Wayland as Wayland
+import qs.services
 
 Singleton {
     id: root
@@ -24,14 +25,10 @@ Singleton {
         reloadableId: "idleInhibitor"
     }
 
-    IdleInhibitor {
+    Wayland.IdleInhibitor {
         enabled: props.enabled
-        window: PanelWindow {
-            implicitWidth: 0
-            implicitHeight: 0
-            color: "transparent"
-            mask: Region {}
-        }
+        // Reuse a window: a dedicated one costs a layer surface, render thread and GPU context even while disabled
+        window: ShellState.componentsFor(Screens.screens[0])?.rootWindow ?? null
     }
 
     IpcHandler {
