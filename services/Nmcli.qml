@@ -9,13 +9,8 @@ import Caelestia.I18n
 Singleton {
     id: root
 
-    property var deviceStatus: null
     property var wirelessInterfaces: []
     property var ethernetInterfaces: []
-    property bool isConnected: false
-    readonly property bool connecting: wirelessInterfaces.some(i => isConnectingState(i.state))
-    property string activeInterface: ""
-    property string activeConnection: ""
     property bool wifiEnabled: true
     readonly property bool scanning: rescanProc.running
     readonly property list<AccessPoint> networks: []
@@ -55,7 +50,6 @@ Singleton {
     readonly property string deviceStatusFields: "DEVICE,TYPE,STATE,CONNECTION"
     readonly property string connectionListFields: "NAME,TYPE"
     readonly property string wirelessSsidField: "802-11-wireless.ssid"
-    readonly property string networkListFields: "SSID,SIGNAL,SECURITY"
     readonly property string networkDetailFields: "ACTIVE,SIGNAL,FREQ,SSID,BSSID,SECURITY"
     readonly property string securityKeyMgmt: "802-11-wireless-security.key-mgmt"
     readonly property string securityPsk: "802-11-wireless-security.psk"
@@ -152,8 +146,6 @@ Singleton {
                 if (filterType === root.deviceTypeWifi && deviceType === root.deviceTypeWifi) {
                     shouldInclude = true;
                 } else if (filterType === root.deviceTypeEthernet && deviceType === root.deviceTypeEthernet) {
-                    shouldInclude = true;
-                } else if (filterType === "both" && (deviceType === root.deviceTypeWifi || deviceType === root.deviceTypeEthernet)) {
                     shouldInclude = true;
                 }
 
@@ -362,34 +354,8 @@ Singleton {
         });
     }
 
-    function getAllInterfaces(callback: var): void {
-        executeCommand(["-t", "-f", root.deviceStatusFields, root.nmcliCommandDevice, "status"], result => {
-            const interfaces = parseDeviceStatusOutput(result.output, "both");
-            if (callback)
-                callback(interfaces);
-        });
-    }
-
-    function isInterfaceConnected(interfaceName: string, callback: var): void {
-        executeCommand([root.nmcliCommandDevice, "status"], result => {
-            const lines = result.output.trim().split("\n");
-            for (const line of lines) {
-                const parts = line.split(/\s+/);
-                if (parts.length >= 3 && parts[0] === interfaceName) {
-                    const connected = isConnectedState(parts[2]);
-                    if (callback)
-                        callback(connected);
-                    return;
-                }
-            }
-            if (callback)
-                callback(false);
-        });
-    }
-
     function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback: var, bssid: string): void {
         if (isSecure) {
-            const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
             connectWireless(ssid, "", bssid, result => {
                 if (result.success) {
                     if (callback)
@@ -714,24 +680,6 @@ Singleton {
     }
 
     // Reads whether a saved connection auto-connects.
-    function getAutoconnect(connectionName: string, callback: var): void {
-        if (!connectionName || connectionName.length === 0) {
-            if (callback)
-                callback(true);
-            return;
-        }
-        executeCommand(["-t", "-f", "connection.autoconnect", root.nmcliCommandConnection, "show", connectionName], result => {
-            let auto = true;
-            if (result.success) {
-                const line = result.output.trim();
-                const idx = line.indexOf(":");
-                if (idx >= 0)
-                    auto = line.slice(idx + 1).trim() !== "no";
-            }
-            if (callback)
-                callback(auto);
-        });
-    }
 
     // Toggles auto-connect for a saved connection. When turned OFF, also makes
     // NetworkManager ask for the password on the next manual connect instead of
@@ -798,20 +746,6 @@ Singleton {
         });
     }
 
-    function disconnect(interfaceName: string, callback: var): void {
-        if (interfaceName && interfaceName.length > 0) {
-            executeCommand([root.nmcliCommandDevice, "disconnect", interfaceName], result => {
-                if (callback)
-                    callback(result.success ? result.output : "");
-            });
-        } else {
-            executeCommand([root.nmcliCommandDevice, "disconnect", root.deviceTypeWifi], result => {
-                if (callback)
-                    callback(result.success ? result.output : "");
-            });
-        }
-    }
-
     function disconnectFromNetwork(): void {
         if (active && active.ssid) {
             executeCommand([root.nmcliCommandConnection, "down", active.ssid], result => {
@@ -826,94 +760,6 @@ Singleton {
                 }
             });
         }
-    }
-
-    function getDeviceDetails(interfaceName: string, callback: var): void {
-        executeCommand([root.nmcliCommandDevice, "show", interfaceName], result => {
-            if (callback)
-                callback(result.output);
-        });
-    }
-
-    function refreshStatus(callback: var): void {
-        getDeviceStatus(output => {
-            const lines = output.trim().split("\n");
-            let connected = false;
-            let activeIf = "";
-            let activeConn = "";
-
-            for (const line of lines) {
-                const parts = line.split(":");
-                if (parts.length >= 4) {
-                    const state = parts[2] || "";
-                    if (isConnectedState(state)) {
-                        connected = true;
-                        activeIf = parts[0] || "";
-                        activeConn = parts[3] || "";
-                        break;
-                    }
-                }
-            }
-
-            root.isConnected = connected;
-            root.activeInterface = activeIf;
-            root.activeConnection = activeConn;
-
-            if (callback)
-                callback({
-                    connected,
-                    interface: activeIf,
-                    connection: activeConn
-                });
-        });
-    }
-
-    function bringInterfaceUp(interfaceName: string, callback: var): void {
-        if (interfaceName && interfaceName.length > 0) {
-            executeCommand([root.nmcliCommandDevice, "connect", interfaceName], result => {
-                if (callback) {
-                    callback(result);
-                }
-            });
-        } else {
-            if (callback)
-                callback({
-                    success: false,
-                    output: "",
-                    error: "No interface specified",
-                    exitCode: -1
-                });
-        }
-    }
-
-    function bringInterfaceDown(interfaceName: string, callback: var): void {
-        if (interfaceName && interfaceName.length > 0) {
-            executeCommand([root.nmcliCommandDevice, "disconnect", interfaceName], result => {
-                if (callback) {
-                    callback(result);
-                }
-            });
-        } else {
-            if (callback)
-                callback({
-                    success: false,
-                    output: "",
-                    error: "No interface specified",
-                    exitCode: -1
-                });
-        }
-    }
-
-    function scanWirelessNetworks(interfaceName: string, callback: var): void {
-        let cmd = [root.nmcliCommandDevice, root.nmcliCommandWifi, "rescan"];
-        if (interfaceName && interfaceName.length > 0) {
-            cmd.push(root.connectionParamIfname, interfaceName);
-        }
-        executeCommand(cmd, result => {
-            if (callback) {
-                callback(result);
-            }
-        });
     }
 
     function rescanWifi(): void {
@@ -1002,53 +848,6 @@ Singleton {
             if (callback)
                 callback(root.networks);
             checkPendingConnection();
-        });
-    }
-
-    function getWirelessSSIDs(interfaceName: string, callback: var): void {
-        let cmd = ["-t", "-f", root.networkListFields, root.nmcliCommandDevice, root.nmcliCommandWifi, "list", "--rescan", "no"];
-        if (interfaceName && interfaceName.length > 0) {
-            cmd.push(root.connectionParamIfname, interfaceName);
-        }
-        executeCommand(cmd, result => {
-            if (!result.success) {
-                if (callback)
-                    callback([]);
-                return;
-            }
-
-            const ssids = [];
-            const lines = result.output.trim().split("\n");
-            const seenSSIDs = new Set();
-
-            for (const line of lines) {
-                if (!line || line.length === 0)
-                    continue;
-
-                const parts = line.split(":");
-                if (parts.length >= 1) {
-                    const ssid = parts[0].trim();
-                    if (ssid && ssid.length > 0 && !seenSSIDs.has(ssid)) {
-                        seenSSIDs.add(ssid);
-                        const signalStr = parts.length >= 2 ? parts[1].trim() : "";
-                        const signal = signalStr ? parseInt(signalStr, 10) : 0;
-                        const security = parts.length >= 3 ? parts[2].trim() : "";
-                        ssids.push({
-                            ssid: ssid,
-                            signal: signalStr,
-                            signalValue: isNaN(signal) ? 0 : signal,
-                            security: security
-                        });
-                    }
-                }
-            }
-
-            ssids.sort((a, b) => {
-                return b.signalValue - a.signalValue;
-            });
-
-            if (callback)
-                callback(ssids);
         });
     }
 

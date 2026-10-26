@@ -91,14 +91,6 @@ Singleton {
         }
     }
 
-    function getStreamVolume(stream: PwNode): real {
-        return stream?.audio?.volume ?? 0;
-    }
-
-    function getStreamMuted(stream: PwNode): bool {
-        return !!stream?.audio?.muted;
-    }
-
     function getStreamName(stream: PwNode): string {
         if (!stream)
             return Tr.trCtx("Unknown", "unknown audio stream");
