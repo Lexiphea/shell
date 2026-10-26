@@ -65,10 +65,16 @@ QSGNode* BlobInvertedRect::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData
     const float holeBot = static_cast<float>(height() - m_borderBottom) - inset;
 
     // If the hole is too small or invalid, fall back to full quad
-    if (holeLeft >= holeRight || holeTop >= holeBot)
-        return BlobShape::updatePaintNode(oldNode, nullptr);
-
     auto* node = static_cast<QSGGeometryNode*>(oldNode);
+
+    if (holeLeft >= holeRight || holeTop >= holeBot) {
+        // The base class reuses the node as a plain quad, so it can't be given the indexed frame
+        if (node && node->geometry()->vertexCount() != 4) {
+            delete node;
+            node = nullptr;
+        }
+        return BlobShape::updatePaintNode(node, nullptr);
+    }
 
     const bool needsRebuild = !node || node->geometry()->vertexCount() != 8;
 
