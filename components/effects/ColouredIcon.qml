@@ -1,15 +1,13 @@
 pragma ComponentBehavior: Bound
 
-import Caelestia
-import Quickshell.Widgets
 import QtQuick
+import Quickshell.Widgets
+import Caelestia.Images
 
 IconImage {
     id: root
 
     required property color colour
-
-    asynchronous: true
 
     layer.enabled: true
     layer.effect: Colouriser {

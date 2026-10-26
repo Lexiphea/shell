@@ -7,12 +7,10 @@
   fish,
   ddcutil,
   brightnessctl,
-  app2unit,
   networkmanager,
   lm_sensors,
   swappy,
   wl-clipboard,
-  libqalculate,
   bash,
   hyprland,
   material-symbols,
@@ -29,23 +27,24 @@
   ninja,
   pkg-config,
   caelestia-cli,
+  m3shapes,
   debug ? false,
   withCli ? false,
   extraRuntimeDeps ? [],
 }: let
   version = "1.0.0";
 
+  qs = quickshell.withModules [qt6.qtimageformats m3shapes];
+
   runtimeDeps =
     [
       fish
       ddcutil
       brightnessctl
-      app2unit
       networkmanager
       lm_sensors
       swappy
       wl-clipboard
-      libqalculate
       bash
       hyprland
     ]
@@ -94,7 +93,7 @@
     };
 
     nativeBuildInputs = [cmake ninja pkg-config];
-    buildInputs = [qt6.qtbase qt6.qtdeclarative libqalculate pipewire aubio libcava fftw];
+    buildInputs = [qt6.qtbase qt6.qtdeclarative qt6.qtshadertools pipewire aubio libcava fftw lm_sensors];
 
     dontWrapQtApps = true;
     cmakeFlags =
@@ -111,7 +110,7 @@ in
     src = ./..;
 
     nativeBuildInputs = [cmake ninja makeWrapper qt6.wrapQtAppsHook];
-    buildInputs = [quickshell extras plugin xkeyboard-config qt6.qtbase];
+    buildInputs = [qs extras plugin xkeyboard-config qt6.qtbase];
     propagatedBuildInputs = runtimeDeps;
 
     cmakeFlags =
@@ -126,23 +125,20 @@ in
     prePatch = ''
       substituteInPlace assets/pam.d/fprint \
         --replace-fail pam_fprintd.so /run/current-system/sw/lib/security/pam_fprintd.so
-      substituteInPlace shell.qml \
-        --replace-fail 'ShellRoot {' 'ShellRoot {  settings.watchFiles: false'
+      substituteInPlace assets/pam.d/howdy \
+        --replace-fail pam_howdy.so /run/current-system/sw/lib/security/pam_howdy.so
     '';
 
     postInstall = ''
-      makeWrapper ${quickshell}/bin/qs $out/bin/caelestia-shell \
-      	--prefix PATH : "${lib.makeBinPath runtimeDeps}" \
-      	--set FONTCONFIG_FILE "${fontconfig}" \
-      	--set CAELESTIA_LIB_DIR ${extras}/lib \
+      makeWrapper ${qs}/bin/qs $out/bin/caelestia-shell \
+        --prefix PATH : "${lib.makeBinPath runtimeDeps}" \
+        --set FONTCONFIG_FILE "${fontconfig}" \
+        --set CAELESTIA_LIB_DIR ${extras}/lib \
         --set CAELESTIA_XKB_RULES_PATH ${xkeyboard-config}/share/xkeyboard-config-2/rules/base.lst \
-      	--add-flags "-p $out/share/caelestia-shell"
+        --add-flags "-p $out/share/caelestia-shell"
 
       mkdir -p $out/lib
       ln -s ${extras}/lib/* $out/lib/
-
-      # Ensure wrap_term_launch.sh is executable
-      chmod 755 $out/share/caelestia-shell/assets/wrap_term_launch.sh
     '';
 
     passthru = {
@@ -150,7 +146,7 @@ in
     };
 
     meta = {
-      description = "A very segsy desktop shell";
+      description = "A fluid, morphing shell for your Linux desktop";
       homepage = "https://github.com/caelestia-dots/shell";
       license = lib.licenses.gpl3Only;
       mainProgram = "caelestia-shell";

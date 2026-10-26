@@ -1,32 +1,32 @@
+import QtQuick
+import QtQuick.Layouts
+import Quickshell.Wayland
+import Quickshell.Widgets
+import Caelestia.Config
 import qs.components
 import qs.services
 import qs.utils
-import qs.config
-import Quickshell.Widgets
-import Quickshell.Wayland
-import QtQuick
-import QtQuick.Layouts
 
 Item {
     id: root
 
-    required property Item wrapper
+    required property PopoutState popouts
 
-    implicitWidth: Hypr.activeToplevel ? child.implicitWidth : -Appearance.padding.large * 2
+    implicitWidth: Hypr.activeToplevel ? child.implicitWidth : -Tokens.padding.extraLargeIncreased
     implicitHeight: child.implicitHeight
 
     Column {
         id: child
 
         anchors.centerIn: parent
-        spacing: Appearance.spacing.normal
+        spacing: Tokens.spacing.medium
 
         RowLayout {
             id: detailsRow
 
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: Appearance.spacing.normal
+            spacing: Tokens.spacing.medium
 
             IconImage {
                 id: icon
@@ -45,7 +45,7 @@ Item {
                 StyledText {
                     Layout.fillWidth: true
                     text: Hypr.activeToplevel?.title ?? ""
-                    font.pointSize: Appearance.font.size.normal
+                    font: Tokens.font.body.medium
                     elide: Text.ElideRight
                 }
 
@@ -58,17 +58,14 @@ Item {
             }
 
             Item {
-                implicitWidth: expandIcon.implicitHeight + Appearance.padding.small * 2
-                implicitHeight: expandIcon.implicitHeight + Appearance.padding.small * 2
+                implicitWidth: expandIcon.implicitHeight + Tokens.padding.small
+                implicitHeight: expandIcon.implicitHeight + Tokens.padding.small
 
                 Layout.alignment: Qt.AlignVCenter
 
                 StateLayer {
-                    radius: Appearance.rounding.normal
-
-                    function onClicked(): void {
-                        root.wrapper.detach("winfo");
-                    }
+                    radius: Tokens.rounding.large
+                    onClicked: root.popouts.detachRequested("winfo")
                 }
 
                 MaterialIcon {
@@ -79,23 +76,23 @@ Item {
 
                     text: "chevron_right"
 
-                    font.pointSize: Appearance.font.size.large
+                    fontStyle: Tokens.font.icon.large
                 }
             }
         }
 
         ClippingWrapperRectangle {
             color: "transparent"
-            radius: Appearance.rounding.small
+            radius: Tokens.rounding.medium
 
             ScreencopyView {
                 id: preview
 
-                captureSource: Hypr.activeToplevel?.wayland ?? null
+                captureSource: Hypr.activeToplevel?.wayland ?? null // qmllint disable unresolved-type
                 live: visible
 
-                constraintSize.width: Config.bar.sizes.windowPreviewSize
-                constraintSize.height: Config.bar.sizes.windowPreviewSize
+                constraintSize.width: Tokens.sizes.bar.windowPreviewSize
+                constraintSize.height: Tokens.sizes.bar.windowPreviewSize
             }
         }
     }

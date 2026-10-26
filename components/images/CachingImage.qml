@@ -1,28 +1,19 @@
-import qs.utils
-import Caelestia.Internal
-import Quickshell
 import QtQuick
+import Quickshell
+import Caelestia.Images
 
 Image {
     id: root
 
-    property alias path: manager.path
+    property string path
+    // Logical size to decode at; set a fixed size when the item animates so every frame doesn't trigger a decode
+    property size targetSize: Qt.size(width, height)
 
     asynchronous: true
     fillMode: Image.PreserveAspectCrop
-
-    Connections {
-        target: QsWindow.window
-
-        function onDevicePixelRatioChanged(): void {
-            manager.updateSource();
-        }
-    }
-
-    CachingImageManager {
-        id: manager
-
-        item: root
-        cacheDir: Qt.resolvedUrl(Paths.imagecache)
+    source: IUtils.urlForPath(path, fillMode)
+    sourceSize: {
+        const dpr = (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1;
+        return Qt.size(targetSize.width * dpr, targetSize.height * dpr);
     }
 }

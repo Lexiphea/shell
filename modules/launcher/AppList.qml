@@ -1,30 +1,56 @@
 pragma ComponentBehavior: Bound
 
-import "items"
-import "services"
-import qs.components
-import qs.components.controls
-import qs.components.containers
-import qs.services
-import qs.config
-import Quickshell
 import QtQuick
+import Quickshell
+import Caelestia
+import Caelestia.Config
+import qs.components
+import qs.components.containers
+import qs.components.controls
+import qs.services
+import qs.modules.launcher.items
+import qs.modules.launcher.services
 
 StyledListView {
     id: root
 
-    required property StyledTextField search
-    required property PersistentProperties visibilities
+    required property SearchBar search
+    required property ScreenState screenState
+
+    property string displayText
+
+    // Raycast style inline calculator. Like vicinae, it only shows when nothing else matches so it never takes
+    // Enter from an app, unless the query starts with "=" to force it
+    readonly property var calc: results.calc
+    readonly property var results: {
+        const values = Apps.search(displayText).concat(Actions.query(displayText));
+        const query = displayText.trim();
+        const forced = query.startsWith("=");
+        if (!forced && (values.length > 0 || query.length < 3))
+            return { values };
+
+        const expr = forced ? query.slice(1) : query;
+        const result = Soulver.eval(expr);
+        if (!result || result.value === expr.trim())
+            return { values };
+        values.unshift(calcEntry);
+        return { values, calc: Object.assign({ question: expr.trim() }, result) };
+    }
+
+    function syncDisplayText(): void {
+        if (screenState.launcher)
+            displayText = search.text;
+    }
 
     model: ScriptModel {
-        id: model
-
+        values: root.results.values
         onValuesChanged: root.currentIndex = 0
     }
 
-    spacing: Appearance.spacing.small
+    spacing: Tokens.spacing.small
     orientation: Qt.Vertical
-    implicitHeight: (Config.launcher.sizes.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing
+    // The calculator card is double height
+    implicitHeight: (Tokens.sizes.launcher.itemHeight + spacing) * Math.min(Config.launcher.maxShown, count) - spacing + (calc ? Tokens.sizes.launcher.itemHeight : 0)
 
     preferredHighlightBegin: 0
     preferredHighlightEnd: height
@@ -32,7 +58,7 @@ StyledListView {
 
     highlightFollowsCurrentItem: false
     highlight: StyledRect {
-        radius: Appearance.rounding.normal
+        radius: Tokens.rounding.large
         color: Colours.palette.m3onSurface
         opacity: 0.08
 
@@ -41,147 +67,16 @@ StyledListView {
         implicitHeight: root.currentItem?.implicitHeight ?? 0
 
         Behavior on y {
-            Anim {
-                duration: Appearance.anim.durations.expressiveDefaultSpatial
-                easing.bezierCurve: Appearance.anim.curves.expressiveDefaultSpatial
-            }
+            Anim {}
         }
     }
 
-    state: {
-        const text = search.text;
-        const prefix = Config.launcher.actionPrefix;
-        if (text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
-                if (text.startsWith(`${prefix}${action} `))
-                    return action;
+    Component.onCompleted: displayText = search.text
 
-            return "actions";
-        }
-
-        return "apps";
-    }
-
-    onStateChanged: {
-        if (state === "scheme" || state === "variant")
-            Schemes.reload();
-    }
-
-    states: [
-        State {
-            name: "apps"
-
-            PropertyChanges {
-                model.values: Apps.search(search.text)
-                root.delegate: appItem
-            }
-        },
-        State {
-            name: "actions"
-
-            PropertyChanges {
-                model.values: Actions.query(search.text)
-                root.delegate: actionItem
-            }
-        },
-        State {
-            name: "calc"
-
-            PropertyChanges {
-                model.values: [0]
-                root.delegate: calcItem
-            }
-        },
-        State {
-            name: "scheme"
-
-            PropertyChanges {
-                model.values: Schemes.query(search.text)
-                root.delegate: schemeItem
-            }
-        },
-        State {
-            name: "variant"
-
-            PropertyChanges {
-                model.values: M3Variants.query(search.text)
-                root.delegate: variantItem
-            }
-        }
-    ]
-
-    transitions: Transition {
-        SequentialAnimation {
-            ParallelAnimation {
-                Anim {
-                    target: root
-                    property: "opacity"
-                    from: 1
-                    to: 0
-                    duration: Appearance.anim.durations.small
-                    easing.bezierCurve: Appearance.anim.curves.standardAccel
-                }
-                Anim {
-                    target: root
-                    property: "scale"
-                    from: 1
-                    to: 0.9
-                    duration: Appearance.anim.durations.small
-                    easing.bezierCurve: Appearance.anim.curves.standardAccel
-                }
-            }
-            PropertyAction {
-                targets: [model, root]
-                properties: "values,delegate"
-            }
-            ParallelAnimation {
-                Anim {
-                    target: root
-                    property: "opacity"
-                    from: 0
-                    to: 1
-                    duration: Appearance.anim.durations.small
-                    easing.bezierCurve: Appearance.anim.curves.standardDecel
-                }
-                Anim {
-                    target: root
-                    property: "scale"
-                    from: 0.9
-                    to: 1
-                    duration: Appearance.anim.durations.small
-                    easing.bezierCurve: Appearance.anim.curves.standardDecel
-                }
-            }
-            PropertyAction {
-                targets: [root.add, root.remove]
-                property: "enabled"
-                value: true
-            }
-        }
-    }
+    delegate: appItem
 
     StyledScrollBar.vertical: StyledScrollBar {
         flickable: root
-    }
-
-    add: Transition {
-        enabled: !root.state
-
-        Anim {
-            properties: "opacity,scale"
-            from: 0
-            to: 1
-        }
-    }
-
-    remove: Transition {
-        enabled: !root.state
-
-        Anim {
-            properties: "opacity,scale"
-            from: 1
-            to: 0
-        }
     }
 
     move: Transition {
@@ -189,7 +84,8 @@ StyledListView {
             property: "y"
         }
         Anim {
-            properties: "opacity,scale"
+            type: Anim.DefaultEffects
+            property: "opacity"
             to: 1
         }
     }
@@ -197,10 +93,11 @@ StyledListView {
     addDisplaced: Transition {
         Anim {
             property: "y"
-            duration: Appearance.anim.durations.small
+            type: Anim.StandardSmall
         }
         Anim {
-            properties: "opacity,scale"
+            type: Anim.DefaultEffects
+            property: "opacity"
             to: 1
         }
     }
@@ -210,48 +107,74 @@ StyledListView {
             property: "y"
         }
         Anim {
-            properties: "opacity,scale"
+            type: Anim.DefaultEffects
+            property: "opacity"
             to: 1
         }
+    }
+
+    QtObject {
+        id: calcEntry
     }
 
     Component {
         id: appItem
 
-        AppItem {
-            visibilities: root.visibilities
+        Loader {
+            id: entry
+
+            required property var modelData
+
+            function activate(): void {
+                item.activate();
+            }
+
+            anchors.left: parent?.left
+            anchors.right: parent?.right
+
+            sourceComponent: modelData === calcEntry ? soulverItem : (modelData as DesktopEntry) ? desktopEntry : actionEntry
+
+            Component {
+                id: desktopEntry
+
+                AppItem {
+                    modelData: entry.modelData as DesktopEntry
+                    screenState: root.screenState
+                }
+            }
+
+            Component {
+                id: actionEntry
+
+                ActionItem {
+                    modelData: entry.modelData
+                    list: root
+                }
+            }
         }
     }
 
     Component {
-        id: actionItem
+        id: soulverItem
 
-        ActionItem {
+        SoulverItem {
             list: root
         }
     }
 
-    Component {
-        id: calcItem
-
-        CalcItem {
-            list: root
+    Connections {
+        function onTextChanged() {
+            root.syncDisplayText();
         }
+
+        target: root.search
     }
 
-    Component {
-        id: schemeItem
-
-        SchemeItem {
-            list: root
+    Connections {
+        function onLauncherChanged() {
+            root.syncDisplayText();
         }
-    }
 
-    Component {
-        id: variantItem
-
-        VariantItem {
-            list: root
-        }
+        target: root.screenState
     }
 }

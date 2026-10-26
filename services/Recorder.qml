@@ -1,8 +1,8 @@
 pragma Singleton
 
+import QtQuick
 import Quickshell
 import Quickshell.Io
-import QtQuick
 
 Singleton {
     id: root
@@ -10,14 +10,16 @@ Singleton {
     readonly property alias running: props.running
     readonly property alias paused: props.paused
     readonly property alias elapsed: props.elapsed
+    property int refCount: 0
     property bool needsStart
-    property list<string> startArgs
+    property list<string> startCmd
+    readonly property string windowRegion: "r=$({ hyprctl monitors -j; hyprctl clients -j; } | jq -rs '[.[0][] | .activeWorkspace.id, .specialWorkspace.id] as $ws | .[1][] | select(.mapped and (.hidden | not) and (.workspace.id | IN($ws[]))) | \"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"' | slurp -r -f '%wx%h+%x+%y') && set -- -r \"$r\" \"$@\" && "
     property bool needsStop
     property bool needsPause
 
-    function start(extraArgs = []): void {
+    function start(extraArgs = [], window = false): void {
         needsStart = true;
-        startArgs = extraArgs;
+        startCmd = ["sh", "-c", (window ? windowRegion : "") + "exec caelestia record \"$@\" >/dev/null 2>&1", "sh", ...extraArgs];
         checkProc.running = true;
     }
 
@@ -46,21 +48,25 @@ Singleton {
 
         running: true
         command: ["pidof", "gpu-screen-recorder"]
-        onExited: code => {
-            props.running = code === 0;
+        onExited: code => { // qmllint disable signal-handler-parameters
+            const running = code === 0;
 
-            if (code === 0) {
-                if (root.needsStop) {
-                    Quickshell.execDetached(["caelestia", "record"]);
-                    props.running = false;
-                    props.paused = false;
-                } else if (root.needsPause) {
-                    Quickshell.execDetached(["caelestia", "record", "-p"]);
-                    props.paused = !props.paused;
-                }
-            } else if (root.needsStart) {
-                Quickshell.execDetached(["caelestia", "record", ...root.startArgs]);
+            if (running && root.needsStop) {
+                commandProc.exec(["caelestia", "record"]);
+                props.running = false;
+                props.paused = false;
+            } else if (running && root.needsPause) {
+                commandProc.exec(["caelestia", "record", "-p"]);
+                props.paused = !props.paused;
+            } else if (!running && root.needsStart) {
+                commandProc.exec(root.startCmd);
                 props.running = true;
+                props.paused = false;
+                props.elapsed = 0;
+            } else if (running !== props.running && !commandProc.running) {
+                // The recording was started/stopped outside the shell (e.g. via
+                // keybind), or our command finished without reaching the optimistic state
+                props.running = running;
                 props.paused = false;
                 props.elapsed = 0;
             }
@@ -71,12 +77,30 @@ Singleton {
         }
     }
 
-    Connections {
-        target: Time
-        // enabled: props.running && !props.paused
+    Process {
+        id: commandProc
 
-        function onSecondsChanged(): void {
-            props.elapsed++;
-        }
+        // The command owns the transition: `caelestia record` blocks on slurp for
+        // region captures, and waits for the recorder to finalise the file when
+        // stopping. Reconcile once it has actually finished.
+        onExited: checkProc.running = true // qmllint disable signal-handler-parameters
+    }
+
+    // Only poll while something is showing the state, i.e. the utilities drawer is open
+    Timer {
+        interval: 1000
+        running: root.refCount > 0
+        repeat: true
+        triggeredOnStart: true
+
+        onTriggered: checkProc.running = true
+    }
+
+    Timer {
+        interval: 1000
+        running: props.running && !props.paused
+        repeat: true
+
+        onTriggered: props.elapsed++
     }
 }

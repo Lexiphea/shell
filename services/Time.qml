@@ -1,17 +1,20 @@
 pragma Singleton
 
-import qs.config
-import Quickshell
 import QtQuick
+import Quickshell
+import Caelestia.I18n
 
 Singleton {
+    id: root
+
+    property int refCount: 0
     property alias enabled: clock.enabled
     readonly property date date: clock.date
     readonly property int hours: clock.hours
     readonly property int minutes: clock.minutes
     readonly property int seconds: clock.seconds
 
-    readonly property string timeStr: format(Config.services.useTwelveHourClock ? "hh:mm:A" : "hh:mm")
+    readonly property string timeStr: format(Units.twelveHourClock ? "hh:mm:A" : "hh:mm")
     readonly property list<string> timeComponents: timeStr.split(":")
     readonly property string hourStr: timeComponents[0] ?? ""
     readonly property string minuteStr: timeComponents[1] ?? ""
@@ -23,6 +26,7 @@ Singleton {
 
     SystemClock {
         id: clock
-        precision: SystemClock.Seconds
+
+        precision: root.refCount > 0 ? SystemClock.Seconds : SystemClock.Minutes
     }
 }

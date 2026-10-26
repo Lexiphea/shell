@@ -1,8 +1,7 @@
-import Quickshell
-
 import "scripts/fzf.js" as Fzf
 import "scripts/fuzzysort.js" as Fuzzy
 import QtQuick
+import Quickshell
 
 Singleton {
     required property list<QtObject> list
@@ -26,17 +25,13 @@ Singleton {
         return obj;
     }) : []
 
-    function transformSearch(search: string): string {
-        return search;
-    }
-
     function selector(item: var): string {
         // Only for fzf
         return item[key];
     }
 
-    function query(search: string): list<var> {
-        search = transformSearch(search);
+    function query(search: string): var {
+        search = search.trim().replace(/\s+/g, " ");
         if (!search)
             return [...list];
 

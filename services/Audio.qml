@@ -1,12 +1,13 @@
 pragma Singleton
 
-import qs.config
-import Caelestia.Services
-import Caelestia
+import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
-import QtQuick
+import Caelestia
+import Caelestia.Config
+import Caelestia.I18n
+import Caelestia.Services
 
 Singleton {
     id: root
@@ -21,14 +22,8 @@ Singleton {
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property PwNode source: Pipewire.defaultAudioSource
 
-    property bool outputMutedState: false
-    property real outputVolumeState: 0
-    property bool outputRefreshQueued: false
-
-    readonly property bool muted: outputMutedState
-    readonly property real volume: outputVolumeState
-    readonly property real maxOutputVolume: 2.0
-    readonly property int outputDisplayPercent: getVisibleOutputPercent()
+    readonly property bool muted: !!sink?.audio?.muted
+    readonly property real volume: sink?.audio?.volume ?? 0
 
     readonly property bool sourceMuted: !!source?.audio?.muted
     readonly property real sourceVolume: source?.audio?.volume ?? 0
@@ -36,118 +31,34 @@ Singleton {
     readonly property alias cava: cava
     readonly property alias beatTracker: beatTracker
 
-    function getVisibleOutputVolume(): real {
-        return maxOutputVolume > 0 ? Math.max(0, Math.min(1, volume / maxOutputVolume)) : 0;
-    }
-
-    function getVisibleOutputPercent(): int {
-        return Math.max(0, Math.min(100, Math.round(getVisibleOutputVolume() * 100)));
-    }
-
-    function clampVisibleOutputVolume(value: real): real {
-        return Math.max(0, Math.min(1, value));
-    }
-
-    function setVisibleOutputVolume(newVolume: real): void {
-        setVolume(clampVisibleOutputVolume(newVolume) * maxOutputVolume);
-    }
-
-    function adjustVisibleOutputVolume(amount: real): void {
-        setVisibleOutputVolume(getVisibleOutputVolume() + amount);
-    }
-
-    function setVolumeFromString(value: string): string {
-        let targetVolume;
-
-        if (value.endsWith("%-")) {
-            const percent = parseFloat(value.slice(0, -2));
-            targetVolume = getVisibleOutputVolume() - (percent / 100);
-        } else if (value.startsWith("+") && value.endsWith("%")) {
-            const percent = parseFloat(value.slice(1, -1));
-            targetVolume = getVisibleOutputVolume() + (percent / 100);
-        } else if (value.endsWith("%")) {
-            const percent = parseFloat(value.slice(0, -1));
-            targetVolume = percent / 100;
-        } else if (value.startsWith("+")) {
-            const increment = parseFloat(value.slice(1));
-            targetVolume = getVisibleOutputVolume() + increment;
-        } else if (value.endsWith("-")) {
-            const decrement = parseFloat(value.slice(0, -1));
-            targetVolume = getVisibleOutputVolume() - decrement;
-        } else if (value.includes("%") || value.includes("-") || value.includes("+")) {
-            return `Invalid audio format: ${value}\nExpected: 0.5, +0.1, 0.1-, 50%, +5%, 5%-`;
-        } else {
-            targetVolume = parseFloat(value);
-        }
-
-        if (isNaN(targetVolume))
-            return `Failed to parse value: ${value}\nExpected: 0.5, +0.1, 0.1-, 50%, +5%, 5%-`;
-
-        const clampedTargetVolume = clampVisibleOutputVolume(targetVolume);
-        setVisibleOutputVolume(clampedTargetVolume);
-        return `Set output volume to ${Math.round(clampedTargetVolume * 100)}%`;
-    }
-
-    function scheduleOutputRefresh(): void {
-        outputRefreshDebounce.restart();
-    }
-
-    function refreshOutputState(): void {
-        if (!outputStateProc.running)
-            outputStateProc.running = true;
-        else
-            outputRefreshQueued = true;
-    }
-
-    function parseOutputState(output: string): void {
-        const volumeMatch = output.match(/(\d+)%/);
-        const muteMatch = output.match(/Mute:\s+(yes|no)/);
-
-        if (volumeMatch) {
-            const parsedVolume = parseInt(volumeMatch[1], 10) / 100;
-            outputVolumeState = Math.max(0, Math.min(maxOutputVolume, parsedVolume));
-        }
-
-        if (muteMatch)
-            outputMutedState = muteMatch[1] === "yes";
-    }
-
-    function setMuted(muted: bool): void {
-        outputMutedState = muted;
-        Quickshell.execDetached(["pactl", "set-sink-mute", "@DEFAULT_SINK@", muted ? "1" : "0"]);
-        scheduleOutputRefresh();
-    }
-
     function setVolume(newVolume: real): void {
-        const clampedVolume = Math.max(0, Math.min(maxOutputVolume, newVolume));
-        outputMutedState = false;
-        outputVolumeState = clampedVolume;
-        Quickshell.execDetached(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"]);
-        Quickshell.execDetached(["pactl", "set-sink-volume", "@DEFAULT_SINK@", `${Math.round(clampedVolume * 100)}%`]);
-        scheduleOutputRefresh();
+        if (sink?.ready && sink?.audio) {
+            sink.audio.muted = false;
+            sink.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
+        }
     }
 
     function incrementVolume(amount: real): void {
-        setVolume(volume + (amount || Config.services.audioIncrement));
+        setVolume(volume + (amount || GlobalConfig.services.audioIncrement));
     }
 
     function decrementVolume(amount: real): void {
-        setVolume(volume - (amount || Config.services.audioIncrement));
+        setVolume(volume - (amount || GlobalConfig.services.audioIncrement));
     }
 
     function setSourceVolume(newVolume: real): void {
         if (source?.ready && source?.audio) {
             source.audio.muted = false;
-            source.audio.volume = Math.max(0, Math.min(Config.services.maxVolume, newVolume));
+            source.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
     }
 
     function incrementSourceVolume(amount: real): void {
-        setSourceVolume(sourceVolume + (amount || Config.services.audioIncrement));
+        setSourceVolume(sourceVolume + (amount || GlobalConfig.services.audioIncrement));
     }
 
     function decrementSourceVolume(amount: real): void {
-        setSourceVolume(sourceVolume - (amount || Config.services.audioIncrement));
+        setSourceVolume(sourceVolume - (amount || GlobalConfig.services.audioIncrement));
     }
 
     function setAudioSink(newSink: PwNode): void {
@@ -158,10 +69,19 @@ Singleton {
         Pipewire.preferredDefaultAudioSource = newSource;
     }
 
+    function cycleNextAudioOutput(): void {
+        if (sinks.length === 0)
+            return;
+
+        const currentIndex = sinks.findIndex(s => s === sink);
+        const nextIndex = (currentIndex + 1) % sinks.length;
+        setAudioSink(sinks[nextIndex]);
+    }
+
     function setStreamVolume(stream: PwNode, newVolume: real): void {
         if (stream?.ready && stream?.audio) {
             stream.audio.muted = false;
-            stream.audio.volume = Math.max(0, Math.min(Config.services.maxVolume, newVolume));
+            stream.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
     }
 
@@ -181,157 +101,93 @@ Singleton {
 
     function getStreamName(stream: PwNode): string {
         if (!stream)
-            return qsTr("Unknown");
+            return Tr.trCtx("Unknown", "unknown audio stream");
         // Try application name first, then description, then name
-        return stream.applicationName || stream.description || stream.name || qsTr("Unknown Application");
+        return stream.properties["application.name"] || stream.description || stream.name || Tr.trCtx("Unknown application", "unknown application audio stream");
+    }
+
+    function refreshNodes(): void {
+        const newSinks = [];
+        const newSources = [];
+        const newStreams = [];
+
+        for (const node of Pipewire.nodes.values) {
+            if (!node.isStream) {
+                if (node.isSink)
+                    newSinks.push(node);
+                else if (node.audio)
+                    newSources.push(node);
+            } else if (node.audio) {
+                newStreams.push(node);
+            }
+        }
+
+        root.sinks = newSinks;
+        root.sources = newSources;
+        root.streams = newStreams;
     }
 
     onSinkChanged: {
         if (!sink?.ready)
             return;
 
-        const newSinkName = sink.description || sink.name || qsTr("Unknown Device");
+        const newSinkName = sink.description || sink.name || Tr.trCtx("Unknown device", "unknown audio device");
 
-        if (previousSinkName && previousSinkName !== newSinkName && Config.utilities.toasts.audioOutputChanged)
-            Toaster.toast(qsTr("Audio output changed"), qsTr("Now using: %1").arg(newSinkName), "volume_up");
+        if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.utilities.toasts.audioOutputChanged)
+            Toaster.toast(Tr.tr("Audio output changed"), Tr.tr("Now using: %1").arg(newSinkName), "volume_up");
 
         previousSinkName = newSinkName;
-        scheduleOutputRefresh();
     }
 
     onSourceChanged: {
         if (!source?.ready)
             return;
 
-        const newSourceName = source.description || source.name || qsTr("Unknown Device");
+        const newSourceName = source.description || source.name || Tr.trCtx("Unknown device", "unknown audio device");
 
-        if (previousSourceName && previousSourceName !== newSourceName && Config.utilities.toasts.audioInputChanged)
-            Toaster.toast(qsTr("Audio input changed"), qsTr("Now using: %1").arg(newSourceName), "mic");
+        if (previousSourceName && previousSourceName !== newSourceName && GlobalConfig.utilities.toasts.audioInputChanged)
+            Toaster.toast(Tr.tr("Audio input changed"), Tr.tr("Now using: %1").arg(newSourceName), "mic");
 
         previousSourceName = newSourceName;
     }
 
+    // Populate immediately: Pipewire.nodes may already be filled by the time this
+    // lazily-loaded singleton is created, so onValuesChanged would never fire.
     Component.onCompleted: {
-        previousSinkName = sink?.description || sink?.name || qsTr("Unknown Device");
-        previousSourceName = source?.description || source?.name || qsTr("Unknown Device");
-        scheduleOutputRefresh();
+        refreshNodes();
+        previousSinkName = sink?.description || sink?.name || Tr.trCtx("Unknown device", "unknown audio device");
+        previousSourceName = source?.description || source?.name || Tr.trCtx("Unknown device", "unknown audio device");
     }
 
     Connections {
-        target: Pipewire.nodes
-
         function onValuesChanged(): void {
-            const newSinks = [];
-            const newSources = [];
-            const newStreams = [];
-
-            for (const node of Pipewire.nodes.values) {
-                if (!node.isStream) {
-                    if (node.isSink)
-                        newSinks.push(node);
-                    else if (node.audio)
-                        newSources.push(node);
-                } else if (node.audio) {
-                    newStreams.push(node);
-                }
-            }
-
-            root.sinks = newSinks;
-            root.sources = newSources;
-            root.streams = newStreams;
+            root.refreshNodes();
         }
+
+        target: Pipewire.nodes
     }
 
+    // Always track the current defaults so volume/mute bind even if the lists
+    // momentarily lag behind the default node.
     PwObjectTracker {
-        objects: [...root.sinks, ...root.sources, ...root.streams]
-    }
-
-    Timer {
-        id: outputRefreshDebounce
-
-        interval: 100
-        onTriggered: root.refreshOutputState()
-    }
-
-    Timer {
-        id: outputSubscribeRestartTimer
-
-        interval: 2000
-        onTriggered: outputSubscribeProc.running = true
-    }
-
-    Process {
-        id: outputStateProc
-
-        command: ["sh", "-c", "pactl get-sink-volume @DEFAULT_SINK@; pactl get-sink-mute @DEFAULT_SINK@"]
-        environment: ({
-                LANG: "C.UTF-8",
-                LC_ALL: "C.UTF-8"
-            })
-        stdout: StdioCollector {
-            onStreamFinished: root.parseOutputState(text)
-        }
-        onExited: {
-            if (root.outputRefreshQueued) {
-                root.outputRefreshQueued = false;
-                root.scheduleOutputRefresh();
-            }
-        }
-    }
-
-    Process {
-        id: outputSubscribeProc
-
-        running: true
-        command: ["pactl", "subscribe"]
-        environment: ({
-                LANG: "C.UTF-8",
-                LC_ALL: "C.UTF-8"
-            })
-        stdout: SplitParser {
-            onRead: line => {
-                if (line.includes("on sink") || line.includes("on server"))
-                    root.scheduleOutputRefresh();
-            }
-        }
-        onExited: outputSubscribeRestartTimer.start()
-    }
-
-    IpcHandler {
-        target: "audio"
-
-        function get(): real {
-            return root.getVisibleOutputVolume();
-        }
-
-        function set(value: string): string {
-            return root.setVolumeFromString(value);
-        }
-
-        function isMuted(): bool {
-            return root.muted;
-        }
-
-        function mute(): void {
-            root.setMuted(true);
-        }
-
-        function unmute(): void {
-            root.setMuted(false);
-        }
-
-        function toggleMute(): void {
-            root.setMuted(!root.muted);
-        }
+        objects: [root.sink, root.source, ...root.sinks, ...root.sources, ...root.streams].filter(n => n)
     }
 
     CavaProvider {
         id: cava
 
-        bars: Config.services.visualiserBars
+        bars: GlobalConfig.services.visualiserBars
     }
 
     BeatTracker {
         id: beatTracker
+    }
+
+    IpcHandler {
+        function cycleOutput(): void {
+            root.cycleNextAudioOutput();
+        }
+
+        target: "audio"
     }
 }
