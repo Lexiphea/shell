@@ -12,12 +12,9 @@ Searcher {
         appDb.incrementFrequency(entry.id);
 
         if (entry.runInTerminal)
-            Quickshell.execDetached({
-                command: [...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...entry.command],
-                workingDirectory: entry.workingDirectory
-            });
+            Exec.app([...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...entry.command], entry.workingDirectory);
         else
-            entry.execute();
+            Exec.app(entry.command, entry.workingDirectory);
     }
 
     function search(search: string): var {

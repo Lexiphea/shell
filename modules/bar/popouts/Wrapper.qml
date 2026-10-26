@@ -9,6 +9,7 @@ import qs.components
 import qs.services
 import qs.modules.nexus
 import qs.modules.windowinfo
+import qs.utils
 
 Item {
     id: root
@@ -46,7 +47,7 @@ Item {
 
     function detach(mode: string): void {
         if (mode === "audio") {
-            Quickshell.execDetached(Config.general.apps.audio);
+            Exec.app(Config.general.apps.audio);
             close();
             return;
         }
