@@ -13,9 +13,6 @@ Item {
 
     property alias source: img.path
     property alias text: label.text
-    property alias radius: imgWrapper.radius
-    property alias imgHeight: imgWrapper.implicitHeight
-    property bool fillLabel: true
 
     signal clicked
 
@@ -99,7 +96,6 @@ Item {
     }
 
     StateLayer {
-        anchors.bottomMargin: root.fillLabel ? 0 : layout.implicitHeight - imgWrapper.implicitHeight
         onClicked: root.clicked()
     }
 }

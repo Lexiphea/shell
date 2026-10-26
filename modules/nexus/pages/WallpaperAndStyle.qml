@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Caelestia.Components
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -142,34 +141,18 @@ PageBase {
             }
         }
 
-        ButtonRow {
+        IconTextButton {
             Layout.alignment: Qt.AlignHCenter
-            spacing: Tokens.spacing.small
-
-            IconTextButton {
-                icon: "wallpaper"
-                text: Tr.tr("Wallpapers")
-                font: Tokens.font.body.large
-                isRound: true
-                shapeMorph: true
-                type: IconTextButton.Tonal
-                horizontalPadding: Tokens.padding.extraLarge
-                verticalPadding: Tokens.padding.medium
-                disabled: !Config.background.wallpaperEnabled
-                onClicked: root.nState.openSubPage(1) // Wallpaper page
-            }
-
-            IconTextButton {
-                icon: "palette"
-                text: Tr.tr("Colours")
-                font: Tokens.font.body.large
-                isRound: true
-                shapeMorph: true
-                type: IconTextButton.Tonal
-                horizontalPadding: Tokens.padding.extraLarge
-                verticalPadding: Tokens.padding.medium
-                onClicked: root.nState.openSubPage(3) // Colours page
-            }
+            icon: "wallpaper"
+            text: Tr.tr("Wallpapers")
+            font: Tokens.font.body.large
+            isRound: true
+            shapeMorph: true
+            type: IconTextButton.Tonal
+            horizontalPadding: Tokens.padding.extraLarge
+            verticalPadding: Tokens.padding.medium
+            disabled: !Config.background.wallpaperEnabled
+            onClicked: root.nState.openSubPage(1) // Wallpaper page
         }
 
         ToggleRow {
