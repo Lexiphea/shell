@@ -70,6 +70,12 @@ Item {
 
                 anchors.fill: parent
                 retainWhileLoading: true
+                // Rounded up to 128px steps: tracking the exact layout size would queue a full decode of the
+                // source for every size the tile passes through while laying out
+                targetSize: {
+                    const size = Math.max(128, Math.ceil(width / 128) * 128);
+                    return Qt.size(size, size);
+                }
                 opacity: status === Image.Ready ? 1 : 0
 
                 Behavior on opacity {
