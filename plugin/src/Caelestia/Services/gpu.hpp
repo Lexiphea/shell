@@ -64,6 +64,8 @@ private:
     void setType(GpuType value);
     void setName(QString value);
     void setDetecting(bool value);
+    void setPercentage(qreal value);
+    void setTemperature(qreal value);
 
     // The config override, Auto meaning "resolve by probing". Read only to decide
     // whether to probe and which name sources apply; never exposed.

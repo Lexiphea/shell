@@ -15,9 +15,6 @@ void ChangeBatcher::dirty() {
 }
 
 void ChangeBatcher::flush() {
-    if (!m_dirty)
-        return;
-
     m_dirty = false;
     emit dirtied();
 }

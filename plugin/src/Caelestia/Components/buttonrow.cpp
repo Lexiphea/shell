@@ -6,7 +6,6 @@ ButtonRow::ButtonRow(QQuickItem* parent)
     : QQuickItem(parent)
     , m_dirty(false)
     , m_spacing(0.0) {
-    setFlag(QQuickItem::ItemHasContents, true);
     QObject::connect(this, &ButtonRow::widthChanged, this, &ButtonRow::invalidate);
 }
 

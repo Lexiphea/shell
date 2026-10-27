@@ -88,9 +88,6 @@ public:                                                                         
     }                                                                                                                  \
                                                                                                                        \
     void set_##name(const Type& value) {                                                                               \
-        if (!true /* TODO: validation */)                                                                              \
-            return;                                                                                                    \
-                                                                                                                       \
         if (rejectInvalidWrite(QStringLiteral(#name), value))                                                          \
             return; /* Skip writes of the wrong type */                                                                \
                                                                                                                        \

@@ -34,7 +34,6 @@ public:
 
     [[nodiscard]] bool isValid() const;
     bool operator==(const LyricCandidate& o) const noexcept;
-    bool operator!=(const LyricCandidate& o) const noexcept;
 
 private:
     LyricsBackend m_backend = LyricsBackend::Auto;

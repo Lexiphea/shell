@@ -69,7 +69,6 @@ private:
 
     [[nodiscard]] static QStringList resolveToPhysicalDisks(const QString& devicePath);
     [[nodiscard]] static bool isPseudoFs(QByteArrayView fsType);
-    [[nodiscard]] static bool sameOrder(const QList<DiskInfo*>& a, const QList<DiskInfo*>& b);
 
     static qsizetype disksCount(QQmlListProperty<DiskInfo>* prop);
     static DiskInfo* disksAt(QQmlListProperty<DiskInfo>* prop, qsizetype i);

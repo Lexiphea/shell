@@ -100,8 +100,6 @@ private:
     qreal m_fullAngle;
     qreal m_radius;
     qreal m_value;
-    qreal m_startAngleRad;
-    qreal m_fullAngleRad;
 };
 
 } // namespace caelestia::components

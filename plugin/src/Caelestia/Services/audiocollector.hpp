@@ -88,11 +88,9 @@ private:
     ac::SpinLock m_samplesLock;
     util::RingBuffer<float> m_pending; // Writer thread only, holds chunks which arrived while a reader had the lock
     std::atomic<bool> m_discardPending;
-    quint32 m_sampleCount;
 
     template <typename T> quint32 readLatest(T* out, quint32 count);
 
-    void reload();
     void start() override;
     void stop() override;
 };

@@ -111,9 +111,7 @@ void LazyListViewAttached::setTrackViewport(bool track) {
 // --- LazyListView ---
 
 LazyListView::LazyListView(QQuickItem* parent)
-    : QQuickItem(parent) {
-    setFlag(ItemHasContents, false);
-}
+    : QQuickItem(parent) {}
 
 LazyListViewAttached* LazyListView::qmlAttachedProperties(QObject* object) {
     return new LazyListViewAttached(object);
@@ -722,14 +720,7 @@ std::pair<int, int> LazyListView::computeVisibleRange() const {
 void LazyListView::syncDelegates() {
     const auto [first, last] = computeVisibleRange();
 
-    // Collect indices that should be alive
-    QSet<int> visibleIndices;
-    if (first >= 0) {
-        for (int i = first; i <= last; ++i)
-            visibleIndices.insert(i);
-    }
-
-    const auto toRemove = delegatesOutsideViewport(visibleIndices, effectiveViewport());
+    const auto toRemove = delegatesOutsideViewport(first, last, effectiveViewport());
     const int destroyed =
         destroyDelegates(toRemove, m_asynchronous ? k_asyncBatchDestroy : static_cast<int>(toRemove.size()));
 
@@ -748,13 +739,13 @@ void LazyListView::syncDelegates() {
         emit itemsDirtyChanged();
 }
 
-// Delegates safe to destroy - outside the range to keep and no longer visually
+// Delegates safe to destroy - outside [first, last] and no longer visually
 // overlapping the viewport, so nothing mid-animation disappears.
-QList<int> LazyListView::delegatesOutsideViewport(const QSet<int>& keep, const QRectF& viewport) const {
+QList<int> LazyListView::delegatesOutsideViewport(int first, int last, const QRectF& viewport) const {
     QList<int> outside;
 
     for (auto it = m_delegates.constBegin(); it != m_delegates.constEnd(); ++it) {
-        if (keep.contains(it.key()))
+        if (it.key() >= first && it.key() <= last)
             continue;
 
         if (!it->item || viewport.isEmpty()) {

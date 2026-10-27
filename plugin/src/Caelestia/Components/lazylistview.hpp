@@ -7,7 +7,6 @@
 #include <qqmlintegration.h>
 #include <qquickitem.h>
 #include <qrect.h>
-#include <qset.h>
 #include <qvariant.h>
 #include <qvector.h>
 
@@ -239,7 +238,7 @@ private:
 
     // Delegate lifecycle
     void syncDelegates();
-    [[nodiscard]] QList<int> delegatesOutsideViewport(const QSet<int>& keep, const QRectF& viewport) const;
+    [[nodiscard]] QList<int> delegatesOutsideViewport(int first, int last, const QRectF& viewport) const;
     [[nodiscard]] QList<int> missingDelegates(int first, int last) const;
     int destroyDelegates(const QList<int>& indices, int budget);
     int createDelegates(const QList<int>& indices, int budget);

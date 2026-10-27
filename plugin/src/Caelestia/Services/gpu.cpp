@@ -322,11 +322,7 @@ void Gpu::readGenericUsage() {
             ++count;
         }
     }
-    const qreal newPerc = count > 0 ? sum / count / 100.0 : 0.0;
-    if (std::abs(newPerc - m_percentage) > 0.0001) {
-        m_percentage = newPerc;
-        emit percentageChanged();
-    }
+    setPercentage(count > 0 ? sum / count / 100.0 : 0.0);
 }
 
 void Gpu::startNvidiaUsage() {
@@ -353,33 +349,34 @@ void Gpu::startNvidiaUsage() {
             bool ok2 = false;
             const qreal usage = parts.at(0).trimmed().toDouble(&ok1) / 100.0;
             const qreal temp = parts.at(1).trimmed().toDouble(&ok2);
-            if (ok1 && std::abs(usage - m_percentage) > 0.0001) {
-                m_percentage = usage;
-                emit percentageChanged();
+            if (ok1) {
+                setPercentage(usage);
             }
-            if (ok2 && std::abs(temp - m_temperature) > 0.05) {
-                m_temperature = temp;
-                emit temperatureChanged();
+            if (ok2) {
+                setTemperature(temp);
             }
         });
 }
 
 void Gpu::readGpuTemperature() {
-    const auto t = sensorslib::gpuPciAverageTemp();
-    const qreal newTemp = t.value_or(0.0);
-    if (std::abs(newTemp - m_temperature) > 0.05) {
-        m_temperature = newTemp;
-        emit temperatureChanged();
-    }
+    setTemperature(sensorslib::gpuPciAverageTemp().value_or(0.0));
 }
 
 void Gpu::resetUsage() {
-    if (std::abs(m_percentage) > 0.0001) {
-        m_percentage = 0.0;
+    setPercentage(0.0);
+    setTemperature(0.0);
+}
+
+void Gpu::setPercentage(qreal value) {
+    if (std::abs(value - m_percentage) > 0.0001) {
+        m_percentage = value;
         emit percentageChanged();
     }
-    if (std::abs(m_temperature) > 0.05) {
-        m_temperature = 0.0;
+}
+
+void Gpu::setTemperature(qreal value) {
+    if (std::abs(value - m_temperature) > 0.05) {
+        m_temperature = value;
         emit temperatureChanged();
     }
 }

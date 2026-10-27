@@ -64,7 +64,7 @@ void Cpu::refreshPercentage() {
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return;
     }
-    const QByteArray data = f.readAll();
+    const QByteArray data = f.readLine();
     f.close();
 
     static const QRegularExpression k_re(

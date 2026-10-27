@@ -40,7 +40,6 @@ public:
 
 signals:
     void bpmChanged();
-    void beat(smpl_t bpm);
 
 private:
     smpl_t m_bpm;

@@ -389,6 +389,14 @@ void FileSystemModel::applyChanges(const QSet<QString>& removedPaths, const QSet
     std::ranges::sort(removedIndices, std::greater<>());
 
     // Batch remove old entries
+    const auto removeRun = [this](int start, int end) {
+        beginRemoveRows(QModelIndex(), end, start);
+        for (int i = start; i >= end; --i) {
+            m_entries.takeAt(i)->deleteLater();
+        }
+        endRemoveRows();
+    };
+
     int start = -1;
     int end = -1;
     for (const int idx : std::as_const(removedIndices)) {
@@ -398,22 +406,13 @@ void FileSystemModel::applyChanges(const QSet<QString>& removedPaths, const QSet
         } else if (idx == end - 1) {
             end = idx;
         } else {
-            beginRemoveRows(QModelIndex(), end, start);
-            for (int i = start; i >= end; --i) {
-                m_entries.takeAt(i)->deleteLater();
-            }
-            endRemoveRows();
-
+            removeRun(start, end);
             start = idx;
             end = idx;
         }
     }
     if (start != -1) {
-        beginRemoveRows(QModelIndex(), end, start);
-        for (int i = start; i >= end; --i) {
-            m_entries.takeAt(i)->deleteLater();
-        }
-        endRemoveRows();
+        removeRun(start, end);
     }
 
     // Create new entries

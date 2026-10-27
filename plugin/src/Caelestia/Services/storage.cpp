@@ -111,18 +111,6 @@ qreal Storage::percentage() const {
     return totalSize > 0.0 ? totalUsed / totalSize : 0.0;
 }
 
-bool Storage::sameOrder(const QList<DiskInfo*>& a, const QList<DiskInfo*>& b) {
-    if (a.size() != b.size()) {
-        return false;
-    }
-    for (qsizetype i = 0; i < a.size(); ++i) {
-        if (a.at(i) != b.at(i)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 QQmlListProperty<DiskInfo> Storage::disksProp() {
     return { this, nullptr, &Storage::disksCount, &Storage::disksAt };
 }
@@ -316,7 +304,7 @@ void Storage::applyDisks(const AccumHash& byDisk) {
     for (auto* const stale : std::as_const(existing))
         stale->deleteLater();
 
-    const auto listChanged = !sameOrder(m_disks, next);
+    const auto listChanged = m_disks != next;
     const auto* prevPrimary = primaryDisk();
     m_disks = std::move(next);
 

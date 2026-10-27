@@ -76,6 +76,7 @@ private:
     void clearLines();
     void appendCandidates(const QList<LyricCandidate>& add);
     void clearCandidates();
+    void adoptCandidate(const LyricCandidate& cand);
 
     void scheduleLoad();
     void doLoad();
@@ -94,7 +95,8 @@ private:
     void fetchNetEaseLyricsById(const QString& id, int reqId);
 
     QNetworkReply* getJson(const QUrl& url, const QHash<QByteArray, QByteArray>& headers = {});
-    void trackReply(int reqId, QNetworkReply* reply);
+    QNetworkReply* searchNetEase();
+    void trackReply(QNetworkReply* reply);
 
     void onPreferredBackendConfigChanged();
     void onLyricsDirChanged();
@@ -137,10 +139,9 @@ private:
     qreal m_duration = 0.0;
 
     int m_currentRequestId = 0;
-    QHash<int, QList<QPointer<QNetworkReply>>> m_pendingReplies;
+    QList<QPointer<QNetworkReply>> m_pendingReplies;
 
     QJsonObject m_lyricsMap;
-    bool m_lyricsMapLoaded = false;
     bool m_settingFromPrefs = false;
 };
 

@@ -29,7 +29,6 @@ public:
 
     [[nodiscard]] Q_INVOKABLE bool isGlobalOnly() const;
     [[nodiscard]] bool isOverride(const QString& key) const;
-    [[nodiscard]] const QSet<QString>& overrides() const;
     [[nodiscard]] bool hasContent() const; // Recursive
 
     [[nodiscard]] virtual const Schema& schema() const = 0;
@@ -41,7 +40,6 @@ public:
     [[nodiscard]] virtual QJsonValue toJson(bool sparse = true) const = 0;
     // Returns false if the entire node was rejected
     virtual bool syncJson(const QJsonValue& json, QList<Diagnostic>& diagnostics) = 0;
-    [[nodiscard]] const Quarantine* quarantine() const;
 
 signals:
     void optionChanged(const QString& key);

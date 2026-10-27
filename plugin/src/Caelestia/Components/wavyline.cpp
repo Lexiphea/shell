@@ -18,9 +18,7 @@ WavyLine::WavyLine(QQuickItem* parent)
     , m_startAngle(0)
     , m_fullAngle(360)
     , m_radius(-1)
-    , m_value(1)
-    , m_startAngleRad(0)
-    , m_fullAngleRad(2 * M_PI) {
+    , m_value(1) {
     setAntialiasing(true);
 }
 
@@ -127,7 +125,6 @@ qreal WavyLine::startAngle() const {
 void WavyLine::setStartAngle(qreal startAngle) {
     if (!qFuzzyCompare(m_startAngle + 1.0, startAngle + 1.0)) {
         m_startAngle = startAngle;
-        m_startAngleRad = startAngle * M_PI / 180.0;
         emit startAngleChanged();
         update();
     }
@@ -140,7 +137,6 @@ qreal WavyLine::fullAngle() const {
 void WavyLine::setFullAngle(qreal fullAngle) {
     if (!qFuzzyCompare(m_fullAngle + 1.0, fullAngle + 1.0)) {
         m_fullAngle = fullAngle;
-        m_fullAngleRad = fullAngle * M_PI / 180.0;
         emit fullAngleChanged();
         update();
     }
@@ -208,7 +204,7 @@ void WavyLine::paintLinear(QPainter* painter) {
 }
 
 void WavyLine::paintArc(QPainter* painter) {
-    if (m_fullAngleRad <= 0) {
+    if (m_fullAngle <= 0) {
         return;
     }
 
@@ -222,9 +218,10 @@ void WavyLine::paintArc(QPainter* painter) {
     }
 
     const auto phase = m_waveProgress * 2 * M_PI;
-    const auto arcLen = radius * m_fullAngleRad;
+    const auto fullAngleRad = qDegreesToRadians(m_fullAngle);
+    const auto arcLen = radius * fullAngleRad;
     const auto len = m_fullLength > 0 ? m_fullLength : arcLen;
-    const auto drawAngleRad = m_fullAngleRad * m_value;
+    const auto drawAngleRad = fullAngleRad * m_value;
 
     if (drawAngleRad <= 0) {
         return;
@@ -233,10 +230,11 @@ void WavyLine::paintArc(QPainter* painter) {
     const auto segments = qMax(64, qCeil(radius * drawAngleRad));
     const auto dTheta = drawAngleRad / segments;
 
+    const auto startAngleRad = qDegreesToRadians(m_startAngle);
     QPainterPath path;
 
     for (int i = 0; i <= segments; ++i) {
-        const auto theta = m_startAngleRad + i * dTheta;
+        const auto theta = startAngleRad + i * dTheta;
         const auto s = i * dTheta * radius;
         const auto phi = m_frequency * 2 * M_PI * (s + m_startX) / len + phase;
         const auto r = radius + amplitude * qSin(phi);

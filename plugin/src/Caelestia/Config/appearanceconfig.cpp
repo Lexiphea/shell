@@ -6,23 +6,18 @@ namespace caelestia::config {
 
 namespace {
 
-// Helper: connect all changed signals from a token object to a single valuesChanged signal,
-// plus connect the local scaleChanged signal.
+// Helper: funnel every token change and the local scale into a single valuesChanged signal
 template <typename Source, typename Target> void connectTokenSignals(Source* source, Target* target) {
-    const auto* meta = source->metaObject();
-
-    for (int i = meta->propertyOffset(); i < meta->propertyCount(); ++i) {
-        const auto prop = meta->property(i);
-
-        if (prop.hasNotifySignal())
-            QObject::connect(source, prop.notifySignal(), target,
-                target->metaObject()->method(target->metaObject()->indexOfSignal("valuesChanged()")));
-    }
-
+    QObject::connect(source, &Source::optionChanged, target, &Target::valuesChanged);
     QObject::connect(target, &Target::scaleChanged, target, &Target::valuesChanged);
 }
 
 } // namespace
+
+#define SCALED_TOKEN(Class, name)                                                                                      \
+    int Class::name() const {                                                                                          \
+        return m_tokens ? static_cast<int>(m_tokens->name() * m_scale) : 0;                                            \
+    }
 
 // AppearanceRounding
 
@@ -31,37 +26,14 @@ void AppearanceRounding::bindTokens(RoundingTokens* tokens) {
     connectTokenSignals(tokens, this);
 }
 
-int AppearanceRounding::extraSmall() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraSmall() * m_scale) : 0;
-}
-
-int AppearanceRounding::small() const {
-    return m_tokens ? static_cast<int>(m_tokens->small() * m_scale) : 0;
-}
-
-int AppearanceRounding::medium() const {
-    return m_tokens ? static_cast<int>(m_tokens->medium() * m_scale) : 0;
-}
-
-int AppearanceRounding::large() const {
-    return m_tokens ? static_cast<int>(m_tokens->large() * m_scale) : 0;
-}
-
-int AppearanceRounding::largeIncreased() const {
-    return m_tokens ? static_cast<int>(m_tokens->largeIncreased() * m_scale) : 0;
-}
-
-int AppearanceRounding::extraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLarge() * m_scale) : 0;
-}
-
-int AppearanceRounding::extraLargeIncreased() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLargeIncreased() * m_scale) : 0;
-}
-
-int AppearanceRounding::extraExtraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraExtraLarge() * m_scale) : 0;
-}
+SCALED_TOKEN(AppearanceRounding, extraSmall)
+SCALED_TOKEN(AppearanceRounding, small)
+SCALED_TOKEN(AppearanceRounding, medium)
+SCALED_TOKEN(AppearanceRounding, large)
+SCALED_TOKEN(AppearanceRounding, largeIncreased)
+SCALED_TOKEN(AppearanceRounding, extraLarge)
+SCALED_TOKEN(AppearanceRounding, extraLargeIncreased)
+SCALED_TOKEN(AppearanceRounding, extraExtraLarge)
 
 int AppearanceRounding::full() const {
     return m_tokens ? m_tokens->full() : 0;
@@ -74,37 +46,14 @@ void AppearanceSpacing::bindTokens(SpacingTokens* tokens) {
     connectTokenSignals(tokens, this);
 }
 
-int AppearanceSpacing::extraSmall() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraSmall() * m_scale) : 0;
-}
-
-int AppearanceSpacing::small() const {
-    return m_tokens ? static_cast<int>(m_tokens->small() * m_scale) : 0;
-}
-
-int AppearanceSpacing::medium() const {
-    return m_tokens ? static_cast<int>(m_tokens->medium() * m_scale) : 0;
-}
-
-int AppearanceSpacing::large() const {
-    return m_tokens ? static_cast<int>(m_tokens->large() * m_scale) : 0;
-}
-
-int AppearanceSpacing::largeIncreased() const {
-    return m_tokens ? static_cast<int>(m_tokens->largeIncreased() * m_scale) : 0;
-}
-
-int AppearanceSpacing::extraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLarge() * m_scale) : 0;
-}
-
-int AppearanceSpacing::extraLargeIncreased() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLargeIncreased() * m_scale) : 0;
-}
-
-int AppearanceSpacing::extraExtraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraExtraLarge() * m_scale) : 0;
-}
+SCALED_TOKEN(AppearanceSpacing, extraSmall)
+SCALED_TOKEN(AppearanceSpacing, small)
+SCALED_TOKEN(AppearanceSpacing, medium)
+SCALED_TOKEN(AppearanceSpacing, large)
+SCALED_TOKEN(AppearanceSpacing, largeIncreased)
+SCALED_TOKEN(AppearanceSpacing, extraLarge)
+SCALED_TOKEN(AppearanceSpacing, extraLargeIncreased)
+SCALED_TOKEN(AppearanceSpacing, extraExtraLarge)
 
 // AppearancePadding
 
@@ -113,37 +62,14 @@ void AppearancePadding::bindTokens(PaddingTokens* tokens) {
     connectTokenSignals(tokens, this);
 }
 
-int AppearancePadding::extraSmall() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraSmall() * m_scale) : 0;
-}
-
-int AppearancePadding::small() const {
-    return m_tokens ? static_cast<int>(m_tokens->small() * m_scale) : 0;
-}
-
-int AppearancePadding::medium() const {
-    return m_tokens ? static_cast<int>(m_tokens->medium() * m_scale) : 0;
-}
-
-int AppearancePadding::large() const {
-    return m_tokens ? static_cast<int>(m_tokens->large() * m_scale) : 0;
-}
-
-int AppearancePadding::largeIncreased() const {
-    return m_tokens ? static_cast<int>(m_tokens->largeIncreased() * m_scale) : 0;
-}
-
-int AppearancePadding::extraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLarge() * m_scale) : 0;
-}
-
-int AppearancePadding::extraLargeIncreased() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLargeIncreased() * m_scale) : 0;
-}
-
-int AppearancePadding::extraExtraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraExtraLarge() * m_scale) : 0;
-}
+SCALED_TOKEN(AppearancePadding, extraSmall)
+SCALED_TOKEN(AppearancePadding, small)
+SCALED_TOKEN(AppearancePadding, medium)
+SCALED_TOKEN(AppearancePadding, large)
+SCALED_TOKEN(AppearancePadding, largeIncreased)
+SCALED_TOKEN(AppearancePadding, extraLarge)
+SCALED_TOKEN(AppearancePadding, extraLargeIncreased)
+SCALED_TOKEN(AppearancePadding, extraExtraLarge)
 
 // AnimDurations
 
@@ -152,44 +78,17 @@ void AnimDurations::bindTokens(AnimDurationTokens* tokens) {
     connectTokenSignals(tokens, this);
 }
 
-int AnimDurations::small() const {
-    return m_tokens ? static_cast<int>(m_tokens->small() * m_scale) : 0;
-}
+SCALED_TOKEN(AnimDurations, small)
+SCALED_TOKEN(AnimDurations, normal)
+SCALED_TOKEN(AnimDurations, large)
+SCALED_TOKEN(AnimDurations, extraLarge)
+SCALED_TOKEN(AnimDurations, expressiveFastSpatial)
+SCALED_TOKEN(AnimDurations, expressiveDefaultSpatial)
+SCALED_TOKEN(AnimDurations, expressiveSlowSpatial)
+SCALED_TOKEN(AnimDurations, expressiveFastEffects)
+SCALED_TOKEN(AnimDurations, expressiveDefaultEffects)
+SCALED_TOKEN(AnimDurations, expressiveSlowEffects)
 
-int AnimDurations::normal() const {
-    return m_tokens ? static_cast<int>(m_tokens->normal() * m_scale) : 0;
-}
-
-int AnimDurations::large() const {
-    return m_tokens ? static_cast<int>(m_tokens->large() * m_scale) : 0;
-}
-
-int AnimDurations::extraLarge() const {
-    return m_tokens ? static_cast<int>(m_tokens->extraLarge() * m_scale) : 0;
-}
-
-int AnimDurations::expressiveFastSpatial() const {
-    return m_tokens ? static_cast<int>(m_tokens->expressiveFastSpatial() * m_scale) : 0;
-}
-
-int AnimDurations::expressiveDefaultSpatial() const {
-    return m_tokens ? static_cast<int>(m_tokens->expressiveDefaultSpatial() * m_scale) : 0;
-}
-
-int AnimDurations::expressiveSlowSpatial() const {
-    return m_tokens ? static_cast<int>(m_tokens->expressiveSlowSpatial() * m_scale) : 0;
-}
-
-int AnimDurations::expressiveFastEffects() const {
-    return m_tokens ? static_cast<int>(m_tokens->expressiveFastEffects() * m_scale) : 0;
-}
-
-int AnimDurations::expressiveDefaultEffects() const {
-    return m_tokens ? static_cast<int>(m_tokens->expressiveDefaultEffects() * m_scale) : 0;
-}
-
-int AnimDurations::expressiveSlowEffects() const {
-    return m_tokens ? static_cast<int>(m_tokens->expressiveSlowEffects() * m_scale) : 0;
-}
+#undef SCALED_TOKEN
 
 } // namespace caelestia::config

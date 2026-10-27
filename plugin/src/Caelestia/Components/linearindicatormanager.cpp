@@ -112,7 +112,6 @@ void LinearIndicatorManager::update(qreal progress) {
 
 void LinearIndicatorManager::updateCompleteEndProgress(qreal progress) {
     m_completeEndProgress = progress;
-    update(m_progress);
 }
 
 } // namespace caelestia::components

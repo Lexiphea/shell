@@ -66,10 +66,6 @@ bool Node::isOverride(const QString& key) const {
     return m_overrides.contains(key);
 }
 
-const QSet<QString>& Node::overrides() const {
-    return m_overrides;
-}
-
 bool Node::hasContent() const {
     return !m_overrides.isEmpty() || m_quarantine ||
            std::ranges::any_of(findChildren<Node*>(Qt::FindDirectChildrenOnly), &Node::hasContent);
@@ -121,10 +117,6 @@ void Node::resetToDefaults() {
         else if (!desc.globalOnly() || !m_fallbackNode) // Skip resetting global options on overlays
             setValue(desc.key, m_fallbackNode ? m_fallbackNode->value(desc.key) : desc.defaultValue());
     }
-}
-
-const Quarantine* Node::quarantine() const {
-    return m_quarantine.get();
 }
 
 bool Node::rejectInvalidWrite(const QString& key, const QVariant& value) const {

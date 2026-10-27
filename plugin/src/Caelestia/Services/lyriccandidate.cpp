@@ -43,8 +43,4 @@ bool LyricCandidate::operator==(const LyricCandidate& o) const noexcept {
     return m_backend == o.m_backend && m_id == o.m_id;
 }
 
-bool LyricCandidate::operator!=(const LyricCandidate& o) const noexcept {
-    return !(*this == o);
-}
-
 } // namespace caelestia::services
