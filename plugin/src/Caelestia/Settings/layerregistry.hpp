@@ -14,7 +14,7 @@ concept LayerType = std::derived_from<T, Node> && std::constructible_from<T, con
 
 template <LayerType T> class LayerRegistry {
 public:
-    explicit LayerRegistry(const QString& prefix, const QString& suffix, QObject* parent);
+    explicit LayerRegistry(const QString& prefix, const QString& suffix);
 
     [[nodiscard]] QString pathFor(const QString& name) const;
     [[nodiscard]] QString nameFor(T* layer) const;
@@ -23,7 +23,7 @@ public:
 private:
     const QString m_prefix;
     const QString m_suffix;
-    QObject* const m_parent;
+    QObject m_owner; // Owns the layers without being a node, so each layer is its own root
     QHash<QString, T*> m_layers;
 };
 
@@ -44,10 +44,9 @@ inline QString stripLeadingSlashes(QStringView str) {
 } // namespace detail
 
 template <LayerType T>
-LayerRegistry<T>::LayerRegistry(const QString& prefix, const QString& suffix, QObject* parent)
+LayerRegistry<T>::LayerRegistry(const QString& prefix, const QString& suffix)
     : m_prefix(detail::stripTrailingSlashes(prefix))
-    , m_suffix(detail::stripLeadingSlashes(suffix))
-    , m_parent(parent) {}
+    , m_suffix(detail::stripLeadingSlashes(suffix)) {}
 
 template <LayerType T> QString LayerRegistry<T>::pathFor(const QString& name) const {
     return m_prefix + u'/' + name + u'/' + m_suffix;
@@ -67,7 +66,7 @@ template <LayerType T> T* LayerRegistry<T>::get(const QString& name, T* fallback
     if (created)
         *created = true;
 
-    auto* const layer = new T(pathFor(name), fallback, m_parent);
+    auto* const layer = new T(pathFor(name), fallback, &m_owner);
     m_layers.insert(name, layer);
     return layer;
 }
