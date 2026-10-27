@@ -11,21 +11,16 @@ DoubleSpinBox {
     property int repeatDecay: 50
     property int cLayer: 1
 
+    // Round to avoid floating point precision errors
     function increase(): void {
-        let newValue = Math.min(to, value + stepSize);
-        // Round to avoid floating point precision errors
-        const decimals = stepSize < 1 ? Math.max(1, Math.ceil(-Math.log10(stepSize))) : 0;
-        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-        value = newValue;
+        const factor = Math.pow(10, decimals);
+        value = Math.round(Math.min(to, value + stepSize) * factor) / factor;
         valueModified();
     }
 
     function decrease(): void {
-        let newValue = Math.max(from, value - stepSize);
-        // Round to avoid floating point precision errors
-        const decimals = stepSize < 1 ? Math.max(1, Math.ceil(-Math.log10(stepSize))) : 0;
-        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-        value = newValue;
+        const factor = Math.pow(10, decimals);
+        value = Math.round(Math.max(from, value - stepSize) * factor) / factor;
         valueModified();
     }
 

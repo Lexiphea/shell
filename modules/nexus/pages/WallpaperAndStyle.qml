@@ -8,7 +8,6 @@ import qs.components
 import qs.components.controls
 import qs.components.images
 import qs.services
-import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
@@ -176,7 +175,6 @@ PageBase {
             visible: Colours.transparency.enabled
             icon: "opacity"
             label: Tr.tr("Base opacity")
-            valueLabel: Strings.percentOne(value)
             value: GlobalConfig.appearance.transparency.base
             onMoved: v => GlobalConfig.appearance.transparency.base = v
         }
@@ -187,7 +185,6 @@ PageBase {
             visible: Colours.transparency.enabled
             icon: "layers"
             label: Tr.tr("Layer opacity")
-            valueLabel: Strings.percentOne(value)
             value: GlobalConfig.appearance.transparency.layers
             onMoved: v => GlobalConfig.appearance.transparency.layers = v
         }

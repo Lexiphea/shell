@@ -16,8 +16,6 @@ ColumnLayout {
     spacing: Tokens.spacing.large
 
     SearchBar {
-        id: searchField
-
         Layout.fillWidth: true
 
         placeholderText: Tr.tr("Search settings")
@@ -32,12 +30,6 @@ ColumnLayout {
 
         Behavior on bg.border.color {
             CAnim {}
-        }
-
-        Binding {
-            target: root.nState
-            property: "searchOpen"
-            value: searchField.text.length > 0
         }
     }
 

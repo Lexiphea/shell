@@ -87,10 +87,7 @@ ColumnLayout {
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "r${angleDelta.y > 0 ? "-" : "+"}1" })` : `workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
             // Volume scroll on top half
-            if (angleDelta.y > 0)
-                Audio.incrementVolume();
-            else if (angleDelta.y < 0)
-                Audio.decrementVolume();
+            Audio.stepVolume(Math.sign(angleDelta.y));
         } else if (Config.bar.scrollActions.brightness) {
             // Brightness scroll on bottom half
             Brightness.getMonitorForScreen(screen).step(Math.sign(angleDelta.y));
@@ -139,7 +136,6 @@ ColumnLayout {
                     ActiveWindow {
                         objectName: "taskbarActiveWindow"
                         bar: root
-                        monitor: Brightness.getMonitorForScreen(root.screen)
                     }
                 }
             }

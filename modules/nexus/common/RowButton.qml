@@ -15,8 +15,6 @@ ConnectedRect {
     property string trailingIcon
     property alias disabled: stateLayer.disabled
 
-    readonly property alias iconLabel: iconLabel
-    readonly property alias label: label
     readonly property alias subLabel: subLabel
 
     signal clicked(event: MouseEvent)
@@ -54,8 +52,6 @@ ConnectedRect {
         }
 
         Column {
-            id: column
-
             Layout.fillWidth: true
             spacing: 0
 

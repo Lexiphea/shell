@@ -85,11 +85,6 @@ WlSessionLockSurface {
             stopOledBlackTimer();
     }
 
-    onUnlockingChanged: {
-        if (unlocking)
-            stopOledBlackTimer();
-    }
-
     SequentialAnimation {
         id: blackoutDelay
 

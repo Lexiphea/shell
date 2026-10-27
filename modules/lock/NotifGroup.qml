@@ -18,30 +18,16 @@ StyledRect {
     required property string modelData
 
     readonly property list<var> notifs: Notifs.list.filter(notif => notif.appName === modelData)
-    readonly property var props: {
-        let img = "";
-        let icon = "";
-        let hasCritical = false;
-        let hasNormal = false;
-        for (const n of notifs) {
-            if (!img && n.image.length > 0)
-                img = n.image;
-            if (!icon && n.appIcon.length > 0)
-                icon = n.appIcon;
-            if (n.urgency === NotificationUrgency.Critical)
-                hasCritical = true;
-            else if (n.urgency === NotificationUrgency.Normal)
-                hasNormal = true;
-        }
-        return {
-            img,
-            icon,
-            urgency: hasCritical ? NotificationUrgency.Critical : hasNormal ? NotificationUrgency.Normal : NotificationUrgency.Low
-        };
+    readonly property string image: notifs.find(n => n.image.length > 0)?.image ?? ""
+    readonly property string appIcon: notifs.find(n => n.appIcon.length > 0)?.appIcon ?? ""
+    readonly property int urgency: {
+        if (notifs.find(n => n.urgency === NotificationUrgency.Critical))
+            return NotificationUrgency.Critical;
+        if (notifs.find(n => n.urgency === NotificationUrgency.Normal))
+            return NotificationUrgency.Normal;
+        return NotificationUrgency.Low;
     }
-    readonly property string image: props.img
-    readonly property string appIcon: props.icon
-    readonly property int urgency: props.urgency
+    readonly property color onUrgencyColour: urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
 
     property bool expanded
 
@@ -95,7 +81,7 @@ StyledRect {
                 ColouredIcon {
                     implicitSize: Math.round(TokenConfig.sizes.notifs.image * 0.6)
                     source: Quickshell.iconPath(root.appIcon)
-                    colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    colour: root.onUrgencyColour
                     layer.enabled: root.appIcon.endsWith("symbolic")
                 }
             }
@@ -105,7 +91,7 @@ StyledRect {
 
                 MaterialIcon {
                     text: Icons.getNotifIcon(root.notifs[0]?.summary, root.urgency)
-                    color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    color: root.onUrgencyColour
                     fontStyle: Tokens.font.icon.large
                 }
             }
@@ -139,7 +125,7 @@ StyledRect {
                         anchors.centerIn: parent
                         implicitSize: Math.round(Tokens.sizes.notifs.badge * 0.6)
                         source: Quickshell.iconPath(root.appIcon)
-                        colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                        colour: root.onUrgencyColour
                         layer.enabled: root.appIcon.endsWith("symbolic")
                     }
                 }

@@ -12,8 +12,6 @@ import qs.services
 StyledClippingRect {
     id: root
 
-    required property var lock
-
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer

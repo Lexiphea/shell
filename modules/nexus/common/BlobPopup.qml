@@ -7,7 +7,6 @@ import qs.services
 Item {
     id: root
 
-    property alias icon: icon.text
     property alias color: blobGroup.color
     readonly property alias hovered: btn.containsMouse
     property bool open

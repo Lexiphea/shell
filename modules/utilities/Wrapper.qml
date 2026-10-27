@@ -6,14 +6,12 @@ import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.modules.sidebar as Sidebar
-import qs.modules.bar.popouts as BarPopouts
 
 Item {
     id: root
 
     required property ScreenState screenState
     required property Sidebar.Wrapper sidebar
-    required property BarPopouts.Wrapper popouts
     property real horizontalStretch
     property matrix4x4 deformMatrix
 
@@ -85,7 +83,6 @@ Item {
             implicitWidth: root.implicitWidth - root.totalPadding
             props: root.props
             screenState: root.screenState
-            popouts: root.popouts
             deformMatrix: root.deformMatrix
         }
     }

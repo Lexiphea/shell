@@ -6,7 +6,6 @@ Image {
     id: root
 
     property bool hadPrevious
-    property bool fadingOut
     property bool preventInit
     property int fadeOutAnim: Anim.FastEffects
     property int fadeInAnim: Anim.DefaultEffects
@@ -45,21 +44,11 @@ Image {
             ScriptAction {
                 script: opacityInAnim.stop()
             }
-            PropertyAction {
-                target: root
-                property: "fadingOut"
-                value: true
-            }
             Anim {
                 target: root
                 property: "opacity"
                 to: 0
                 type: root.fadeOutAnim
-            }
-            PropertyAction {
-                target: root
-                property: "fadingOut"
-                value: false
             }
             PropertyAction {
                 target: root

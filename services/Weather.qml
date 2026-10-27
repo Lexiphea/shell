@@ -243,7 +243,6 @@ Singleton {
                 feelsLikeC: json.current.apparent_temperature,
                 humidity: json.current.relative_humidity_2m,
                 windSpeed: json.current.wind_speed_10m,
-                isDay: json.current.is_day,
                 sunrise: json.daily.sunrise[0].replace("T", " "),
                 sunset: json.daily.sunset[0].replace("T", " ")
             };
@@ -254,7 +253,6 @@ Singleton {
                     date: json.daily.time[i].replace(/-/g, "/"),
                     maxTempC: json.daily.temperature_2m_max[i],
                     minTempC: json.daily.temperature_2m_min[i],
-                    weatherCode: json.daily.weather_code[i],
                     icon: Icons.getWeatherIcon(json.daily.weather_code[i])
                 });
             forecast = forecastList;
@@ -269,10 +267,8 @@ Singleton {
 
                 hourlyList.push({
                     timestamp: json.hourly.time[i],
-                    hour: time.getHours(),
                     tempC: Math.round(json.hourly.temperature_2m[i]),
                     precipChance: json.hourly.precipitation_probability[i],
-                    weatherCode: json.hourly.weather_code[i],
                     icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
                 });
             }

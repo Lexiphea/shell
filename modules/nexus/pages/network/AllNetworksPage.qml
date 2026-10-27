@@ -134,7 +134,6 @@ PageBase {
             }
 
             nState: root.nState
-            enableFilter: true
             last: true
         }
     }

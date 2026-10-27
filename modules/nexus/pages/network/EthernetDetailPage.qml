@@ -186,7 +186,6 @@ PageBase {
         SelectRow {
             id: methodSelect
 
-            Layout.fillWidth: true
             first: true
             last: root.ipMethod === "auto"
             label: Tr.tr("IP assignment")

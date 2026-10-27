@@ -35,12 +35,9 @@ Singleton {
         setStreamVolume(sink, newVolume);
     }
 
-    function incrementVolume(amount: real): void {
-        setVolume(volume + (amount || GlobalConfig.services.audioIncrement));
-    }
-
-    function decrementVolume(amount: real): void {
-        setVolume(volume - (amount || GlobalConfig.services.audioIncrement));
+    function stepVolume(direction: int): void {
+        if (direction) // setVolume unmutes, so a zero step must be a no-op
+            setVolume(volume + direction * GlobalConfig.services.audioIncrement);
     }
 
     function setSourceVolume(newVolume: real): void {

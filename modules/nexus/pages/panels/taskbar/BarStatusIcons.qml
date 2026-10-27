@@ -63,23 +63,15 @@ PageBase {
             header: Tr.tr("Add new entry")
             acceptLabel: Tr.trCtx("Add", "button")
 
-            model: {
-                const builtins = Object.keys(root.builtinIcons).map(k => ({
-                            id: k,
-                            label: root.builtinIcons[k]
-                        }));
-                return builtins;
-            }
+            model: Object.keys(root.builtinIcons).map(k => ({
+                        id: k,
+                        label: root.builtinIcons[k]
+                    }))
 
-            onAccepted: {
-                if (!selectedItem) // Should never happen but just in case
-                    return;
-
-                GlobalConfig.bar.statusIcons.insert({
-                    id: selectedItem,
-                    enabled: true
-                });
-            }
+            onAccepted: GlobalConfig.bar.statusIcons.insert({
+                id: selectedItem,
+                enabled: true
+            })
         }
 
         // Behaviour

@@ -10,8 +10,6 @@ Shape {
     property int waves: 4
     property real amplitude: 3
 
-    readonly property real waveHeight: amplitude * 2
-
     preferredRendererType: Shape.CurveRenderer
     asynchronous: true
 

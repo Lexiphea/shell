@@ -66,7 +66,6 @@ PageBase {
         ItemList {
             id: deviceList
 
-            Layout.fillWidth: true
             showList: true
             extraHeight: scanIndicator.implicitHeight
             last: true
@@ -182,12 +181,6 @@ PageBase {
                 anchors.margins: 1
                 implicitHeight: Tokens.rounding.extraSmall
                 indeterminate: true
-
-                Behavior on implicitHeight {
-                    Anim {
-                        type: Anim.DefaultEffects
-                    }
-                }
             }
         }
     }

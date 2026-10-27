@@ -223,7 +223,7 @@ Item {
 
             const ws = view.itemAt(event.x, event.y - view.y) as Workspace;
             if (ws) {
-                const match = Hypr.workspaces.values.find(w => w.id === ws.ws);
+                const match = ws.wsObj;
                 if (match)
                     Hypr.toggleSpecial(Hypr.trimWsName(match.name));
             } else {

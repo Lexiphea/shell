@@ -195,8 +195,6 @@ StyledClippingRect {
     }
 
     Loader {
-        id: specialWs
-
         anchors.fill: parent
 
         asynchronous: true

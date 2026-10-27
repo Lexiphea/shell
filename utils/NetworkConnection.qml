@@ -18,7 +18,6 @@ import qs.services
  * NetworkConnection.handleConnect(network, (network) => {
  *     // Show password dialog
  *     root.passwordNetwork = network;
- *     root.showPasswordDialog = true;
  * });
  * ```
  */
@@ -61,27 +60,13 @@ QtObject {
             return;
         }
 
-        if (network.isSecure) {
-            const hasSavedProfile = Nmcli.hasSavedProfile(network.ssid);
-
-            if (hasSavedProfile) {
-                Nmcli.connectToNetwork(network.ssid, "", network.bssid, null);
-            } else {
-                // Use password check with callback
-                Nmcli.connectToNetworkWithPasswordCheck(network.ssid, network.isSecure, result => {
-                    if (result.needsPassword) {
-                        // Clear pending connection if exists
-                        if (Nmcli.pendingConnection) {
-                            Nmcli.connectionCheckTimer.stop();
-                            Nmcli.immediateCheckTimer.stop();
-                            Nmcli.immediateCheckTimer.checkCount = 0;
-                            Nmcli.pendingConnection = null;
-                        }
-
-                        onPasswordNeeded?.(network);
-                    }
-                }, network.bssid);
-            }
+        if (network.isSecure && !Nmcli.hasSavedProfile(network.ssid)) {
+            Nmcli.connectToNetwork(network.ssid, "", network.bssid, result => {
+                if (result.needsPassword) {
+                    Nmcli.clearPendingConnection();
+                    onPasswordNeeded?.(network);
+                }
+            });
         } else {
             Nmcli.connectToNetwork(network.ssid, "", network.bssid, null);
         }

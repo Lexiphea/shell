@@ -93,40 +93,33 @@ Item {
         return "";
     }
 
-    onMsgChanged: {
-        if (msg) {
-            if (message.opacity > 0) {
-                message.animate = true;
-                message.text = msg;
-                message.animate = false;
+    function flash(): void {
+        exitAnim.stop();
+        if (message.scale < 1)
+            appearAnim.restart();
+        else
+            flashAnim.restart();
+    }
 
-                exitAnim.stop();
-                if (message.scale < 1)
-                    appearAnim.restart();
-                else
-                    flashAnim.restart();
-            } else {
-                message.text = msg;
-                exitAnim.stop();
-                appearAnim.restart();
-            }
-        } else {
+    onMsgChanged: {
+        if (!msg) {
             appearAnim.stop();
             flashAnim.stop();
             exitAnim.start();
+            return;
         }
+        message.animate = message.opacity > 0;
+        message.text = msg;
+        message.animate = false;
+        flash();
     }
 
     onStateMsgChanged: {
         if (!stateMsg)
             return;
-        if (stateMessage.opacity > 0) {
-            stateMessage.animate = true;
-            stateMessage.text = stateMsg;
-            stateMessage.animate = false;
-        } else {
-            stateMessage.text = stateMsg;
-        }
+        stateMessage.animate = stateMessage.opacity > 0;
+        stateMessage.text = stateMsg;
+        stateMessage.animate = false;
     }
 
     implicitHeight: Math.max(message.implicitHeight, stateMessage.implicitHeight)
@@ -179,11 +172,7 @@ Item {
 
         Connections {
             function onFlashMsg(): void {
-                exitAnim.stop();
-                if (message.scale < 1)
-                    appearAnim.restart();
-                else
-                    flashAnim.restart();
+                root.flash();
             }
 
             target: root.pam

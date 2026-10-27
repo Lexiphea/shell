@@ -11,10 +11,6 @@ import qs.services
 ColumnLayout {
     id: root
 
-    function refresh() {
-        kb.refresh();
-    }
-
     spacing: Tokens.spacing.small
     width: Tokens.sizes.bar.kbLayoutWidth
 
@@ -41,7 +37,6 @@ ColumnLayout {
         Layout.topMargin: Tokens.spacing.small
 
         clip: true
-        interactive: true
         implicitHeight: Math.min(contentHeight, 320)
         visible: kb.visibleModel.count > 0
         spacing: Tokens.spacing.small
@@ -144,9 +139,6 @@ ColumnLayout {
         Layout.topMargin: Tokens.spacing.small
         spacing: Tokens.spacing.small
 
-        opacity: 1
-        scale: 1
-
         MaterialIcon {
             text: "keyboard"
             color: Colours.palette.m3primary
@@ -172,8 +164,6 @@ ColumnLayout {
 
         SequentialAnimation {
             id: popIn
-
-            running: false
 
             ParallelAnimation {
                 Anim {

@@ -28,7 +28,6 @@ RowLayout {
         Media {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            lock: root.lock
         }
     }
 
@@ -52,9 +51,7 @@ RowLayout {
             radius: Tokens.rounding.medium
             color: Colours.tPalette.m3surfaceContainer
 
-            NotifDock {
-                lock: root.lock
-            }
+            NotifDock {}
         }
     }
 }

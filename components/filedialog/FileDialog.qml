@@ -22,10 +22,6 @@ LazyLoader {
         activeAsync = true;
     }
 
-    function close(): void {
-        rejected();
-    }
-
     onAccepted: activeAsync = false
     onRejected: activeAsync = false
 

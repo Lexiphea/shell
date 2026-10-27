@@ -15,12 +15,6 @@ Item {
     required property Brightness.Monitor monitor
     required property ScreenState screenState
 
-    required property real volume
-    required property bool muted
-    required property real sourceVolume
-    required property bool sourceMuted
-    required property real brightness
-
     implicitWidth: layout.implicitWidth + Tokens.padding.large + layout.anchors.horizontalCenterOffset * 2
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
 
@@ -34,10 +28,7 @@ Item {
         // Speaker volume
         CustomMouseArea {
             function onWheel(event: WheelEvent) {
-                if (event.angleDelta.y > 0)
-                    Audio.incrementVolume();
-                else if (event.angleDelta.y < 0)
-                    Audio.decrementVolume();
+                Audio.stepVolume(Math.sign(event.angleDelta.y));
             }
 
             implicitWidth: Tokens.sizes.osd.sliderWidth
@@ -46,8 +37,8 @@ Item {
             FilledSlider {
                 anchors.fill: parent
 
-                icon: Icons.getVolumeIcon(value, root.muted)
-                value: root.volume
+                icon: Icons.getVolumeIcon(value, Audio.muted)
+                value: Audio.volume
                 to: GlobalConfig.services.maxVolume
                 onMoved: Audio.setVolume(value)
             }
@@ -71,8 +62,8 @@ Item {
                 FilledSlider {
                     anchors.fill: parent
 
-                    icon: Icons.getMicVolumeIcon(value, root.sourceMuted)
-                    value: root.sourceVolume
+                    icon: Icons.getMicVolumeIcon(value, Audio.sourceMuted)
+                    value: Audio.sourceVolume
                     to: GlobalConfig.services.maxVolume
                     onMoved: Audio.setSourceVolume(value)
                 }
@@ -95,7 +86,7 @@ Item {
                     anchors.fill: parent
 
                     icon: `brightness_${(Math.round(value * 6) + 1)}`
-                    value: root.brightness
+                    value: root.monitor?.brightness ?? 0
                     onMoved: root.monitor?.setBrightness(value)
                 }
             }

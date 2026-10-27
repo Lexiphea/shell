@@ -16,8 +16,6 @@ Item {
     required property var panels
     required property real maxHeight
     required property SearchBar search
-    required property int padding
-    required property int rounding
 
     readonly property bool showWallpapers: search.text.startsWith("wallpaper ")
     readonly property var currentList: showWallpapers ? wallpaperList.item : appList.item // Can be either ListView or PathView, so can't type properly

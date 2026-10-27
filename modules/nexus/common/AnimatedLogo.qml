@@ -9,24 +9,15 @@ import qs.services
 Item {
     id: root
 
-    property real blurAmount: skipIntroAnimation ? 0.0 : 1.0
-    property bool skipIntroAnimation: false
+    property real blurAmount: 1.0
 
-    property real star1Opacity: skipIntroAnimation ? 1.0 : 0.0
-    property real star2Opacity: skipIntroAnimation ? 1.0 : 0.0
-    property real star3Opacity: skipIntroAnimation ? 1.0 : 0.0
+    property real star1Opacity: 0.0
+    property real star2Opacity: 0.0
+    property real star3Opacity: 0.0
 
-    property real star1Scale: skipIntroAnimation ? 1.0 : 0.0
-    property real star2Scale: skipIntroAnimation ? 1.0 : 0.0
-    property real star3Scale: skipIntroAnimation ? 1.0 : 0.0
-
-    readonly property alias topShape: topShape
-    readonly property alias bottomShape: bottomShape
-    readonly property alias star1: star1
-    readonly property alias star2: star2
-    readonly property alias star3: star3
-
-    signal animationCompleted
+    property real star1Scale: 0.0
+    property real star2Scale: 0.0
+    property real star3Scale: 0.0
 
     implicitWidth: 128
     implicitHeight: 90.38
@@ -44,8 +35,8 @@ Item {
         implicitHeight: designHeight
 
         transformOrigin: Item.Center
-        scale: root.skipIntroAnimation ? 1.0 : 0.0
-        opacity: root.skipIntroAnimation ? 1.0 : 0.0
+        scale: 0.0
+        opacity: 0.0
         rotation: 0.0
 
         layer.enabled: root.blurAmount > 0
@@ -56,12 +47,12 @@ Item {
         }
 
         Component.onCompleted: {
-            root.star1.opacity = Qt.binding(() => root.star1Opacity);
-            root.star1.scale = Qt.binding(() => root.star1Scale);
-            root.star2.opacity = Qt.binding(() => root.star2Opacity);
-            root.star2.scale = Qt.binding(() => root.star2Scale);
-            root.star3.opacity = Qt.binding(() => root.star3Opacity);
-            root.star3.scale = Qt.binding(() => root.star3Scale);
+            star1.opacity = Qt.binding(() => root.star1Opacity);
+            star1.scale = Qt.binding(() => root.star1Scale);
+            star2.opacity = Qt.binding(() => root.star2Opacity);
+            star2.scale = Qt.binding(() => root.star2Scale);
+            star3.opacity = Qt.binding(() => root.star3Opacity);
+            star3.scale = Qt.binding(() => root.star3Scale);
         }
 
         Behavior on topColour {
@@ -161,8 +152,7 @@ Item {
     }
 
     SequentialAnimation {
-        running: !root.skipIntroAnimation
-        onFinished: root.animationCompleted()
+        running: true
 
         ParallelAnimation {
             SequentialAnimation {
@@ -381,19 +371,19 @@ Item {
                 loops: Animation.Infinite
 
                 NumberAnimation {
-                    target: root.star1
+                    target: star1
                     property: "y"
-                    from: root.star1.y
-                    to: root.star1.y - 5
+                    from: star1.y
+                    to: star1.y - 5
                     duration: 2500
                     easing.type: Easing.InOutQuad
                 }
 
                 NumberAnimation {
-                    target: root.star1
+                    target: star1
                     property: "y"
-                    from: root.star1.y - 5
-                    to: root.star1.y
+                    from: star1.y - 5
+                    to: star1.y
                     duration: 2500
                     easing.type: Easing.InOutQuad
                 }
@@ -403,19 +393,19 @@ Item {
                 loops: Animation.Infinite
 
                 NumberAnimation {
-                    target: root.star2
+                    target: star2
                     property: "y"
-                    from: root.star2.y
-                    to: root.star2.y + 5
+                    from: star2.y
+                    to: star2.y + 5
                     duration: 3000
                     easing.type: Easing.InOutQuad
                 }
 
                 NumberAnimation {
-                    target: root.star2
+                    target: star2
                     property: "y"
-                    from: root.star2.y + 5
-                    to: root.star2.y
+                    from: star2.y + 5
+                    to: star2.y
                     duration: 3000
                     easing.type: Easing.InOutQuad
                 }
@@ -425,19 +415,19 @@ Item {
                 loops: Animation.Infinite
 
                 NumberAnimation {
-                    target: root.star3
+                    target: star3
                     property: "y"
-                    from: root.star3.y
-                    to: root.star3.y - 5
+                    from: star3.y
+                    to: star3.y - 5
                     duration: 2800
                     easing.type: Easing.InOutQuad
                 }
 
                 NumberAnimation {
-                    target: root.star3
+                    target: star3
                     property: "y"
-                    from: root.star3.y - 5
-                    to: root.star3.y
+                    from: star3.y - 5
+                    to: star3.y
                     duration: 2800
                     easing.type: Easing.InOutQuad
                 }
@@ -447,7 +437,7 @@ Item {
                 loops: Animation.Infinite
 
                 NumberAnimation {
-                    target: root.star1
+                    target: star1
                     property: "scale"
                     from: 1.0
                     to: 1.08
@@ -456,7 +446,7 @@ Item {
                 }
 
                 NumberAnimation {
-                    target: root.star1
+                    target: star1
                     property: "scale"
                     from: 1.08
                     to: 1.0
@@ -469,7 +459,7 @@ Item {
                 loops: Animation.Infinite
 
                 NumberAnimation {
-                    target: root.star2
+                    target: star2
                     property: "scale"
                     from: 1.0
                     to: 1.12
@@ -478,7 +468,7 @@ Item {
                 }
 
                 NumberAnimation {
-                    target: root.star2
+                    target: star2
                     property: "scale"
                     from: 1.12
                     to: 1.0
@@ -491,7 +481,7 @@ Item {
                 loops: Animation.Infinite
 
                 NumberAnimation {
-                    target: root.star3
+                    target: star3
                     property: "scale"
                     from: 1.0
                     to: 1.08
@@ -500,7 +490,7 @@ Item {
                 }
 
                 NumberAnimation {
-                    target: root.star3
+                    target: star3
                     property: "scale"
                     from: 1.08
                     to: 1.0

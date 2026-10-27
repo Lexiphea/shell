@@ -88,18 +88,16 @@ Searcher {
         printErrors: false
         onFileChanged: reload()
         onLoaded: {
-            let wall = text().trim();
-            if (!wall) {
-                wall = root.fallback;
-                Quickshell.execDetached(["caelestia", "wallpaper", "-f", root.fallback, ...root.smartArg]);
-            }
-            root.actualCurrent = wall;
+            const wall = text().trim();
+            if (wall)
+                root.actualCurrent = wall;
+            else
+                root.setWallpaper(root.fallback);
             root.previewColourLock = false;
         }
         onLoadFailed: {
-            root.actualCurrent = root.fallback;
+            root.setWallpaper(root.fallback);
             root.previewColourLock = false;
-            Quickshell.execDetached(["caelestia", "wallpaper", "-f", root.fallback, ...root.smartArg]);
         }
     }
 

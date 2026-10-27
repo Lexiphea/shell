@@ -34,7 +34,6 @@ Singleton {
 
     readonly property alias extras: extras
     readonly property alias options: extras.options
-    readonly property alias devices: extras.devices
 
     property string lastSpecialWorkspace: ""
 
@@ -83,10 +82,6 @@ Singleton {
         }
 
         focusWorkspace(openSpecials[nextIndex].name);
-    }
-
-    function monitorNames(): list<string> {
-        return monitors.values.map(e => e.name);
     }
 
     function monitorFor(screen: ShellScreen): HyprlandMonitor {

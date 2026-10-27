@@ -26,7 +26,6 @@ Item {
     property bool open
 
     signal accepted
-    signal cancelled
 
     function reparentWrapper(): void {
         const newParent = open ? rootParent : root;
@@ -215,10 +214,7 @@ Item {
                             horizontalPadding: Tokens.padding.largeIncreased
                             verticalPadding: Tokens.padding.medium
                             text: Tr.trCtx("Cancel", "button")
-                            onClicked: {
-                                root.cancelled();
-                                root.open = false;
-                            }
+                            onClicked: root.open = false
                         }
 
                         TextButton {

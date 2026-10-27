@@ -11,24 +11,11 @@ ConnectedRect {
     id: root
 
     property alias label: label.text
-    property string subtext
     property alias value: value.text
-    property string icon
-    property color iconColour: Colours.palette.m3onSurfaceVariant
-    property Component leadingComponent: icon ? iconComp : null
+    property alias icon: icon.text
 
     Layout.fillWidth: true
     implicitHeight: rowLayout.implicitHeight + rowLayout.anchors.margins * 2
-
-    Component {
-        id: iconComp
-
-        MaterialIcon {
-            text: root.icon
-            color: root.iconColour
-            fontStyle: Tokens.font.icon.small
-        }
-    }
 
     RowLayout {
         id: rowLayout
@@ -39,32 +26,20 @@ ConnectedRect {
         anchors.rightMargin: Tokens.padding.largeIncreased
         spacing: Tokens.spacing.medium
 
-        Loader {
-            visible: root.leadingComponent
-            active: root.leadingComponent
-            sourceComponent: root.leadingComponent
+        MaterialIcon {
+            id: icon
+
+            visible: text
+            color: Colours.palette.m3onSurfaceVariant
+            fontStyle: Tokens.font.icon.small
         }
 
-        ColumnLayout {
+        StyledText {
+            id: label
+
             Layout.fillWidth: true
-            spacing: 0
-
-            StyledText {
-                id: label
-
-                Layout.fillWidth: true
-                font: Tokens.font.body.small
-                elide: Text.ElideRight
-            }
-
-            StyledText {
-                Layout.fillWidth: true
-                visible: root.subtext
-                text: root.subtext
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.small
-                elide: Text.ElideRight
-            }
+            font: Tokens.font.body.small
+            elide: Text.ElideRight
         }
 
         StyledText {

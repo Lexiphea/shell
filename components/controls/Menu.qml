@@ -143,11 +143,6 @@ MouseArea {
                         }
 
                         StateLayer {
-                            topLeftRadius: parent.topLeftRadius
-                            topRightRadius: parent.topRightRadius
-                            bottomLeftRadius: parent.bottomLeftRadius
-                            bottomRightRadius: parent.bottomRightRadius
-
                             color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
                             disabled: !root.expanded
                             onClicked: {

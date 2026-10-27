@@ -14,7 +14,6 @@ Singleton {
 
     property bool showPreview
     property string scheme
-    property string flavour
     readonly property bool light: showPreview ? previewLight : currentLight
     property bool currentLight
     property bool previewLight
@@ -53,19 +52,12 @@ Singleton {
         return layer === 0 ? Qt.alpha(c, transparency.base) : alterColour(c, transparency.layers, layer ?? 1);
     }
 
-    function on(c: color): color {
-        if (c.hslLightness < 0.5)
-            return Qt.hsla(c.hslHue, c.hslSaturation, 0.9, 1);
-        return Qt.hsla(c.hslHue, c.hslSaturation, 0.1, 1);
-    }
-
     function load(data: string, isPreview: bool): void {
         const colours = isPreview ? preview : current;
         const scheme = JSON.parse(data);
 
         if (!isPreview) {
             root.scheme = scheme.name;
-            flavour = scheme.flavour;
             currentLight = scheme.mode === "light";
         } else {
             previewLight = scheme.mode === "light";

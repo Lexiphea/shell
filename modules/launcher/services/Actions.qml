@@ -32,8 +32,6 @@ Searcher {
         readonly property string desc: modelData.description ? Tr.trMarked(modelData.description) : Tr.trCtx("No description", "launcher action with no description")
         readonly property string icon: modelData.icon ?? "help_outline"
         readonly property list<string> command: modelData.command ?? []
-        readonly property bool enabled: modelData.enabled ?? true
-        readonly property bool dangerous: modelData.dangerous ?? false
 
         function onClicked(list: AppList): void {
             if (command.length === 0)

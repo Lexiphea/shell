@@ -19,23 +19,9 @@ Item {
     property real offsetScale: shouldBeActive ? 0 : 1
     property real sidebarOffset: sidebarOrSessionVisible ? 12 : 0
 
-    property real volume
-    property bool muted
-    property real sourceVolume
-    property bool sourceMuted
-    property real brightness
-
     function show(): void {
         screenState.osd = true;
         timer.restart();
-    }
-
-    Component.onCompleted: {
-        volume = Audio.volume;
-        muted = Audio.muted;
-        sourceVolume = Audio.sourceVolume;
-        sourceMuted = Audio.sourceMuted;
-        brightness = root.monitor?.brightness ?? 0;
     }
 
     visible: offsetScale < 1
@@ -51,22 +37,18 @@ Item {
     Connections {
         function onMutedChanged(): void {
             root.show();
-            root.muted = Audio.muted;
         }
 
         function onVolumeChanged(): void {
             root.show();
-            root.volume = Audio.volume;
         }
 
         function onSourceMutedChanged(): void {
             root.show();
-            root.sourceMuted = Audio.sourceMuted;
         }
 
         function onSourceVolumeChanged(): void {
             root.show();
-            root.sourceVolume = Audio.sourceVolume;
         }
 
         target: Audio
@@ -75,7 +57,6 @@ Item {
     Connections {
         function onBrightnessChanged(): void {
             root.show();
-            root.brightness = root.monitor?.brightness ?? 0;
         }
 
         target: root.monitor
@@ -104,11 +85,6 @@ Item {
         sourceComponent: Content {
             monitor: root.monitor
             screenState: root.screenState
-            volume: root.volume
-            muted: root.muted
-            sourceVolume: root.sourceVolume
-            sourceMuted: root.sourceMuted
-            brightness: root.brightness
         }
     }
 }

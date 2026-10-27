@@ -10,13 +10,11 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.modules.nexus
-import qs.modules.bar.popouts as BarPopouts
 
 StyledRect {
     id: root
 
     required property ScreenState screenState
-    required property BarPopouts.Wrapper popouts
 
     readonly property var quickToggles: {
         const seenIds = new Set();

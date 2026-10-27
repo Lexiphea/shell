@@ -30,7 +30,6 @@ PageBase {
             first: true
             text: Tr.tr("Bluetooth")
             font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
             checked: root.btEnabled
             onToggled: {
                 if (root.adapter)
@@ -197,10 +196,6 @@ PageBase {
                 if (root.adapter)
                     root.adapter.discoverable = checked;
             }
-
-            Behavior on opacity {
-                Anim {}
-            }
         }
 
         ToggleRow {
@@ -213,10 +208,6 @@ PageBase {
             onToggled: {
                 if (root.adapter)
                     root.adapter.pairable = checked;
-            }
-
-            Behavior on opacity {
-                Anim {}
             }
         }
     }

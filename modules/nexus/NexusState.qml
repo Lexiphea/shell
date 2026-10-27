@@ -8,7 +8,6 @@ QtObject {
     property bool animatingContainer
     property int currentPageIdx
     property list<int> subPageIdxStack
-    property bool searchOpen
 
     property string selectedWallpaperCategory
     property BluetoothDevice selectedBtDevice
@@ -18,7 +17,6 @@ QtObject {
     property string selectedEthernetInterface
     property bool networkDetailsFromSaved
 
-    signal close
     signal subPageOpened(idx: int)
     signal subPageClosed
 

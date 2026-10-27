@@ -6,6 +6,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 ConnectedRect {
@@ -13,7 +14,6 @@ ConnectedRect {
 
     property alias icon: icon.text
     property alias label: label.text
-    property alias valueLabel: valueLabel.text
     property real value
 
     signal moved(value: real)
@@ -55,6 +55,7 @@ ConnectedRect {
                 StyledText {
                     id: valueLabel
 
+                    text: Strings.percentOne(root.value)
                     color: Colours.palette.m3outline
                     font: Tokens.font.body.small
                 }

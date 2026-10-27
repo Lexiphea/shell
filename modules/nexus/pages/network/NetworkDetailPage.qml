@@ -34,7 +34,7 @@ PageBase {
     property string origGateway: ""
     property string origDns: ""
 
-    readonly property bool hasChanges: root.ipLoaded && (root.ipMethod !== root.origMethod || (root.ipMethod === "manual" && (addressField.text.trim() !== root.origAddress || gatewayField.text.trim() !== root.origGateway)) || ((root.ipMethod === "manual" || root.ipMethod === "auto-dns") && dnsField.text.trim() !== root.origDns))
+    readonly property bool hasChanges: root.ipLoaded && (root.ipMethod !== root.origMethod || (root.ipMethod === "manual" && (addressField.text.trim() !== root.origAddress || gatewayField.text.trim() !== root.origGateway)) || (root.showDnsSettings && dnsField.text.trim() !== root.origDns))
     readonly property bool showDnsSettings: root.ipMethod === "manual" || root.ipMethod === "auto-dns"
 
     function loadIpConfig(): void {
@@ -196,7 +196,6 @@ PageBase {
         }
 
         ToggleRow {
-            Layout.fillWidth: true
             first: true
             last: true
             text: Tr.tr("Connect automatically")

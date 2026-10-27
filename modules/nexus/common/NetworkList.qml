@@ -16,7 +16,6 @@ ItemList {
 
     required property NexusState nState
     property int limit: 0 // 0 = show all
-    property bool enableFilter
 
     property string passwordSsid // Network showing the inline password field
     property bool passwordConnecting
@@ -59,7 +58,7 @@ ItemList {
             const sorted = [...Nmcli.networks].sort((a, b) => rank(a) - rank(b) || b.strength - a.strength);
             if (root.limit > 0 && sorted.length > root.limit)
                 sorted.length = root.limit;
-            return root.enableFilter ? sorted.filter(root.networkFilter) : sorted;
+            return sorted.filter(root.networkFilter);
         }
     }
 

@@ -146,13 +146,12 @@ Singleton {
         // qmllint enable unresolved-type
         name: "clearNotifs"
         description: "Clear all notifications"
-        onPressed: {
-            for (const notif of root.list.slice())
-                notif.close();
-        }
+        onPressed: ipc.clear()
     }
 
     IpcHandler {
+        id: ipc
+
         function clear(): void {
             for (const notif of root.list.slice())
                 notif.close();

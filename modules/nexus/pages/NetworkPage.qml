@@ -67,7 +67,6 @@ PageBase {
             first: true
             text: Tr.tr("Wi-Fi")
             font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
             checked: Nmcli.wifiEnabled
             onToggled: Nmcli.enableWifi(checked)
         }
@@ -119,11 +118,9 @@ PageBase {
         // ---- VPN -------------------------------------------------------------
         ToggleRow {
             Layout.topMargin: Tokens.spacing.large
-            Layout.fillWidth: true
             first: true
             text: Tr.tr("VPN")
             font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
             checked: VPN.connected
             disabled: VPN.connecting || VPN.disconnecting || VPN.selectedProviders.length === 0
             onToggled: VPN.toggle()
@@ -235,11 +232,13 @@ PageBase {
                     }
 
                     Item {
+                        readonly property bool shown: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth
+
                         Layout.rightMargin: Tokens.spacing.small
-                        opacity: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? 1 : 0
+                        opacity: shown ? 1 : 0
                         visible: opacity > 0
 
-                        implicitWidth: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? providerDetailRow.implicitWidth : 0
+                        implicitWidth: shown ? providerDetailRow.implicitWidth : 0
                         implicitHeight: providerDetailRow.implicitHeight
 
                         Behavior on opacity {

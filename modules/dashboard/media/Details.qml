@@ -128,8 +128,6 @@ ColumnLayout {
         }
 
         IconButton {
-            id: previousBtn
-
             type: IconButton.Tonal
             icon: "skip_previous"
             isRound: true
@@ -140,8 +138,6 @@ ColumnLayout {
         }
 
         IconButton {
-            id: playPauseBtn
-
             icon: Players.active?.isPlaying ? "pause" : "play_arrow"
             isRound: true
             shapeMorph: true
@@ -153,8 +149,6 @@ ColumnLayout {
         }
 
         IconButton {
-            id: nextBtn
-
             type: IconButton.Tonal
             icon: "skip_next"
             isRound: true

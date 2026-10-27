@@ -85,12 +85,7 @@ Item {
             Layout.fillWidth: true
             implicitHeight: Tokens.padding.medium * 3
 
-            onWheel: event => {
-                if (event.angleDelta.y > 0)
-                    Audio.incrementVolume();
-                else if (event.angleDelta.y < 0)
-                    Audio.decrementVolume();
-            }
+            onWheel: event => Audio.stepVolume(Math.sign(event.angleDelta.y))
 
             StyledSlider {
                 anchors.left: parent.left

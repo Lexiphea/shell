@@ -15,8 +15,6 @@ import qs.utils
 ColumnLayout {
     id: root
 
-    required property var lock
-
     anchors.fill: parent
     anchors.margins: Tokens.padding.large
 
