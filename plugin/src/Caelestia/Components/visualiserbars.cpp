@@ -37,7 +37,8 @@ void VisualiserBars::advance(qreal dt) {
         }
     }
 
-    update();
+    // Bars only reach the bottom 40%, so skip clearing and uploading the rest
+    update(QRectF(0, height() * 0.6, width(), height() * 0.4).toAlignedRect());
 
     if (allSettled && !m_settled) {
         m_settled = true;
