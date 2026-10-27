@@ -57,7 +57,7 @@ Singleton {
         if (openSpecials.length === 0)
             return;
 
-        const activeSpecial = focusedMonitor.lastIpcObject.specialWorkspace.name ?? "";
+        const activeSpecial = focusedMonitor?.lastIpcObject.specialWorkspace?.name ?? "";
 
         if (!activeSpecial) {
             if (lastSpecialWorkspace) {
