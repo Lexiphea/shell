@@ -33,6 +33,7 @@ import json
 import re
 import sys
 from bisect import bisect_right
+from collections import Counter
 from pathlib import Path
 
 RED = "\033[0;31m"
@@ -168,17 +169,9 @@ def mask(src: str) -> str:
             continue
 
         if c in QUOTES:
-            out.append(c)
-            i += 1
-            while i < n:
-                ch = src[i]
-                out.append(ch)
-                i += 1
-                if ch == c:
-                    break
-                if ch == "\\" and i < n:
-                    out.append(src[i])
-                    i += 1
+            end = skip_string(src, i)
+            out.append(src[i:end])
+            i = end
             continue
 
         out.append(c)
@@ -613,10 +606,7 @@ def report(issues: list[Issue], args: argparse.Namespace, checked: int) -> int:
         print(f"{BOLD}No issues found.{RESET}", file=err)
         return failed
 
-    by_rule: dict[str, int] = {}
-    for issue in issues:
-        by_rule[issue.rule] = by_rule.get(issue.rule, 0) + 1
-    for rule, count in sorted(by_rule.items()):
+    for rule, count in sorted(Counter(i.rule for i in issues).items()):
         print(f"  {rule}: {count}", file=err)
 
     print(f"\n{BOLD}Found {errors} error(s) and {warnings} warning(s).{RESET}", file=err)
