@@ -138,6 +138,8 @@ Item {
     StyledText {
         id: stateMessage
 
+        Component.onCompleted: text = root.stateMsg // onStateMsgChanged doesn't fire for the initial value
+
         anchors.left: parent.left
         anchors.right: parent.right
 
