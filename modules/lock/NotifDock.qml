@@ -83,10 +83,7 @@ ColumnLayout {
             clip: true
 
             model: ScriptModel {
-                values: {
-                    const list = Notifs.notClosed.map(n => [n.appName, null]);
-                    return [...new Map(list).keys()];
-                }
+                values: [...new Set(Notifs.notClosed.map(n => n.appName))]
             }
 
             delegate: NotifGroup {}

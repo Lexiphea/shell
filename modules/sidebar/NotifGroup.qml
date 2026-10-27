@@ -31,6 +31,7 @@ StyledRect {
             return NotificationUrgency.Normal;
         return NotificationUrgency.Low;
     }
+    readonly property color onUrgencyColour: urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
 
     readonly property int nonAnimHeight: {
         const headerHeight = header.implicitHeight + (root.expanded ? Math.round(Tokens.spacing.extraSmall) : 0);
@@ -107,7 +108,7 @@ StyledRect {
                 ColouredIcon {
                     implicitSize: Math.round(TokenConfig.sizes.notifs.image * 0.6)
                     source: Quickshell.iconPath(root.appIcon)
-                    colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    colour: root.onUrgencyColour
                     layer.enabled: root.appIcon.endsWith("symbolic")
                 }
             }
@@ -117,7 +118,7 @@ StyledRect {
 
                 MaterialIcon {
                     text: Icons.getNotifIcon(root.activeNotifs[0]?.summary, root.urgency)
-                    color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    color: root.onUrgencyColour
                     fontStyle: Tokens.font.icon.medium
                 }
             }
@@ -152,7 +153,7 @@ StyledRect {
                         anchors.centerIn: parent
                         implicitSize: Math.round(Tokens.sizes.notifs.badge * 0.6)
                         source: Quickshell.iconPath(root.appIcon)
-                        colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                        colour: root.onUrgencyColour
                         layer.enabled: root.appIcon.endsWith("symbolic")
                     }
                 }

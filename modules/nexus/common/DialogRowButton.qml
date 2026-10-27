@@ -20,8 +20,6 @@ Item {
     required property Component content
     required property string acceptLabel
     property bool acceptAllowed: true
-    property bool separateContent
-    property int horizontalContentMargin
 
     property real openWidth: Math.min(rootParent.width * 0.8, Tokens.sizes.nexus.maxDialogWidth)
     property real openHeight: Math.min(rootParent.height * 0.8, Tokens.sizes.nexus.maxDialogHeight)
@@ -185,32 +183,26 @@ Item {
                         font: Tokens.font.title.builders.large.weight(Font.Normal).build()
                     }
 
-                    Loader {
+                    StyledRect {
                         Layout.topMargin: Tokens.spacing.medium
                         Layout.fillWidth: true
-                        active: root.separateContent
-                        sourceComponent: StyledRect {
-                            implicitHeight: 1
-                            color: Colours.palette.m3outline
-                        }
+                        implicitHeight: 1
+                        color: Colours.palette.m3outline
                     }
 
                     Loader {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.leftMargin: root.horizontalContentMargin
-                        Layout.rightMargin: root.horizontalContentMargin
+                        Layout.leftMargin: -Tokens.padding.small
+                        Layout.rightMargin: -Tokens.padding.small
                         sourceComponent: root.content
                     }
 
-                    Loader {
+                    StyledRect {
                         Layout.bottomMargin: Tokens.spacing.medium
                         Layout.fillWidth: true
-                        active: root.separateContent
-                        sourceComponent: StyledRect {
-                            implicitHeight: 1
-                            color: Colours.palette.m3outline
-                        }
+                        implicitHeight: 1
+                        color: Colours.palette.m3outline
                     }
 
                     RowLayout {

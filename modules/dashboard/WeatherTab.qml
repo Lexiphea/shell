@@ -9,8 +9,6 @@ import qs.utils
 Item {
     id: root
 
-    readonly property var today: Weather.forecast && Weather.forecast.length > 0 ? Weather.forecast[0] : null
-
     implicitWidth: layout.implicitWidth > 800 ? layout.implicitWidth : 840
     implicitHeight: layout.implicitHeight
     Component.onCompleted: Weather.reload()

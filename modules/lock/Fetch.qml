@@ -17,7 +17,7 @@ StyledRect {
     required property real rootHeight
     readonly property int cBoxSize: Tokens.font.body.medium.pointSize * 2
 
-    implicitHeight: layout.implicitHeight + layout.anchors.topMargin + layout.anchors.margins
+    implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
     radius: Tokens.rounding.medium
     color: Colours.tPalette.m3surfaceContainer
 
@@ -26,8 +26,6 @@ StyledRect {
 
         anchors.fill: parent
         anchors.margins: Tokens.padding.extraLarge
-        anchors.topMargin: Tokens.padding.extraLarge
-        anchors.bottomMargin: Tokens.padding.extraLarge
 
         spacing: Tokens.spacing.small
 

@@ -85,13 +85,7 @@ Item {
 
             sourceComponent: CustomMouseArea {
                 function onWheel(event: WheelEvent) {
-                    const monitor = root.monitor;
-                    if (!monitor)
-                        return;
-                    if (event.angleDelta.y > 0)
-                        monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
-                    else if (event.angleDelta.y < 0)
-                        monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
+                    root.monitor?.step(Math.sign(event.angleDelta.y));
                 }
 
                 implicitWidth: Tokens.sizes.osd.sliderWidth

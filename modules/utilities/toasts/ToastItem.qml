@@ -115,15 +115,7 @@ StyledRect {
                 Layout.fillWidth: true
                 textFormat: Text.StyledText
                 text: Tr.trMarked(root.modelData.message)
-                color: {
-                    if (root.modelData.type === Toast.Success)
-                        return Colours.palette.m3onSuccessContainer;
-                    if (root.modelData.type === Toast.Warning)
-                        return Colours.palette.m3onSecondary;
-                    if (root.modelData.type === Toast.Error)
-                        return Colours.palette.m3onErrorContainer;
-                    return Colours.palette.m3onSurface;
-                }
+                color: title.color
                 opacity: 0.8
                 elide: Text.ElideRight
             }

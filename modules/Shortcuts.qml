@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -33,69 +35,31 @@ Scope {
     }
 
     // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
+    DrawerShortcut {
         name: "dashboard"
         description: "Toggle dashboard"
-        onPressed: {
-            if (root.hasFullscreen)
-                return;
-            const screenState = ShellState.forActive();
-            screenState.dashboard = !screenState.dashboard;
-        }
     }
 
-    // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
+    DrawerShortcut {
         name: "session"
         description: "Toggle session menu"
-        onPressed: {
-            if (root.hasFullscreen)
-                return;
-            const screenState = ShellState.forActive();
-            screenState.session = !screenState.session;
-        }
     }
 
-    // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
+    DrawerShortcut {
         name: "launcher"
         description: "Toggle launcher"
-        onPressed: {
-            if (root.hasFullscreen)
-                return;
-            const screenState = ShellState.forActive();
-            screenState.launcher = !screenState.launcher;
-        }
     }
 
-    // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
+    DrawerShortcut {
         name: "sidebar"
         description: "Toggle sidebar"
-        onPressed: {
-            if (root.hasFullscreen)
-                return;
-            const screenState = ShellState.forActive();
-            screenState.sidebar = !screenState.sidebar;
-        }
     }
 
-    // qmllint disable unresolved-type
-    CustomShortcut {
-        // qmllint enable unresolved-type
+    DrawerShortcut {
         name: "utilities"
         description: "Toggle utilities"
-        onPressed: {
-            if (root.hasFullscreen)
-                return;
-            const screenState = ShellState.forActive();
-            screenState.utilities = !screenState.utilities;
-        }
     }
+    // qmllint enable unresolved-type
 
     IpcHandler {
         function toggle(drawer: string): void {
@@ -157,5 +121,19 @@ Scope {
 
         name: "caelestia.qml.shortcuts"
         defaultLogLevel: LoggingCategory.Info
+    }
+
+    // Toggles a drawer on the active screen, unless a fullscreen app has focus
+    // qmllint disable unresolved-type
+    component DrawerShortcut: CustomShortcut {
+        // qmllint enable unresolved-type
+        id: shortcut
+
+        onPressed: {
+            if (root.hasFullscreen)
+                return;
+            const screenState = ShellState.forActive();
+            screenState[shortcut.name] = !screenState[shortcut.name];
+        }
     }
 }

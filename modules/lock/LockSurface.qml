@@ -52,14 +52,13 @@ WlSessionLockSurface {
     }
 
     function showLockUi(): void {
-        if (oledBlackActive)
-            oledBlackActive = false;
+        oledBlackActive = false;
         restartOledBlackTimer();
     }
 
     function restartOledBlackTimer(): void {
         blackoutDelay.stop();
-        if (root.lock.locked && root.visible && !root.oledBlackActive)
+        if (root.lock.locked && root.visible)
             blackoutDelay.start();
     }
 
@@ -332,7 +331,6 @@ WlSessionLockSurface {
         hoverEnabled: true
         visible: root.oledBlackActive
         z: 1000
-        onClicked: root.showLockUi()
         onPressed: root.showLockUi()
         onWheel: root.showLockUi()
     }

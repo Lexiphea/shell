@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
@@ -24,6 +25,7 @@ Item {
     readonly property real nonAnimWidth: children.find(c => c.shouldBeActive)?.implicitWidth ?? content.implicitWidth
     readonly property real nonAnimHeight: children.find(c => c.shouldBeActive)?.implicitHeight ?? content.implicitHeight
     readonly property Item current: (content.item as Content)?.current ?? null
+    readonly property bool inTraySubmenu: currentName.startsWith("traymenu") && ((current as StackView)?.depth ?? 0) > 1
     readonly property bool isDetached: detachedMode.length > 0
 
     property alias currentName: popoutState.currentName
@@ -72,17 +74,7 @@ Item {
     implicitHeight: nonAnimHeight
 
     focus: hasCurrent
-    Keys.onEscapePressed: {
-        // Forward escape to password popout if active, otherwise close
-        if (currentName === "wirelesspassword" && content.item) {
-            const passwordPopout = (content.item as Content)?.children.find(c => c.name === "wirelesspassword");
-            if (passwordPopout && passwordPopout.item) {
-                passwordPopout.item.closeDialog();
-                return;
-            }
-        }
-        close();
-    }
+    Keys.onEscapePressed: close()
 
     Keys.onPressed: event => {
         // Don't intercept keys when password popout is active - let it handle them

@@ -51,8 +51,6 @@ Item {
 
             name: "wirelesspassword"
             sourceComponent: WirelessPassword {
-                id: passwordComponent
-
                 popouts: root.popouts
                 network: (networkPopout.item as Network)?.passwordNetwork ?? null
             }
@@ -165,7 +163,6 @@ Item {
 
         required property string name
         readonly property bool shouldBeActive: root.popouts.currentName === name
-        property bool ready: true
 
         anchors.centerIn: parent
 

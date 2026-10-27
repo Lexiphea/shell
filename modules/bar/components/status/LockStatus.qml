@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import qs.components
@@ -10,8 +12,6 @@ ColumnLayout {
     required property int parentSpacing
 
     property real gap: Hypr.capsLock && Hypr.numLock ? parentSpacing : 0
-    property real capsHeight: Hypr.capsLock ? capslockIcon.implicitHeight : 0
-    property real numHeight: Hypr.numLock ? numlockIcon.implicitHeight : 0
 
     spacing: Math.round(gap)
 
@@ -21,60 +21,41 @@ ColumnLayout {
         }
     }
 
-    Behavior on capsHeight {
-        Anim {
-            type: Anim.SlowEffects
-        }
+    LockIcon {
+        locked: Hypr.capsLock
+        icon: "keyboard_capslock_badge"
     }
 
-    Behavior on numHeight {
-        Anim {
-            type: Anim.SlowEffects
-        }
+    LockIcon {
+        locked: Hypr.numLock
+        icon: "looks_one"
     }
 
-    Item {
-        implicitWidth: capslockIcon.implicitWidth
-        implicitHeight: Math.round(root.capsHeight)
+    component LockIcon: Item {
+        id: lockIcon
+
+        required property bool locked
+        required property string icon
+        property real animHeight: locked ? materialIcon.implicitHeight : 0
+
+        implicitWidth: materialIcon.implicitWidth
+        implicitHeight: Math.round(animHeight)
+
+        Behavior on animHeight {
+            Anim {
+                type: Anim.SlowEffects
+            }
+        }
 
         MaterialIcon {
-            id: capslockIcon
+            id: materialIcon
 
             anchors.centerIn: parent
 
-            scale: Hypr.capsLock ? 1 : 0.5
-            opacity: Hypr.capsLock ? 1 : 0
+            scale: lockIcon.locked ? 1 : 0.5
+            opacity: lockIcon.locked ? 1 : 0
 
-            text: "keyboard_capslock_badge"
-            color: root.colour
-            fill: 1
-            grade: 25
-
-            Behavior on opacity {
-                Anim {
-                    type: Anim.DefaultEffects
-                }
-            }
-
-            Behavior on scale {
-                Anim {}
-            }
-        }
-    }
-
-    Item {
-        implicitWidth: numlockIcon.implicitWidth
-        implicitHeight: Math.round(root.numHeight)
-
-        MaterialIcon {
-            id: numlockIcon
-
-            anchors.centerIn: parent
-
-            scale: Hypr.numLock ? 1 : 0.5
-            opacity: Hypr.numLock ? 1 : 0
-
-            text: "looks_one"
+            text: lockIcon.icon
             color: root.colour
             fill: 1
             grade: 25

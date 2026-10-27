@@ -9,6 +9,7 @@ import qs.components
 import qs.components.controls
 import qs.components.misc
 import qs.services
+import qs.utils
 
 StyledRect {
     id: root
@@ -235,22 +236,8 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                text: {
-                    const elapsed = Recorder.elapsed;
-
-                    const hours = Math.floor(elapsed / 3600);
-                    const mins = Math.floor((elapsed % 3600) / 60);
-                    const secs = Math.floor(elapsed % 60).toString().padStart(2, "0");
-
-                    let time;
-                    if (hours > 0)
-                        time = `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
-                    else
-                        time = `${mins}:${secs}`;
-
-                    // TRANSLATORS: %1 = elapsed recording duration, e.g. 01:23
-                    return Tr.tr("Recording for %1").arg(time);
-                }
+                // TRANSLATORS: %1 = elapsed recording duration, e.g. 01:23
+                text: Tr.tr("Recording for %1").arg(Strings.duration(Recorder.elapsed))
                 font: Tokens.font.body.medium
                 elide: Text.ElideMiddle
             }

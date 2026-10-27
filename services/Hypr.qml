@@ -93,6 +93,12 @@ Singleton {
         return Hyprland.monitorFor(screen);
     }
 
+    function hasFullscreen(monitor: HyprlandMonitor): bool {
+        const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
+        const workspace = specialName ? workspaces.values.find(ws => ws.name === specialName) : monitor?.activeWorkspace;
+        return workspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
+    }
+
     function trimWsName(name: string): string {
         return name.startsWith("special:") ? name.slice("special:".length) : name;
     }

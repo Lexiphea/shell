@@ -185,8 +185,7 @@ Item {
                 target: notif
                 property: "x"
                 to: (notif.x >= 0 ? root.implicitWidth : -root.implicitWidth) * 2
-                duration: Tokens.anim.durations.normal
-                easing: Tokens.anim.emphasized
+                type: Anim.Emphasized
             }
             PropertyAction {
                 target: wrapper
@@ -211,10 +210,5 @@ Item {
                 implicitWidth: root.implicitWidth - root.padding - root.clampedPadding
             }
         }
-    }
-
-    component Anim: NumberAnimation {
-        duration: Tokens.anim.durations.expressiveDefaultSpatial
-        easing: Tokens.anim.expressiveDefaultSpatial
     }
 }

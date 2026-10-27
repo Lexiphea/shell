@@ -7,6 +7,7 @@ import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.utils
 
 ColumnLayout {
     id: root
@@ -14,16 +15,7 @@ ColumnLayout {
     readonly property bool hasUnknownLength: (Players.active?.length ?? 0) > 2147483647
 
     function lengthStr(length: int): string {
-        if (length < 0)
-            return "-1:-1";
-
-        const hours = Math.floor(length / 3600);
-        const mins = Math.floor((length % 3600) / 60);
-        const secs = Math.floor(length % 60).toString().padStart(2, "0");
-
-        if (hours > 0)
-            return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
-        return `${mins}:${secs}`;
+        return length < 0 ? "-1:-1" : Strings.duration(length);
     }
 
     spacing: Tokens.spacing.extraSmall

@@ -93,11 +93,7 @@ ColumnLayout {
                 Audio.decrementVolume();
         } else if (Config.bar.scrollActions.brightness) {
             // Brightness scroll on bottom half
-            const monitor = Brightness.getMonitorForScreen(screen);
-            if (angleDelta.y > 0)
-                monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
-            else if (angleDelta.y < 0)
-                monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
+            Brightness.getMonitorForScreen(screen).step(Math.sign(angleDelta.y));
         }
     }
 

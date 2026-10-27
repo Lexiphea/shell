@@ -134,7 +134,7 @@ ColumnLayout {
                             Nmcli.disconnectFromNetwork();
                         } else {
                             root.connectingToSsid = networkItem.modelData.ssid;
-                            NetworkConnection.handleConnect(networkItem.modelData, null, network => {
+                            NetworkConnection.handleConnect(networkItem.modelData, network => {
                                 // Password is required - show password dialog
                                 root.passwordNetwork = network;
                                 root.showPasswordDialog = true;

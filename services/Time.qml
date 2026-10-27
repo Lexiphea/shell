@@ -8,11 +8,6 @@ Singleton {
     id: root
 
     property int refCount: 0
-    property alias enabled: clock.enabled
-    readonly property date date: clock.date
-    readonly property int hours: clock.hours
-    readonly property int minutes: clock.minutes
-    readonly property int seconds: clock.seconds
 
     readonly property string timeStr: format(Units.twelveHourClock ? "hh:mm:A" : "hh:mm")
     readonly property list<string> timeComponents: timeStr.split(":")

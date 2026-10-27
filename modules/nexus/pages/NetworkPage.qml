@@ -85,14 +85,13 @@ PageBase {
         }
 
         // All networks button, only when > max networks
-        RowButton {
+        NavRow {
             Layout.preferredHeight: Nmcli.wifiEnabled && Nmcli.networks.length > GlobalConfig.nexus.maxNetworksShown ? implicitHeight : 0
             clip: true
 
             icon: "expand_content"
             // TRANSLATORS: %1 = number of networks found
             text: Tr.tr("Show all networks (%1)").arg(Nmcli.networks.length)
-            trailingIcon: "chevron_right"
             onClicked: root.nState.openSubPage(5) // All networks sub-page
 
             Behavior on Layout.preferredHeight {
@@ -103,10 +102,9 @@ PageBase {
         }
 
         // Saved networks button
-        RowButton {
+        NavRow {
             icon: "bookmark"
             text: Tr.tr("Saved networks")
-            trailingIcon: "chevron_right"
             onClicked: root.nState.openSubPage(6) // Saved networks sub-page
         }
 

@@ -27,8 +27,6 @@ DialogRowButton {
     }
 
     acceptAllowed: !!selectedItem
-    separateContent: true
-    horizontalContentMargin: -Tokens.padding.small
 
     content: Component {
         VerticalFadeListView {

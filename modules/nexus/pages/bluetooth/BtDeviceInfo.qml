@@ -19,17 +19,6 @@ PageBase {
     readonly property bool connected: device?.state === BluetoothDeviceState.Connected // qmllint disable unresolved-type
     readonly property bool loading: device?.state === BluetoothDeviceState.Connecting || device?.state === BluetoothDeviceState.Disconnecting // qmllint disable unresolved-type
 
-    readonly property string statusText: {
-        if (!device)
-            return "";
-        if (connected && device.batteryAvailable)
-            // TRANSLATORS: %1 = battery level, already formatted as a percentage
-            return Tr.trCtx("Connected • %1", "bluetooth device state with battery").arg(Strings.percentOne(device.battery));
-        if (connected)
-            return Tr.trCtx("Connected", "bluetooth device state");
-        return device.bonded ? Tr.trCtx("Paired", "bluetooth device state") : Tr.trCtx("Not paired", "bluetooth device state");
-    }
-
     onDeviceChanged: {
         // Auto close when device lost
         if (!device)
@@ -52,42 +41,15 @@ PageBase {
             Layout.minimumWidth: Math.round(root.cappedWidth * 0.7)
             spacing: Tokens.spacing.small
 
-            ButtonBase {
-                id: forgetBtn
-
-                fillWidth: true
-                shapeMorph: true
-                isRound: true
-
+            ActionButton {
                 inactiveColour: Colours.palette.m3errorContainer
                 inactiveOnColour: Colours.palette.m3onErrorContainer
-
-                implicitWidth: forgetBtnLayout.implicitWidth + Tokens.padding.extraLarge * 2
-                implicitHeight: forgetBtnLayout.implicitHeight + Tokens.padding.medium * 2
+                icon: "delete"
+                text: Tr.trCtx("Forget", "button")
 
                 onClicked: {
                     root.device?.forget();
                     root.nState.closeSubPage();
-                }
-
-                ColumnLayout {
-                    id: forgetBtnLayout
-
-                    anchors.centerIn: parent
-                    spacing: 0
-
-                    MaterialIcon {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "delete"
-                        color: forgetBtn.onColour
-                        fontStyle: Tokens.font.icon.medium
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.trCtx("Forget", "button")
-                        color: forgetBtn.onColour
-                    }
                 }
             }
 

@@ -93,8 +93,6 @@ Item {
         return "";
     }
 
-    property bool stateMsgShouldBeVisible
-
     onMsgChanged: {
         if (msg) {
             if (message.opacity > 0) {
@@ -120,17 +118,14 @@ Item {
     }
 
     onStateMsgChanged: {
-        if (stateMsg) {
-            if (stateMessage.opacity > 0) {
-                stateMessage.animate = true;
-                stateMessage.text = stateMsg;
-                stateMessage.animate = false;
-            } else {
-                stateMessage.text = stateMsg;
-            }
-            stateMsgShouldBeVisible = true;
+        if (!stateMsg)
+            return;
+        if (stateMessage.opacity > 0) {
+            stateMessage.animate = true;
+            stateMessage.text = stateMsg;
+            stateMessage.animate = false;
         } else {
-            stateMsgShouldBeVisible = false;
+            stateMessage.text = stateMsg;
         }
     }
 
@@ -146,8 +141,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
 
-        scale: root.stateMsgShouldBeVisible && !root.msg ? 1 : 0.7
-        opacity: root.stateMsgShouldBeVisible && !root.msg ? 1 : 0
+        scale: root.stateMsg && !root.msg ? 1 : 0.7
+        opacity: root.stateMsg && !root.msg ? 1 : 0
         color: Colours.palette.m3onSurfaceVariant
 
         font: Tokens.font.body.small

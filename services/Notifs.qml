@@ -26,13 +26,7 @@ Singleton {
     readonly property int historyLimit: 50
 
     function hasFullscreen(): bool {
-        for (const monitor of Hypr.monitors.values) {
-            const specialName = monitor.lastIpcObject.specialWorkspace?.name;
-            const workspace = specialName ? Hypr.workspaces.values.find(ws => ws.name === specialName) : monitor.activeWorkspace;
-            if (workspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1))
-                return true;
-        }
-        return false;
+        return Hypr.monitors.values.some(m => Hypr.hasFullscreen(m));
     }
 
     function shouldShowPopup(): bool {

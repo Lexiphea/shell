@@ -15,6 +15,17 @@ Singleton {
         return percent(Math.round(value * 100));
     }
 
+    // Formats seconds as h:mm:ss, or m:ss under an hour
+    function duration(seconds: real): string {
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60).toString().padStart(2, "0");
+
+        if (hours > 0)
+            return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
+        return `${mins}:${secs}`;
+    }
+
     function testRegexList(filterList: list<string>, target: string): bool {
         const regexChecker = /^\^.*\$$/;
         for (const filter of filterList) {

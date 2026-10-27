@@ -48,15 +48,11 @@ Singleton {
     }
 
     function increaseBrightness(): void {
-        const monitor = getMonitor("active");
-        if (monitor)
-            monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
+        getMonitor("active")?.step(1);
     }
 
     function decreaseBrightness(): void {
-        const monitor = getMonitor("active");
-        if (monitor)
-            monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
+        getMonitor("active")?.step(-1);
     }
 
     onMonitorsChanged: {
@@ -218,6 +214,10 @@ Singleton {
 
             if (isDdc)
                 timer.restart();
+        }
+
+        function step(direction: int): void {
+            setBrightness(brightness + direction * GlobalConfig.services.brightnessIncrement);
         }
 
         function initBrightness(): void {

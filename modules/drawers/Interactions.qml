@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Caelestia.Config
 import qs.components
@@ -78,7 +77,7 @@ CustomMouseArea {
             if (!utilitiesShortcutActive)
                 screenState.utilities = false;
 
-            if (!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) {
+            if (!popouts.inTraySubmenu) {
                 popouts.hasCurrent = false;
                 bar.closeTray();
             }
@@ -240,7 +239,7 @@ CustomMouseArea {
         // Show popouts on hover
         if (x < bar.implicitWidth) {
             bar.checkPopout(y);
-        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inLeftPanel(panels.popoutsWrapper, x, y)) {
+        } else if (!popouts.inTraySubmenu && !inLeftPanel(panels.popoutsWrapper, x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
         }
