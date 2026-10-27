@@ -46,7 +46,7 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         animate: true
         // TRANSLATORS: %1 = apparent temperature, unit already included
-        text: Tr.tr("Feels like %1").arg(Weather.temp)
+        text: Tr.tr("Feels like %1").arg(Weather.feelsLike)
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.body.large
     }
