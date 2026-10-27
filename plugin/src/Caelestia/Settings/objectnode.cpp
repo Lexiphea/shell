@@ -81,7 +81,8 @@ bool ObjectNode::syncJson(const QJsonValue& json, QList<Diagnostic>& diagnostics
 
     if (!json.isObject()) {
         const auto d = Diagnostic::mismatch(ExpectedType::Object, json, path());
-        qCWarning(lcSettings, "Error decoding option %s: %s", qUtf8Printable(d.option), qUtf8Printable(d.message));
+        qCWarning(lcSettings, "Error decoding option %s: %s", qUtf8Printable(d.option),
+            qUtf8Printable(util::i18n::unmark(d.message)));
         diagnostics << d;
         return false;
     }
