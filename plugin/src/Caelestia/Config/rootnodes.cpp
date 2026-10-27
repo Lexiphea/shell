@@ -8,14 +8,6 @@ namespace caelestia::config {
 
 using Qt::StringLiterals::operator""_s;
 
-namespace {
-
-QString nameFor(const QString& key) {
-    return key.isEmpty() ? u"global"_s : key;
-}
-
-} // namespace
-
 namespace detail {
 
 using util::i18n::mark;
@@ -66,7 +58,7 @@ ConfigRoot::ConfigRoot(const QString& path, ConfigRoot* fallback, QObject* paren
     : RootNode(path, fallback, parent)
     , m_fontTokens(new FontTokens(this)) {
     bindTokens();
-    qCDebug(lcConfig) << "Created config root for" << nameFor(key());
+    qCDebug(lcConfig) << "Created config root for" << path;
 }
 
 const FontTokens* ConfigRoot::fontTokens() const {
@@ -74,8 +66,6 @@ const FontTokens* ConfigRoot::fontTokens() const {
 }
 
 void ConfigRoot::bindTokens() {
-    qCDebug(lcConfig) << "Binding token values for" << nameFor(key());
-
     const auto* tokens = TokensSingleton::instance()->appearance();
     m_appearance->rounding()->bindTokens(tokens->rounding());
     m_appearance->spacing()->bindTokens(tokens->spacing());
@@ -87,7 +77,7 @@ void ConfigRoot::bindTokens() {
 
 TokensRoot::TokensRoot(const QString& path, TokensRoot* fallback, QObject* parent)
     : RootNode(path, fallback, parent) {
-    qCDebug(lcConfig) << "Created tokens root for" << nameFor(key());
+    qCDebug(lcConfig) << "Created tokens root for" << path;
 }
 
 #define SINGLETON_IMPL(Type, Root, file, kind)                                                                         \
