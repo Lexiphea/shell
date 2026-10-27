@@ -150,15 +150,17 @@ void ImageAnalyser::update() {
             m_futureWatcher->setFuture(QtConcurrent::run(&ImageAnalyser::analyse, grabResult->image(), m_rescaleSize));
         });
     } else {
-        m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
-            QImageReader reader(m_source);
-            const QSize size = reader.size();
-            if (m_rescaleSize > 0 && reader.supportsOption(QImageIOHandler::ScaledSize) &&
-                (size.width() > m_rescaleSize || size.height() > m_rescaleSize)) {
-                reader.setScaledSize(size.scaled(m_rescaleSize, m_rescaleSize, Qt::KeepAspectRatio));
-            }
-            analyse(promise, reader.read(), m_rescaleSize);
-        }));
+        // Copy the members, the UI thread can change them while this runs
+        m_futureWatcher->setFuture(
+            QtConcurrent::run([source = m_source, rescaleSize = m_rescaleSize](QPromise<AnalyseResult>& promise) {
+                QImageReader reader(source);
+                const QSize size = reader.size();
+                if (rescaleSize > 0 && reader.supportsOption(QImageIOHandler::ScaledSize) &&
+                    (size.width() > rescaleSize || size.height() > rescaleSize)) {
+                    reader.setScaledSize(size.scaled(rescaleSize, rescaleSize, Qt::KeepAspectRatio));
+                }
+                analyse(promise, reader.read(), rescaleSize);
+            }));
     }
 }
 
