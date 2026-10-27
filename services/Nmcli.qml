@@ -810,9 +810,10 @@ Singleton {
     function checkPendingConnection(): void {
         if (root.pendingConnection) {
             Qt.callLater(() => {
-                const connected = root.active && root.active.ssid === root.pendingConnection.ssid;
-                if (connected) {
-                    const pending = root.pendingConnection;
+                const pending = root.pendingConnection;
+                if (!pending)
+                    return; // Cleared before this deferred check ran
+                if (root.active && root.active.ssid === pending.ssid) {
                     root.clearPendingConnection();
                     pending.callback?.({
                         success: true,
