@@ -327,8 +327,7 @@ void BlobShape::cacheInvertedRect(float pad) {
         return;
 
     const QRectF outer(inv->mapToScene(QPointF(0, 0)), inv->size());
-    const QRectF inner =
-        outer.adjusted(inv->borderLeft(), inv->borderTop(), -inv->borderRight(), -inv->borderBottom());
+    const QRectF inner = outer.adjusted(inv->borderLeft(), inv->borderTop(), -inv->borderRight(), -inv->borderBottom());
 
     // Only rects near the border (within 2x smoothing of the inner edge) need it
     if (!isInvertedRect() && !isNearInvertedBorder(inner, static_cast<qreal>(pad) * 2.0))

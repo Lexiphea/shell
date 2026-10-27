@@ -153,8 +153,8 @@ void ImageAnalyser::update() {
         m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
             QImageReader reader(m_source);
             const QSize size = reader.size();
-            if (m_rescaleSize > 0 && reader.supportsOption(QImageIOHandler::ScaledSize)
-                && (size.width() > m_rescaleSize || size.height() > m_rescaleSize)) {
+            if (m_rescaleSize > 0 && reader.supportsOption(QImageIOHandler::ScaledSize) &&
+                (size.width() > m_rescaleSize || size.height() > m_rescaleSize)) {
                 reader.setScaledSize(size.scaled(m_rescaleSize, m_rescaleSize, Qt::KeepAspectRatio));
             }
             analyse(promise, reader.read(), m_rescaleSize);

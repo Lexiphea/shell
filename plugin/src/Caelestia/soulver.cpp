@@ -4,8 +4,9 @@
 #include <qjsonobject.h>
 #include <qstandardpaths.h>
 
-#include <cstdlib>
 #include <dlfcn.h>
+
+#include <cstdlib>
 
 namespace caelestia {
 
