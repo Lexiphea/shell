@@ -18,10 +18,31 @@ ItemList {
     property int limit: 0 // 0 = show all
     property bool enableFilter
 
+    property string passwordSsid // Network showing the inline password field
+    property bool passwordConnecting
+
     signal networkSelected(ap: Nmcli.AccessPoint)
+    signal passwordRejected
 
     function networkFilter(ap: Nmcli.AccessPoint): bool {
         return true;
+    }
+
+    function connectWithPassword(ap: Nmcli.AccessPoint, password: string): void {
+        passwordConnecting = true;
+        NetworkConnection.connectWithPassword(ap, password, result => {
+            if (!root.passwordConnecting)
+                return; // Nmcli can report the same result more than once
+            root.passwordConnecting = false;
+            if (result?.success) {
+                if (root.passwordSsid === ap.ssid)
+                    root.passwordSsid = "";
+            } else {
+                // Drop the profile saved with the wrong password so the next attempt asks again
+                Nmcli.forgetNetwork(ap.ssid);
+                root.passwordRejected();
+            }
+        });
     }
 
     showList: Nmcli.wifiEnabled
@@ -42,36 +63,25 @@ ItemList {
         }
     }
 
-    delegate: StateLayer {
+    delegate: Item {
         id: network
 
         required property int index
         required property var modelData
         property bool currentSelected
+        readonly property bool askingPassword: root.passwordSsid === modelData.ssid
+        readonly property bool disabled: currentSelected || Nmcli.connectingSsid() === modelData.ssid
         property real textOpacity: disabled ? 0.5 : 1
 
-        disabled: currentSelected || Nmcli.connectingSsid() === modelData.ssid
+        // Unblock the row once it asks for a password, so clicking it again dismisses the field
+        onAskingPasswordChanged: {
+            if (askingPassword)
+                currentSelected = false;
+        }
 
         anchors.left: root.list.contentItem.left
         anchors.right: root.list.contentItem.right
-        implicitHeight: networkLayout.implicitHeight + networkLayout.anchors.margins * 2
-        radius: Tokens.rounding.extraSmall
-        bottomLeftRadius: root?.last && index === root.list.count - 1 ? Tokens.rounding.extraLarge : radius
-        bottomRightRadius: root?.last && index === root.list.count - 1 ? Tokens.rounding.extraLarge : radius
-        anchors.fill: undefined
-
-        onClicked: {
-            if (!modelData.active) {
-                NetworkConnection.handleConnect(modelData);
-                currentSelected = true;
-                root.networkSelected(modelData);
-            } else {
-                // Active network: open its detail/settings sub-page.
-                root.nState.selectedNetworkSsid = modelData.ssid;
-                root.nState.networkDetailsFromSaved = false;
-                root.nState.openSubPage(3);
-            }
-        }
+        implicitHeight: header.implicitHeight + passwordArea.implicitHeight
 
         Behavior on textOpacity {
             Anim {
@@ -97,73 +107,181 @@ ItemList {
             target: root
         }
 
-        RowLayout {
-            id: networkLayout
+        StateLayer {
+            id: header
 
-            anchors.fill: parent
-            anchors.margins: Tokens.padding.large
-            anchors.leftMargin: Tokens.padding.extraLarge
-            anchors.rightMargin: Tokens.padding.extraLarge
-            spacing: Tokens.spacing.medium
+            anchors.left: parent.left
+            anchors.right: parent.right
+            implicitHeight: networkLayout.implicitHeight + networkLayout.anchors.margins * 2
+            disabled: network.disabled
+            radius: Tokens.rounding.extraSmall
+            bottomLeftRadius: root?.last && network.index === root.list.count - 1 && !network.askingPassword ? Tokens.rounding.extraLarge : radius
+            bottomRightRadius: root?.last && network.index === root.list.count - 1 && !network.askingPassword ? Tokens.rounding.extraLarge : radius
+            anchors.fill: undefined
 
-            MaterialIcon {
-                text: Icons.getNetworkIcon(network.modelData.strength)
-                color: network.modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                fontStyle: Tokens.font.icon.medium
-                opacity: network.textOpacity
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-                opacity: network.textOpacity
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: network.modelData.ssid
-                    font: Tokens.font.body.small
-                    elide: Text.ElideRight
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: {
-                        const net = network.modelData;
-                        let status = "";
-                        if (net.active)
-                            status = Tr.trCtx("Connected", "network connected");
-                        else if (Nmcli.hasSavedProfile(net.ssid))
-                            status = Tr.trCtx("Saved", "network saved");
-                        if (status)
-                            // TRANSLATORS: %1 = security type, %2 = connection status
-                            return Tr.trCtx("Security: %1 • %2", "network security and status").arg(net.security).arg(status);
-                        return Tr.trCtx("Security: %1", "network security").arg(net.security);
-                    }
-                    color: Colours.palette.m3outline
-                    font: Tokens.font.label.small
-                    elide: Text.ElideRight
+            onClicked: {
+                if (network.askingPassword) {
+                    root.passwordSsid = "";
+                } else if (!network.modelData.active) {
+                    root.passwordSsid = "";
+                    NetworkConnection.handleConnect(network.modelData, ap => root.passwordSsid = ap.ssid);
+                    network.currentSelected = true;
+                    root.networkSelected(network.modelData);
+                } else {
+                    // Active network: open its detail/settings sub-page.
+                    root.nState.selectedNetworkSsid = network.modelData.ssid;
+                    root.nState.networkDetailsFromSaved = false;
+                    root.nState.openSubPage(3);
                 }
             }
 
-            AnimLoader {
-                sourceComp: Nmcli.connectingSsid() === network.modelData.ssid ? loadingComp : iconComp
+            RowLayout {
+                id: networkLayout
 
-                Component {
-                    id: iconComp
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.large
+                anchors.leftMargin: Tokens.padding.extraLarge
+                anchors.rightMargin: Tokens.padding.extraLarge
+                spacing: Tokens.spacing.medium
 
-                    MaterialIcon {
-                        text: network.modelData.active ? "settings" : "lock"
-                        color: network.modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                        fontStyle: Tokens.font.icon.medium
-                        opacity: network.textOpacity
+                MaterialIcon {
+                    text: Icons.getNetworkIcon(network.modelData.strength)
+                    color: network.modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                    fontStyle: Tokens.font.icon.medium
+                    opacity: network.textOpacity
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+                    opacity: network.textOpacity
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: network.modelData.ssid
+                        font: Tokens.font.body.small
+                        elide: Text.ElideRight
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: {
+                            const net = network.modelData;
+                            let status = "";
+                            if (net.active)
+                                status = Tr.trCtx("Connected", "network connected");
+                            else if (Nmcli.hasSavedProfile(net.ssid))
+                                status = Tr.trCtx("Saved", "network saved");
+                            if (status)
+                                // TRANSLATORS: %1 = security type, %2 = connection status
+                                return Tr.trCtx("Security: %1 • %2", "network security and status").arg(net.security).arg(status);
+                            return Tr.trCtx("Security: %1", "network security").arg(net.security);
+                        }
+                        color: Colours.palette.m3outline
+                        font: Tokens.font.label.small
+                        elide: Text.ElideRight
                     }
                 }
 
-                Component {
-                    id: loadingComp
+                AnimLoader {
+                    sourceComp: Nmcli.connectingSsid() === network.modelData.ssid ? loadingComp : iconComp
 
-                    LoadingIndicator {
-                        implicitSize: Math.round(Tokens.font.icon.medium.pointSize * 1.3)
+                    Component {
+                        id: iconComp
+
+                        MaterialIcon {
+                            text: network.modelData.active ? "settings" : "lock"
+                            color: network.modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                            fontStyle: Tokens.font.icon.medium
+                            opacity: network.textOpacity
+                        }
+                    }
+
+                    Component {
+                        id: loadingComp
+
+                        LoadingIndicator {
+                            implicitSize: Math.round(Tokens.font.icon.medium.pointSize * 1.3)
+                        }
+                    }
+                }
+            }
+        }
+
+        Item {
+            id: passwordArea
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: header.bottom
+            implicitHeight: network.askingPassword ? passwordLoader.implicitHeight + passwordLoader.anchors.topMargin + Tokens.padding.large : 0
+            clip: true
+
+            Behavior on implicitHeight {
+                Anim {
+                    type: Anim.DefaultEffects
+                }
+            }
+
+            Loader {
+                id: passwordLoader
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: Tokens.padding.small // Room for the floating label
+                anchors.leftMargin: Tokens.padding.extraLarge
+                anchors.rightMargin: Tokens.padding.extraLarge
+                active: opacity > 0
+                opacity: network.askingPassword ? 1 : 0
+
+                sourceComponent: RowLayout {
+                    spacing: Tokens.spacing.small
+
+                    StyledTextField {
+                        id: passwordField
+
+                        function submit(): void {
+                            if (text && !root.passwordConnecting)
+                                root.connectWithPassword(network.modelData, text);
+                        }
+
+                        Layout.fillWidth: true
+                        enabled: !root.passwordConnecting
+                        placeholderText: Tr.tr("Password")
+                        leadingIcon: "key"
+                        echoMode: TextInput.Password
+                        errorText: Tr.tr("Connection failed — check the password")
+
+                        Component.onCompleted: forceActiveFocus()
+                        onAccepted: submit()
+                        Keys.onEscapePressed: root.passwordSsid = ""
+
+                        Connections {
+                            function onPasswordRejected(): void {
+                                passwordField.isError = true;
+                                passwordField.forceActiveFocus();
+                            }
+
+                            target: root
+                        }
+                    }
+
+                    TextButton {
+                        // Match the field's outline, not its error text
+                        Layout.alignment: Qt.AlignTop
+                        Layout.preferredHeight: passwordField.height - passwordField.supportingTextOffset
+                        isRound: true
+                        horizontalPadding: Tokens.padding.extraLarge
+                        text: Tr.tr("Connect")
+                        disabled: !passwordField.text || root.passwordConnecting
+                        onClicked: passwordField.submit()
+                    }
+                }
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
                     }
                 }
             }
