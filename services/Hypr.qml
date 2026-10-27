@@ -30,7 +30,7 @@ Singleton {
     readonly property string defaultKbLayout: keyboard?.layout.split(",")[0] ?? "??"
     readonly property string kbLayoutFull: keyboard?.activeKeymap ?? Tr.trCtx("Unknown", "keyboard layout")
     readonly property string kbLayout: kbMap.get(kbLayoutFull) ?? "??"
-    readonly property var kbMap: new Map()
+    property var kbMap: new Map()
 
     readonly property alias extras: extras
     readonly property alias options: extras.options
@@ -170,6 +170,7 @@ Singleton {
 
         path: Quickshell.env("CAELESTIA_XKB_RULES_PATH") || "/usr/share/X11/xkb/rules/base.lst"
         onLoaded: {
+            const map = new Map();
             const layoutMatch = text().match(/! layout\n([\s\S]*?)\n\n/);
             if (layoutMatch) {
                 const lines = layoutMatch[1].split("\n");
@@ -179,7 +180,7 @@ Singleton {
 
                     const match = line.match(/^\s*([a-z]{2,})\s+([a-zA-Z() ]+)$/);
                     if (match)
-                        root.kbMap.set(match[2], match[1]);
+                        map.set(match[2], match[1]);
                 }
             }
 
@@ -192,9 +193,12 @@ Singleton {
 
                     const match = line.match(/^\s*([a-zA-Z0-9_-]+)\s+([a-z]{2,}): (.+)$/);
                     if (match)
-                        root.kbMap.set(match[3], match[2]);
+                        map.set(match[3], match[2]);
                 }
             }
+
+            // Reassign so kbLayout re-evaluates, mutating the map does not notify
+            root.kbMap = map;
         }
     }
 
