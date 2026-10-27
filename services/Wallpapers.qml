@@ -41,6 +41,7 @@ Searcher {
     function preview(path: string): void {
         previewPath = path;
         showPreview = true;
+        pendingPreviewClear = false;
 
         if (Colours.scheme === "dynamic")
             getPreviewColoursProc.exec(["caelestia", "wallpaper", "-p", path, ...smartArg]);
@@ -55,8 +56,10 @@ Searcher {
     }
 
     onPreviewColourLockChanged: {
-        if (!previewColourLock && pendingPreviewClear)
+        if (!previewColourLock && pendingPreviewClear) {
+            pendingPreviewClear = false;
             Colours.showPreview = false;
+        }
     }
 
     list: wallpapers.entries
