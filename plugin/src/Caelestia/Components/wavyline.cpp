@@ -5,6 +5,23 @@
 
 namespace caelestia::components {
 
+namespace {
+
+template <typename T> void setAndUpdate(WavyLine* item, T& member, const T& value, void (WavyLine::*changed)()) {
+    if constexpr (std::is_floating_point_v<T>) {
+        if (qFuzzyCompare(member + 1.0, value + 1.0))
+            return;
+    } else if (member == value) {
+        return;
+    }
+
+    member = value;
+    emit(item->*changed)();
+    item->update();
+}
+
+} // namespace
+
 WavyLine::WavyLine(QQuickItem* parent)
     : QQuickPaintedItem(parent)
     , m_lineWidth(4)
@@ -27,11 +44,7 @@ int WavyLine::lineWidth() const {
 }
 
 void WavyLine::setLineWidth(int lineWidth) {
-    if (m_lineWidth != lineWidth) {
-        m_lineWidth = lineWidth;
-        emit lineWidthChanged();
-        update();
-    }
+    setAndUpdate(this, m_lineWidth, lineWidth, &WavyLine::lineWidthChanged);
 }
 
 qreal WavyLine::amplitudeMultiplier() const {
@@ -39,11 +52,7 @@ qreal WavyLine::amplitudeMultiplier() const {
 }
 
 void WavyLine::setAmplitudeMultiplier(qreal amplitudeMultiplier) {
-    if (!qFuzzyCompare(m_amplitudeMultiplier + 1.0, amplitudeMultiplier + 1.0)) {
-        m_amplitudeMultiplier = amplitudeMultiplier;
-        emit amplitudeMultiplierChanged();
-        update();
-    }
+    setAndUpdate(this, m_amplitudeMultiplier, amplitudeMultiplier, &WavyLine::amplitudeMultiplierChanged);
 }
 
 int WavyLine::frequency() const {
@@ -51,11 +60,7 @@ int WavyLine::frequency() const {
 }
 
 void WavyLine::setFrequency(int frequency) {
-    if (m_frequency != frequency) {
-        m_frequency = frequency;
-        emit frequencyChanged();
-        update();
-    }
+    setAndUpdate(this, m_frequency, frequency, &WavyLine::frequencyChanged);
 }
 
 qreal WavyLine::startX() const {
@@ -63,11 +68,7 @@ qreal WavyLine::startX() const {
 }
 
 void WavyLine::setStartX(qreal startX) {
-    if (!qFuzzyCompare(m_startX + 1.0, startX + 1.0)) {
-        m_startX = startX;
-        emit startXChanged();
-        update();
-    }
+    setAndUpdate(this, m_startX, startX, &WavyLine::startXChanged);
 }
 
 qreal WavyLine::fullLength() const {
@@ -75,11 +76,7 @@ qreal WavyLine::fullLength() const {
 }
 
 void WavyLine::setFullLength(qreal fullLength) {
-    if (!qFuzzyCompare(m_fullLength + 1.0, fullLength + 1.0)) {
-        m_fullLength = fullLength;
-        emit fullLengthChanged();
-        update();
-    }
+    setAndUpdate(this, m_fullLength, fullLength, &WavyLine::fullLengthChanged);
 }
 
 QColor WavyLine::color() const {
@@ -87,11 +84,7 @@ QColor WavyLine::color() const {
 }
 
 void WavyLine::setColor(const QColor& color) {
-    if (m_color != color) {
-        m_color = color;
-        emit colorChanged();
-        update();
-    }
+    setAndUpdate(this, m_color, color, &WavyLine::colorChanged);
 }
 
 qreal WavyLine::waveProgress() const {
@@ -99,11 +92,7 @@ qreal WavyLine::waveProgress() const {
 }
 
 void WavyLine::setWaveProgress(qreal progress) {
-    if (!qFuzzyCompare(m_waveProgress + 1.0, progress + 1.0)) {
-        m_waveProgress = progress;
-        emit waveProgressChanged();
-        update();
-    }
+    setAndUpdate(this, m_waveProgress, progress, &WavyLine::waveProgressChanged);
 }
 
 WavyLine::PathType WavyLine::pathType() const {
@@ -111,11 +100,7 @@ WavyLine::PathType WavyLine::pathType() const {
 }
 
 void WavyLine::setPathType(PathType pathType) {
-    if (m_pathType != pathType) {
-        m_pathType = pathType;
-        emit pathTypeChanged();
-        update();
-    }
+    setAndUpdate(this, m_pathType, pathType, &WavyLine::pathTypeChanged);
 }
 
 qreal WavyLine::startAngle() const {
@@ -123,11 +108,7 @@ qreal WavyLine::startAngle() const {
 }
 
 void WavyLine::setStartAngle(qreal startAngle) {
-    if (!qFuzzyCompare(m_startAngle + 1.0, startAngle + 1.0)) {
-        m_startAngle = startAngle;
-        emit startAngleChanged();
-        update();
-    }
+    setAndUpdate(this, m_startAngle, startAngle, &WavyLine::startAngleChanged);
 }
 
 qreal WavyLine::fullAngle() const {
@@ -135,11 +116,7 @@ qreal WavyLine::fullAngle() const {
 }
 
 void WavyLine::setFullAngle(qreal fullAngle) {
-    if (!qFuzzyCompare(m_fullAngle + 1.0, fullAngle + 1.0)) {
-        m_fullAngle = fullAngle;
-        emit fullAngleChanged();
-        update();
-    }
+    setAndUpdate(this, m_fullAngle, fullAngle, &WavyLine::fullAngleChanged);
 }
 
 qreal WavyLine::radius() const {
@@ -147,11 +124,7 @@ qreal WavyLine::radius() const {
 }
 
 void WavyLine::setRadius(qreal radius) {
-    if (!qFuzzyCompare(m_radius + 1.0, radius + 1.0)) {
-        m_radius = radius;
-        emit radiusChanged();
-        update();
-    }
+    setAndUpdate(this, m_radius, radius, &WavyLine::radiusChanged);
 }
 
 qreal WavyLine::value() const {
@@ -159,11 +132,7 @@ qreal WavyLine::value() const {
 }
 
 void WavyLine::setValue(qreal value) {
-    if (!qFuzzyCompare(m_value + 1.0, value + 1.0)) {
-        m_value = value;
-        emit valueChanged();
-        update();
-    }
+    setAndUpdate(this, m_value, value, &WavyLine::valueChanged);
 }
 
 void WavyLine::paint(QPainter* painter) {

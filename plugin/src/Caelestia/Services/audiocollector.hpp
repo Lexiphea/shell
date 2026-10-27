@@ -1,8 +1,5 @@
 #pragma once
 
-#include <qmutex.h>
-#include <qqmlintegration.h>
-
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
@@ -47,8 +44,6 @@ class AudioCollector;
 class PipeWireWorker {
 public:
     explicit PipeWireWorker(std::stop_token token, AudioCollector* collector);
-
-    void run();
 
 private:
     pw_main_loop* m_loop;

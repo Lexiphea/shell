@@ -2,16 +2,12 @@
 
 #include <qloggingcategory.h>
 
-#include <pipewire/pipewire.h>
-
 #include <algorithm>
 #include <mutex>
 #include <span>
 #include <stop_token>
 #include <utility>
 #include <vector>
-
-#include "service.hpp"
 
 namespace {
 

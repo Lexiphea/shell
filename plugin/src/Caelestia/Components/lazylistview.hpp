@@ -213,8 +213,7 @@ private:
     };
 
     // Attached properties
-    [[nodiscard]] static LazyListViewAttached* attachedFor(QQuickItem* item);
-    [[nodiscard]] static LazyListViewAttached* attachedForCreate(QQuickItem* item);
+    [[nodiscard]] static LazyListViewAttached* attachedFor(QQuickItem* item, bool create = false);
 
     // Layout
     void relayout();

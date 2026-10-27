@@ -1,12 +1,12 @@
 #pragma once
 
+#include <qhash.h>
 #include <qjsonvalue.h>
 #include <qobject.h>
 #include <qvariant.h>
 
 #include "changebatcher.hpp"
 #include "common.hpp"
-#include "quarantine.hpp"
 #include "schema.hpp"
 
 namespace caelestia::settings {
@@ -27,7 +27,6 @@ public:
     [[nodiscard]] Node* fallbackNode() const;
     void detachFallback(); // Recursive, unlinks this and its children from the fallback layer
 
-    [[nodiscard]] Q_INVOKABLE bool isGlobalOnly() const;
     [[nodiscard]] bool isOverride(const QString& key) const;
     [[nodiscard]] bool hasContent() const; // Recursive
 
@@ -45,8 +44,7 @@ signals:
     void optionChanged(const QString& key);
 
 protected:
-    // Null means empty, otherwise it has content
-    std::unique_ptr<Quarantine> m_quarantine;
+    QHash<QString, QJsonValue> m_quarantine;
     const bool m_globalOnly; // Own flag or inherited from the parent node
 
     void warnGlobalRead(const QString& key) const;

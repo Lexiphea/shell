@@ -145,7 +145,7 @@ QQmlListProperty<HyprKeyboard> HyprDevices::keyboards() {
     return { this, &m_keyboards };
 }
 
-bool HyprDevices::updateLastIpcObject(const QJsonObject& object) {
+void HyprDevices::updateLastIpcObject(const QJsonObject& object) {
     const auto val = object.value(u"keyboards"_s).toArray();
     bool dirty = false;
 
@@ -183,8 +183,6 @@ bool HyprDevices::updateLastIpcObject(const QJsonObject& object) {
     if (dirty) {
         emit keyboardsChanged();
     }
-
-    return dirty;
 }
 
 } // namespace caelestia::services::hypr

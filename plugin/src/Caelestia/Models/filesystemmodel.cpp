@@ -16,9 +16,7 @@ FileSystemEntry::FileSystemEntry(const QString& path, QString relativePath, QObj
     : QObject(parent)
     , m_fileInfo(path)
     , m_path(path)
-    , m_relativePath(std::move(relativePath))
-    , m_isImageInitialised(false)
-    , m_mimeTypeInitialised(false) {}
+    , m_relativePath(std::move(relativePath)) {}
 
 QString FileSystemEntry::path() const {
     return m_path;
@@ -53,19 +51,16 @@ bool FileSystemEntry::isDir() const {
 };
 
 bool FileSystemEntry::isImage() const {
-    if (!m_isImageInitialised) {
-        const QImageReader reader(m_path);
-        m_isImage = reader.canRead();
-        m_isImageInitialised = true;
+    if (!m_isImage) {
+        m_isImage = QImageReader(m_path).canRead();
     }
-    return m_isImage;
+    return *m_isImage;
 }
 
 QString FileSystemEntry::mimeType() const {
-    if (!m_mimeTypeInitialised) {
+    if (m_mimeType.isEmpty()) {
         static const QMimeDatabase k_db;
         m_mimeType = k_db.mimeTypeForFile(m_path).name();
-        m_mimeTypeInitialised = true;
     }
     return m_mimeType;
 }

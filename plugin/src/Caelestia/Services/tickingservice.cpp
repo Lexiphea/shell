@@ -8,7 +8,7 @@ namespace caelestia::services {
 TickingService::TickingService(QObject* parent)
     : Service(parent)
     , m_timer(new QTimer(this)) {
-    m_timer->setSingleShot(false);
+    m_timer->setInterval(1000);
     QObject::connect(m_timer, &QTimer::timeout, this, [this] {
         tick();
     });
@@ -20,32 +20,19 @@ TickingService::TickingService(QObject* parent)
     });
 }
 
-int TickingService::updateInterval() const {
-    return m_interval;
-}
-
 void TickingService::start() {
-    m_running = true;
-    if (m_interval > 0) {
-        m_timer->start(m_interval);
-    }
+    m_timer->start();
     tick();
 }
 
 void TickingService::stop() {
-    m_running = false;
     m_timer->stop();
 }
 
 void TickingService::applyInterval(int ms) {
-    if (ms <= 0 || ms == m_interval) {
-        return;
+    if (ms > 0 && ms != m_timer->interval()) {
+        m_timer->setInterval(ms);
     }
-    m_interval = ms;
-    if (m_running) {
-        m_timer->start(m_interval);
-    }
-    emit updateIntervalChanged();
 }
 
 } // namespace caelestia::services

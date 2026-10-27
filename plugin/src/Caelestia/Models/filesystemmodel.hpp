@@ -11,6 +11,8 @@
 #include <qqmlintegration.h>
 #include <qqmllist.h>
 
+#include <optional>
+
 namespace caelestia::models {
 
 class FileSystemEntry : public QObject {
@@ -54,11 +56,8 @@ private:
     const QString m_path;
     QString m_relativePath;
 
-    mutable bool m_isImage;
-    mutable bool m_isImageInitialised;
-
+    mutable std::optional<bool> m_isImage;
     mutable QString m_mimeType;
-    mutable bool m_mimeTypeInitialised;
 };
 
 class FileSystemModel : public QAbstractListModel {

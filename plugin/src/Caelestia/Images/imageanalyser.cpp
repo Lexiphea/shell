@@ -111,7 +111,7 @@ void ImageAnalyser::requestUpdate() {
     if (!m_sourceItem || (m_sourceItem->window() && m_sourceItem->window()->isVisible() && m_sourceItem->width() > 0 &&
                              m_sourceItem->height() > 0)) {
         update();
-    } else if (m_sourceItem) {
+    } else {
         if (!m_sourceItem->window()) {
             QObject::connect(m_sourceItem, &QQuickItem::windowChanged, this, &ImageAnalyser::requestUpdate,
                 Qt::SingleShotConnection);
@@ -131,10 +131,6 @@ void ImageAnalyser::requestUpdate() {
 }
 
 void ImageAnalyser::update() {
-    if (m_source.isEmpty() && !m_sourceItem) {
-        return;
-    }
-
     if (m_futureWatcher->isRunning()) {
         m_futureWatcher->cancel();
     }

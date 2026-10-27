@@ -40,8 +40,6 @@ public:
     [[nodiscard]] const FontTokens* font() const;
     [[nodiscard]] static const AnimTokens* anim();
 
-    [[nodiscard]] Q_INVOKABLE static TokensRoot* forScreen(const QString& screen);
-
     static Tokens* qmlAttachedProperties(QObject* object);
 
     void classBegin() override;

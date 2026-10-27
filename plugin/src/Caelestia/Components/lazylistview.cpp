@@ -269,12 +269,8 @@ void LazyListView::setAsynchronous(bool async) {
     emit asynchronousChanged();
 }
 
-LazyListViewAttached* LazyListView::attachedFor(QQuickItem* item) {
-    return qobject_cast<LazyListViewAttached*>(qmlAttachedPropertiesObject<LazyListView>(item, false));
-}
-
-LazyListViewAttached* LazyListView::attachedForCreate(QQuickItem* item) {
-    return qobject_cast<LazyListViewAttached*>(qmlAttachedPropertiesObject<LazyListView>(item, true));
+LazyListViewAttached* LazyListView::attachedFor(QQuickItem* item, bool create) {
+    return qobject_cast<LazyListViewAttached*>(qmlAttachedPropertiesObject<LazyListView>(item, create));
 }
 
 qreal LazyListView::effectiveEstimatedHeight() const {
@@ -690,8 +686,7 @@ std::pair<int, int> LazyListView::computeVisibleRange() const {
 
     while (lo <= hi) {
         const int mid = lo + (hi - lo) / 2;
-        const auto& record = m_layout[mid];
-        const qreal itemBottom = record.targetY + (record.heightKnown ? record.height : effectiveEstimatedHeight());
+        const qreal itemBottom = m_layout[mid].targetY + layoutHeightAt(mid);
 
         if (itemBottom >= vpTop) {
             first = mid;
@@ -858,7 +853,7 @@ LazyListView::DelegateEntry LazyListView::createDelegate(int modelIndex) {
     // Only set adding = true for genuinely new model items (not viewport entries).
     // Cleared on the next frame in updatePolish when the item becomes visible.
     if (modelIndex < static_cast<int>(m_layout.size()) && m_layout[modelIndex].isNew) {
-        auto* attached = attachedForCreate(entry.item);
+        auto* attached = attachedFor(entry.item, true);
         if (attached)
             attached->setAdding(true);
     }

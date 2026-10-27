@@ -12,7 +12,6 @@
 namespace {
 
 Q_LOGGING_CATEGORY(lcCava, "caelestia.services.cava", QtInfoMsg)
-Q_LOGGING_CATEGORY(lcCavaProcessor, "caelestia.services.cava.processor", QtInfoMsg)
 
 } // namespace
 
@@ -31,7 +30,7 @@ CavaProcessor::~CavaProcessor() {
 }
 
 void CavaProcessor::process() {
-    if (!m_plan || m_bars == 0 || !m_out) {
+    if (!m_plan) {
         return;
     }
 
@@ -66,20 +65,16 @@ void CavaProcessor::process() {
 }
 
 void CavaProcessor::setBars(int bars) {
-    if (bars < 0) {
-        qCWarning(lcCavaProcessor) << "setBars: bars must be greater than 0. Setting to 0.";
-        bars = 0;
+    if (m_bars == bars) {
+        return;
     }
 
-    if (m_bars != bars) {
-        m_bars = bars;
-        reload();
-    }
-}
-
-void CavaProcessor::reload() {
+    m_bars = bars;
     cleanup();
-    initCava();
+    if (m_bars > 0) {
+        m_plan = cava_init(m_bars, ac::k_sampleRate, 1, 1, 0.85, 50, 10000);
+        m_out = new double[static_cast<size_t>(m_bars)];
+    }
 }
 
 void CavaProcessor::cleanup() {
@@ -92,15 +87,6 @@ void CavaProcessor::cleanup() {
         delete[] m_out;
         m_out = nullptr;
     }
-}
-
-void CavaProcessor::initCava() {
-    if (m_plan || m_bars == 0) {
-        return;
-    }
-
-    m_plan = cava_init(m_bars, ac::k_sampleRate, 1, 1, 0.85, 50, 10000);
-    m_out = new double[static_cast<size_t>(m_bars)];
 }
 
 CavaProvider::CavaProvider(QObject* parent)

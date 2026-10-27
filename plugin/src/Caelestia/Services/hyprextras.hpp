@@ -40,7 +40,6 @@ private:
     using SocketPtr = QSharedPointer<QLocalSocket>;
 
     QString m_requestSocket;
-    QString m_eventSocket;
     QLocalSocket* m_socket;
     bool m_socketValid;
     bool m_usingLua = false;

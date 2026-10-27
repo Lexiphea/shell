@@ -11,15 +11,15 @@ Memory::Memory(QObject* parent)
     : TickingService(parent) {}
 
 qreal Memory::used() const {
-    return m_used;
+    return static_cast<qreal>(m_used);
 }
 
 qreal Memory::total() const {
-    return m_total;
+    return static_cast<qreal>(m_total);
 }
 
 qreal Memory::percentage() const {
-    return m_total > 0.0 ? m_used / m_total : 0.0;
+    return m_total > 0 ? used() / total() : 0.0;
 }
 
 void Memory::tick() {
@@ -47,13 +47,11 @@ void Memory::tick() {
     }
     const quint64 usedKib = totalKib > availKib ? totalKib - availKib : 0;
 
-    if (totalKib == m_lastTotal && usedKib == m_lastUsed) {
+    if (totalKib == m_total && usedKib == m_used) {
         return;
     }
-    m_lastTotal = totalKib;
-    m_lastUsed = usedKib;
-    m_total = static_cast<qreal>(totalKib);
-    m_used = static_cast<qreal>(usedKib);
+    m_total = totalKib;
+    m_used = usedKib;
     emit changed();
 }
 

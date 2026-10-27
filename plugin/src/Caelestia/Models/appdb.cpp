@@ -57,60 +57,40 @@ void AppEntry::incrementFrequency() {
     emit frequencyChanged();
 }
 
+QVariant AppEntry::entryProperty(const char* name) const {
+    return m_entry ? m_entry->property(name) : QVariant();
+}
+
 QString AppEntry::id() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("id").toString();
+    return entryProperty("id").toString();
 }
 
 QString AppEntry::name() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("name").toString();
+    return entryProperty("name").toString();
 }
 
 QString AppEntry::comment() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("comment").toString();
+    return entryProperty("comment").toString();
 }
 
 QString AppEntry::execString() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("execString").toString();
+    return entryProperty("execString").toString();
 }
 
 QString AppEntry::startupClass() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("startupClass").toString();
+    return entryProperty("startupClass").toString();
 }
 
 QString AppEntry::genericName() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("genericName").toString();
+    return entryProperty("genericName").toString();
 }
 
 QString AppEntry::categories() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("categories").toStringList().join(u" "_s);
+    return entryProperty("categories").toStringList().join(u" "_s);
 }
 
 QString AppEntry::keywords() const {
-    if (!m_entry) {
-        return {};
-    }
-    return m_entry->property("keywords").toStringList().join(u" "_s);
+    return entryProperty("keywords").toStringList().join(u" "_s);
 }
 
 AppDb::AppDb(QObject* parent)
@@ -237,16 +217,16 @@ QList<AppEntry*>& AppDb::getSortedApps() const {
     m_sortedApps = m_apps.values();
 
     // Pre-compute favourite status to avoid repeated regex matching during sort
-    QSet<QString> favSet;
+    QSet<const AppEntry*> favSet;
     favSet.reserve(m_sortedApps.size());
     for (const auto* app : std::as_const(m_sortedApps)) {
         if (isFavourite(app))
-            favSet.insert(app->id());
+            favSet.insert(app);
     }
 
     std::ranges::sort(m_sortedApps, [&favSet](AppEntry* a, AppEntry* b) {
-        const bool aIsFav = favSet.contains(a->id());
-        const bool bIsFav = favSet.contains(b->id());
+        const bool aIsFav = favSet.contains(a);
+        const bool bIsFav = favSet.contains(b);
         if (aIsFav != bIsFav)
             return aIsFav;
         if (a->frequency() != b->frequency())
@@ -292,9 +272,11 @@ void AppDb::updateAppFrequencies() {
 
 void AppDb::updateApps() {
     bool dirty = false;
+    QSet<QString> newIds;
 
     for (const auto& entry : std::as_const(m_entries)) {
         const auto id = entry->property("id").toString();
+        newIds.insert(id);
         if (!m_apps.contains(id)) {
             dirty = true;
             auto* const newEntry = new AppEntry(entry, getFrequency(id), this);
@@ -305,11 +287,6 @@ void AppDb::updateApps() {
             });
             m_apps.insert(id, newEntry);
         }
-    }
-
-    QSet<QString> newIds;
-    for (const auto& entry : std::as_const(m_entries)) {
-        newIds.insert(entry->property("id").toString());
     }
 
     for (auto it = m_apps.begin(); it != m_apps.end();) {

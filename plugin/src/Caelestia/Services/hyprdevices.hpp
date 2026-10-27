@@ -62,7 +62,7 @@ public:
 
     [[nodiscard]] QQmlListProperty<HyprKeyboard> keyboards();
 
-    bool updateLastIpcObject(const QJsonObject& object);
+    void updateLastIpcObject(const QJsonObject& object);
 
 signals:
     void keyboardsChanged();

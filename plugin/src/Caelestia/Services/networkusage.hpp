@@ -52,7 +52,6 @@ private:
 
     quint64 m_prevRx = 0;
     quint64 m_prevTx = 0;
-    bool m_initialized = false;
     QElapsedTimer m_timer;
 };
 

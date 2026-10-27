@@ -31,8 +31,6 @@ private:
     int m_bars;
     QVector<double> m_values;
 
-    void reload();
-    void initCava();
     void cleanup();
 };
 

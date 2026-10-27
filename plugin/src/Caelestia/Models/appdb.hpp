@@ -58,6 +58,8 @@ signals:
 private:
     QObject* m_entry;
     quint32 m_frequency;
+
+    [[nodiscard]] QVariant entryProperty(const char* name) const;
 };
 
 class AppDb : public QObject {
