@@ -302,7 +302,14 @@ Singleton {
     }
 
     function connectToNetwork(ssid: string, password: string, bssid: string, callback: var): void {
-        connectWireless(ssid, password, bssid, callback);
+        // Several paths can report the same attempt, so deliver only the first
+        let delivered = false;
+        connectWireless(ssid, password, bssid, callback ? result => {
+            if (!delivered) {
+                delivered = true;
+                callback(result);
+            }
+        } : null);
     }
 
     function connectWireless(ssid: string, password: string, bssid: string, callback: var, retryCount: int): void {
