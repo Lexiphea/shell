@@ -138,11 +138,6 @@ ColumnLayout {
                 property: "opacity"
                 to: 0
             }
-            Anim {
-                target: root.parent
-                property: "scale"
-                to: 0.7
-            }
         }
 
         ColumnLayout {
