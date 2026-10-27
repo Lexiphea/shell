@@ -184,7 +184,15 @@ void FileSystemModel::setSortReverse(bool sortReverse) {
     m_sortReverse = sortReverse;
     emit sortReverseChanged();
 
-    update();
+    // Rescanning finds no changes, so reorder the existing entries directly
+    if (!m_entries.isEmpty()) {
+        beginResetModel();
+        std::ranges::sort(m_entries, [this](const FileSystemEntry* a, const FileSystemEntry* b) {
+            return compareEntries(a, b);
+        });
+        endResetModel();
+        emit entriesChanged();
+    }
 }
 
 FileSystemModel::Filter FileSystemModel::filter() const {
