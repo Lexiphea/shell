@@ -96,7 +96,7 @@ Item {
                 anchors.fill: parent
                 color: Qt.alpha(Colours.palette.m3scrim, pfp.status === Image.Ready ? 0.4 : 0)
                 opacity: mouse.containsMouse ? 1 : 0
-                layer.enabled: opacity < 1
+                layer.enabled: opacity > 0 && opacity < 1
 
                 Behavior on opacity {
                     Anim {

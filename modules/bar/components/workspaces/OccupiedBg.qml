@@ -26,7 +26,7 @@ Item {
         anchors.margins: -1
 
         opacity: root.colourAnimated.a
-        layer.enabled: opacity < 1 // Forces opacity to apply to children as a single layer
+        layer.enabled: opacity > 0 && opacity < 1 // Forces opacity to apply to children as a single layer
 
         Item {
             anchors.fill: parent

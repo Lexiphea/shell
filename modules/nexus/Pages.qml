@@ -40,7 +40,7 @@ Item {
 
         objectName: "PageContainer"
         anchors.fill: parent
-        layer.enabled: opacity < 1
+        layer.enabled: opacity > 0 && opacity < 1
         Component.onCompleted: root.loadPage(root.nState.currentPageIdx)
     }
 
