@@ -8,6 +8,7 @@ import qs.components
 import qs.components.effects
 import qs.components.filedialog
 import qs.components.images
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -24,6 +25,10 @@ Item {
 
     Behavior on pfpFallbackColour {
         CAnim {}
+    }
+
+    Ref {
+        service: SysInfo
     }
 
     Item {

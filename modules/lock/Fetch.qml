@@ -8,6 +8,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.effects
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -20,6 +21,10 @@ StyledRect {
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
     radius: Tokens.rounding.medium
     color: Colours.tPalette.m3surfaceContainer
+
+    Ref {
+        service: SysInfo
+    }
 
     ColumnLayout {
         id: layout
