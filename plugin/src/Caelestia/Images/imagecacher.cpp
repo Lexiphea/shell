@@ -1,5 +1,6 @@
 #include "imagecacher.hpp"
 
+#include <qcoreapplication.h>
 #include <qcryptographichash.h>
 #include <qdatetime.h>
 #include <qdir.h>
@@ -23,7 +24,14 @@ using Qt::StringLiterals::operator""_s;
 namespace {
 
 struct CacheWritePool {
-    CacheWritePool() { pool.setMaxThreadCount(2); }
+    CacheWritePool() {
+        pool.setMaxThreadCount(2);
+        // Encoding uses QtGui, which is torn down after quitting, so finish pending writes first
+        auto* const app = QCoreApplication::instance();
+        QObject::connect(app, &QCoreApplication::aboutToQuit, app, [this] {
+            pool.waitForDone();
+        });
+    }
 
     QThreadPool pool;
 };
