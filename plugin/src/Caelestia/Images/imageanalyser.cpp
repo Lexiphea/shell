@@ -8,6 +8,8 @@
 #include <qquickwindow.h>
 #include <qtconcurrentrun.h>
 
+#include "imagecacher.hpp"
+
 namespace {
 
 Q_LOGGING_CATEGORY(lcImageAnalyser, "caelestia.imageanalyser", QtInfoMsg)
@@ -151,11 +153,28 @@ void ImageAnalyser::update() {
             QtConcurrent::run([source = m_source, rescaleSize = m_rescaleSize](QPromise<AnalyseResult>& promise) {
                 QImageReader reader(source);
                 const QSize size = reader.size();
-                if (rescaleSize > 0 && reader.supportsOption(QImageIOHandler::ScaledSize) &&
-                    (size.width() > rescaleSize || size.height() > rescaleSize)) {
-                    reader.setScaledSize(size.scaled(rescaleSize, rescaleSize, Qt::KeepAspectRatio));
+                if (rescaleSize <= 0 || (size.width() <= rescaleSize && size.height() <= rescaleSize)) {
+                    analyse(promise, reader.read(), rescaleSize);
+                    return;
                 }
-                analyse(promise, reader.read(), rescaleSize);
+
+                // Only a thumbnail is analysed, so keep it in the image cache rather than decoding the source every
+                // time (a 4K PNG wallpaper takes ~0.2s, and most formats can't decode at a smaller size)
+                const QSize scaled = size.scaled(rescaleSize, rescaleSize, Qt::KeepAspectRatio);
+                const QString cachePath = ImageCacher::cachePathFor(source, scaled, ImageCacher::FillMode::Stretch);
+                if (const QImage cached(cachePath); !cached.isNull()) {
+                    analyse(promise, cached, rescaleSize);
+                    return;
+                }
+
+                if (reader.supportsOption(QImageIOHandler::ScaledSize)) {
+                    reader.setScaledSize(scaled);
+                }
+                const QImage image = reader.read().scaled(scaled, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+                if (!image.isNull()) {
+                    ImageCacher::instance()->schedule(cachePath, image);
+                }
+                analyse(promise, image, rescaleSize);
             }));
     }
 }
