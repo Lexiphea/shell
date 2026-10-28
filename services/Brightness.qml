@@ -51,7 +51,7 @@ Singleton {
 
     onMonitorsChanged: {
         ddcBuses = {};
-        ddcProc.running = true;
+        ddcTimer.restart();
     }
 
     Variants {
@@ -68,6 +68,15 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: root.appleDisplayPresent = text.trim().length > 0
         }
+    }
+
+    // ddcutil's I2C probing holds the NVIDIA driver lock for ~0.5s, which stalls GL setup of new windows until it
+    // finishes, so only probe once they have drawn
+    Timer {
+        id: ddcTimer
+
+        interval: 1000
+        onTriggered: ddcProc.running = true
     }
 
     Process {
