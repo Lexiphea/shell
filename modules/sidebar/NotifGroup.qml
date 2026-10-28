@@ -7,7 +7,6 @@ import Quickshell.Services.Notifications
 import Caelestia.Config
 import qs.components
 import qs.components.effects
-import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -64,10 +63,6 @@ StyledRect {
 
     Behavior on implicitHeight {
         Anim {}
-    }
-
-    Ref {
-        service: Notifs
     }
 
     RowLayout {
