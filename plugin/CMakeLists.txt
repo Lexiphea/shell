@@ -2,6 +2,7 @@ find_package(Qt6 REQUIRED COMPONENTS ShaderTools Core Qml Gui Quick QuickControl
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Pipewire IMPORTED_TARGET libpipewire-0.3 REQUIRED)
 pkg_check_modules(Aubio IMPORTED_TARGET aubio REQUIRED)
+pkg_check_modules(Fftw IMPORTED_TARGET fftw3 REQUIRED)
 pkg_check_modules(Cava IMPORTED_TARGET libcava QUIET)
 if(NOT Cava_FOUND)
     pkg_check_modules(Cava IMPORTED_TARGET cava REQUIRED)

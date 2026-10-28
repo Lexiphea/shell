@@ -1,8 +1,11 @@
 #include "cavaprovider.hpp"
 
+#include <qdir.h>
+#include <qfile.h>
 #include <qloggingcategory.h>
 
 #include <cava/cavacore.h>
+#include <fftw3.h>
 
 #include <cstddef>
 
@@ -12,6 +15,16 @@
 namespace {
 
 Q_LOGGING_CATEGORY(lcCava, "caelestia.services.cava", QtInfoMsg)
+
+using Qt::StringLiterals::operator""_s;
+
+QByteArray wisdomPath() {
+    QString cache = qEnvironmentVariable("XDG_CACHE_HOME");
+    if (cache.isEmpty())
+        cache = QDir::homePath() + u"/.cache"_s;
+    QDir().mkpath(cache + u"/caelestia"_s);
+    return QFile::encodeName(cache + u"/caelestia/fftw-wisdom"_s);
+}
 
 } // namespace
 
@@ -72,7 +85,12 @@ void CavaProcessor::setBars(int bars) {
     m_bars = bars;
     cleanup();
     if (m_bars > 0) {
+        // cava plans its FFTs with FFTW_MEASURE, which times candidate algorithms for ~0.3s of CPU on every start.
+        // FFTW wisdom keeps the winners, so only the first start measures. Nothing else here uses double precision FFTW
+        const QByteArray wisdom = wisdomPath();
+        fftw_import_wisdom_from_filename(wisdom.constData());
         m_plan = cava_init(m_bars, ac::k_sampleRate, 1, 1, 0.85, 50, 10000);
+        fftw_export_wisdom_to_filename(wisdom.constData());
         m_out = new double[static_cast<size_t>(m_bars)];
     }
 }
