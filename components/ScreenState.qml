@@ -1,11 +1,13 @@
+import QtQml
 import Quickshell
 import qs.services
 
 PersistentProperties {
     required property ShellScreen modelData
 
-    // Whether this screen's monitor has focus. Panels stay preloaded only here
     readonly property bool focused: Hypr.monitorFor(modelData) === Hypr.focusedMonitor
+    // Panels preload once the monitor has had focus and stay loaded, so moving between monitors doesn't rebuild them
+    property bool preload
 
     // Drawer visibilities
     property bool bar
@@ -19,4 +21,13 @@ PersistentProperties {
     // Dashboard state
     property int dashboardTab
     property date dashboardDate: new Date()
+
+    onFocusedChanged: {
+        if (focused)
+            preload = true;
+    }
+    Component.onCompleted: {
+        if (focused)
+            preload = true;
+    }
 }

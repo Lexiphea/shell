@@ -37,8 +37,8 @@ Item {
         anchors.margins: CUtils.clamp(anchors.leftMargin - Config.border.thickness, 0, anchors.leftMargin)
         anchors.bottomMargin: 0
 
-        // Preloaded on the focused monitor so the animation starts immediately
-        active: Config.sidebar.enabled && (root.screenState.focused || root.visible)
+        // Preloaded once the monitor has had focus so the animation starts immediately
+        active: Config.sidebar.enabled && (root.screenState.preload || root.visible)
 
         sourceComponent: Content {
             implicitWidth: Tokens.sizes.sidebar.width - content.anchors.leftMargin - content.anchors.margins
