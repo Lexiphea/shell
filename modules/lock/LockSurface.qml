@@ -240,6 +240,7 @@ WlSessionLockSurface {
 
         Loader {
             anchors.fill: parent
+            active: background.visible // Hidden by the blackout, so don't capture the screen for nothing
             sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
         }
     }
