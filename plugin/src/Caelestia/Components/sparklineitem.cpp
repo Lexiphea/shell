@@ -3,6 +3,7 @@
 #include <qpainter.h>
 #include <qpainterpath.h>
 #include <qpen.h>
+#include <qquickwindow.h>
 
 namespace caelestia::components {
 
@@ -12,6 +13,8 @@ SparklineItem::SparklineItem(QQuickItem* parent)
 }
 
 void SparklineItem::paint(QPainter* painter) {
+    m_paintedSlideProgress = m_slideProgress;
+
     const bool has1 = m_line1 && m_line1->count() >= 2;
     const bool has2 = m_line2 && m_line2->count() >= 2;
     if (!has1 && !has2)
@@ -185,7 +188,12 @@ void SparklineItem::setSlideProgress(qreal progress) {
         return;
     m_slideProgress = progress;
     emit slideProgressChanged();
-    update();
+
+    // Sliding only shifts the graph sideways, so repaint once it has moved half a device pixel
+    const qreal stepX = width() / qMax(m_historyLength - 1, 1);
+    const qreal dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+    if (qAbs(progress - m_paintedSlideProgress) * stepX * dpr >= 0.5)
+        update();
 }
 
 int SparklineItem::historyLength() const {

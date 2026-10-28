@@ -83,6 +83,7 @@ private:
     qreal m_line2FillAlpha = 0.2;
     qreal m_maxValue = 1024.0;
     qreal m_slideProgress = 0.0;
+    qreal m_paintedSlideProgress = 0.0;
     int m_historyLength = 30;
     qreal m_lineWidth = 2.0;
 };
