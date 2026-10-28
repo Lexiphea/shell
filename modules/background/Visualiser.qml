@@ -40,7 +40,7 @@ Item {
         id: wrapper
 
         anchors.fill: parent
-        layer.enabled: true
+        layer.enabled: Config.background.visualiser.blur // Only the blur mask needs the bars as a texture
 
         Loader {
             asynchronous: true
