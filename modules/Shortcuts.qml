@@ -75,7 +75,8 @@ Scope {
 
         function list(): string {
             const screenState = ShellState.forActive();
-            return Object.keys(screenState).filter(k => typeof screenState[k] === "boolean").join("\n");
+            // focused and preload are monitor state, not drawers
+            return Object.keys(screenState).filter(k => typeof screenState[k] === "boolean" && !["focused", "preload"].includes(k)).join("\n");
         }
 
         function isOpen(drawer: string): string {
