@@ -31,6 +31,8 @@ Singleton {
         readonly property string desc: modelData.description ? Tr.trMarked(modelData.description) : Tr.trCtx("No description", "launcher action with no description")
         readonly property string icon: modelData.icon ?? "help_outline"
         readonly property list<string> command: modelData.command ?? []
+        // Untranslated, so usage survives a language change
+        readonly property string usageId: `action:${modelData.name}`
 
         function onClicked(list: AppList): void {
             if (command.length === 0)
@@ -38,14 +40,15 @@ Singleton {
 
             if (command[0] === "autocomplete" && command.length > 1) {
                 list.search.text = `${command[1]} `;
-            } else if (command[0] === "setMode" && command.length > 1) {
-                list.screenState.launcher = false;
-                Colours.setMode(command[1]);
-            } else {
-                list.screenState.launcher = false;
-                if (!SessionManager.exec(command))
-                    Exec.app(command);
+                return;
             }
+
+            list.screenState.launcher = false;
+            Apps.registerUse(usageId);
+            if (command[0] === "setMode" && command.length > 1)
+                Colours.setMode(command[1]);
+            else if (!SessionManager.exec(command))
+                Exec.app(command);
         }
     }
 }

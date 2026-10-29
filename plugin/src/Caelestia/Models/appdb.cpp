@@ -27,6 +27,11 @@ void initDb(const QSqlDatabase& db) {
         query.exec(u"ALTER TABLE frequencies ADD COLUMN last_used INTEGER"_s);
 }
 
+double frecency(quint32 frequency, qint64 lastUsed, qint64 now) {
+    return fuzzy::frecency(
+        frequency, lastUsed > 0 ? std::optional(static_cast<std::uint64_t>(lastUsed)) : std::nullopt, now);
+}
+
 } // namespace
 
 namespace caelestia::models {
@@ -89,8 +94,7 @@ void AppEntry::registerLaunch(qint64 time) {
 }
 
 double AppEntry::frecency(qint64 now) const {
-    return fuzzy::frecency(
-        m_frequency, m_lastUsed > 0 ? std::optional(static_cast<std::uint64_t>(m_lastUsed)) : std::nullopt, now);
+    return ::frecency(m_frequency, m_lastUsed, now);
 }
 
 const std::string& AppEntry::searchText(const QString& field) const {
@@ -174,6 +178,7 @@ void AppDb::setPath(const QString& path) {
     db.open();
     initDb(db);
 
+    m_commandUsage.clear();
     updateAppUsage();
 }
 
@@ -250,7 +255,8 @@ void AppDb::registerLaunch(const QString& id) {
             emit appsChanged();
         }
     } else {
-        qCWarning(lcAppDb) << "incrementFrequency: could not find app with id" << id;
+        // Not an app, so a command. Reloaded from the database on its next search
+        m_commandUsage.remove(id);
     }
 }
 
@@ -295,8 +301,14 @@ QObjectList AppDb::search(const QString& query, const QString& field, const QObj
         const auto match = fuzzy::scoreWeighted({ { command->property("name").toString().toStdString(), 1.0 },
                                                     { command->property("desc").toString().toStdString(), 0.5 } },
             fuzzyQuery);
-        if (match.accepted())
-            matches.append({ command, static_cast<double>(match.score) });
+        if (!match.accepted())
+            continue;
+
+        const auto id = command->property("usageId").toString();
+        auto it = m_commandUsage.find(id);
+        if (it == m_commandUsage.end())
+            it = m_commandUsage.insert(id, getUsage(id));
+        matches.append({ command, match.score + fuzzy::FRECENCY_WEIGHT * frecency(it->first, it->second, now) });
     }
 
     // Stable so ties keep the favourite/frecency order, with apps before commands

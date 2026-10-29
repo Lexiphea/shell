@@ -100,10 +100,11 @@ public:
 
     [[nodiscard]] QQmlListProperty<AppEntry> apps();
 
+    // Records a launch of an app, or a use of a command by its usageId
     Q_INVOKABLE void registerLaunch(const QString& id);
 
     // Entries matching the query, best match and most used first. A field limits matching to that field.
-    // Commands (objects with name and desc properties) are ranked in with the apps
+    // Commands (objects with name, desc and usageId properties) are ranked in with the apps
     [[nodiscard]] Q_INVOKABLE QObjectList search(
         const QString& query, const QString& field = {}, const QObjectList& commands = {}) const;
 
@@ -123,6 +124,7 @@ private:
     QList<QRegularExpression> m_favouriteAppsRegex; // pre-regexified m_favouriteApps list
     QHash<QString, AppEntry*> m_apps;
     QList<AppEntry*> m_sortedApps;
+    mutable QHash<QString, std::pair<quint32, qint64>> m_commandUsage; // usageId -> frequency, last used
 
     static QString regexifyString(const QString& original);
     bool sortApps();

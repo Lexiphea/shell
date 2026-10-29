@@ -29,6 +29,11 @@ Singleton {
             Exec.app(entry.command, entry.workingDirectory);
     }
 
+    // Counts towards a command's ranking like launches do for apps
+    function registerUse(usageId: string): void {
+        appDb.registerLaunch(usageId);
+    }
+
     // Commands are ranked in with the apps, except when a prefix narrows the search to an app field
     function search(search: string, commands: list<QtObject>): var {
         const prefix = GlobalConfig.launcher.specialPrefix;
