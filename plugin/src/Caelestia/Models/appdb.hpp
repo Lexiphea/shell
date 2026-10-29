@@ -102,8 +102,10 @@ public:
 
     Q_INVOKABLE void registerLaunch(const QString& id);
 
-    // Entries matching the query, best match and most used first. A field limits matching to that field
-    [[nodiscard]] Q_INVOKABLE QObjectList search(const QString& query, const QString& field = {}) const;
+    // Entries matching the query, best match and most used first. A field limits matching to that field.
+    // Commands (objects with name and desc properties) are ranked in with the apps
+    [[nodiscard]] Q_INVOKABLE QObjectList search(
+        const QString& query, const QString& field = {}, const QObjectList& commands = {}) const;
 
 signals:
     void pathChanged();

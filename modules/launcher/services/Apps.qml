@@ -1,5 +1,6 @@
 pragma Singleton
 
+import QtQml
 import Quickshell
 import Caelestia.Config
 import Caelestia.Models
@@ -28,14 +29,15 @@ Singleton {
             Exec.app(entry.command, entry.workingDirectory);
     }
 
-    function search(search: string): var {
+    // Commands are ranked in with the apps, except when a prefix narrows the search to an app field
+    function search(search: string, commands: list<QtObject>): var {
         const prefix = GlobalConfig.launcher.specialPrefix;
         const special = search.startsWith(prefix) && search.charAt(prefix.length + 1) === " " ? search.charAt(prefix.length) : "";
         const key = prefixKeys[special] ?? "";
         const text = key || special === "t" ? search.slice(prefix.length + 2) : search;
 
         void appDb.apps; // Rerun bindings calling this when the apps or their order change
-        const results = appDb.search(text, key);
+        const results = appDb.search(text, key, special ? [] : commands);
         return special === "t" ? results.filter(a => a.runInTerminal) : results;
     }
 

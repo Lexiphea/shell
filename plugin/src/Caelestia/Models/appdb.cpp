@@ -254,21 +254,21 @@ void AppDb::registerLaunch(const QString& id) {
     }
 }
 
-QObjectList AppDb::search(const QString& query, const QString& field) const {
+QObjectList AppDb::search(const QString& query, const QString& field, const QObjectList& commands) const {
     QObjectList results;
     const fuzzy::Query fuzzyQuery(query.toStdString());
 
     if (fuzzyQuery.empty()) {
-        results.reserve(m_sortedApps.size());
+        results.reserve(m_sortedApps.size() + commands.size());
         for (const auto* app : m_sortedApps) {
             if (app->entry())
                 results << app->entry();
         }
-        return results;
+        return results << commands;
     }
 
     struct Match {
-        AppEntry* app;
+        QObject* item;
         double score;
     };
 
@@ -287,17 +287,26 @@ QObjectList AppDb::search(const QString& query, const QString& field) const {
                       fuzzyQuery)
                 : fuzzy::scoreWeighted({ { app->searchText(field), 1.0 } }, fuzzyQuery);
         if (match.accepted())
-            matches.append({ app, match.score + fuzzy::FRECENCY_WEIGHT * app->frecency(now) });
+            matches.append({ app->entry(), match.score + fuzzy::FRECENCY_WEIGHT * app->frecency(now) });
     }
 
-    // Stable so ties keep the favourite/frecency order
+    // Scored on the same scale, so "lock" ranks the Lock command over Deadlock
+    for (auto* command : commands) {
+        const auto match = fuzzy::scoreWeighted({ { command->property("name").toString().toStdString(), 1.0 },
+                                                    { command->property("desc").toString().toStdString(), 0.5 } },
+            fuzzyQuery);
+        if (match.accepted())
+            matches.append({ command, static_cast<double>(match.score) });
+    }
+
+    // Stable so ties keep the favourite/frecency order, with apps before commands
     std::ranges::stable_sort(matches, [](const Match& a, const Match& b) {
         return a.score > b.score;
     });
 
     results.reserve(matches.size());
     for (const auto& match : std::as_const(matches))
-        results << match.app->entry();
+        results << match.item;
     return results;
 }
 

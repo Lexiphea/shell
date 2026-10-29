@@ -23,7 +23,7 @@ StyledListView {
     // Enter from an app, unless the query starts with "=" to force it
     readonly property var calc: results.calc
     readonly property var results: {
-        const values = Apps.search(displayText).concat(Actions.query(displayText));
+        const values = Apps.search(displayText, Actions.list);
         const query = displayText.trim();
         const forced = query.startsWith("=");
         if (!forced && (values.length > 0 || query.length < 3))
