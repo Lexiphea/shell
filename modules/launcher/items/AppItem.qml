@@ -76,7 +76,6 @@ Item {
         Loader {
             id: favouriteIcon
 
-            asynchronous: true
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
             active: root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)
