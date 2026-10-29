@@ -38,7 +38,8 @@ StyledListView {
     }
 
     function syncDisplayText(): void {
-        if (screenState.launcher)
+        // Also while hidden, so it reopens on fresh results instead of animating away the last search
+        if (screenState.launcher || !visible)
             displayText = search.text;
     }
 
@@ -72,6 +73,7 @@ StyledListView {
     }
 
     Component.onCompleted: displayText = search.text
+    onVisibleChanged: syncDisplayText()
 
     delegate: appItem
 
@@ -168,13 +170,5 @@ StyledListView {
         }
 
         target: root.search
-    }
-
-    Connections {
-        function onLauncherChanged() {
-            root.syncDisplayText();
-        }
-
-        target: root.screenState
     }
 }
