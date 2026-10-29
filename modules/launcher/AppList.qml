@@ -87,11 +87,6 @@ StyledListView {
         Anim {
             property: "y"
         }
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            to: 1
-        }
     }
 
     addDisplaced: Transition {
@@ -99,21 +94,11 @@ StyledListView {
             property: "y"
             type: Anim.StandardSmall
         }
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            to: 1
-        }
     }
 
     displaced: Transition {
         Anim {
             property: "y"
-        }
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            to: 1
         }
     }
 
