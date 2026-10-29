@@ -7,6 +7,9 @@
 #include <qregularexpression.h>
 #include <qtimer.h>
 
+#include <string>
+#include <unordered_map>
+
 namespace caelestia::models {
 
 class AppEntry : public QObject {
@@ -28,13 +31,16 @@ class AppEntry : public QObject {
     Q_PROPERTY(QString keywords READ keywords NOTIFY keywordsChanged)
 
 public:
-    explicit AppEntry(QObject* entry, quint32 frequency, QObject* parent = nullptr);
+    explicit AppEntry(QObject* entry, quint32 frequency, qint64 lastUsed, QObject* parent = nullptr);
 
     [[nodiscard]] QObject* entry() const;
 
     [[nodiscard]] quint32 frequency() const;
-    void setFrequency(quint32 frequency);
-    void incrementFrequency();
+    void setUsage(quint32 frequency, qint64 lastUsed);
+    void registerLaunch(qint64 time);
+
+    // How often and recently the app was launched, in [0, 1]
+    [[nodiscard]] double frecency(qint64 now) const;
 
     [[nodiscard]] QString id() const;
     [[nodiscard]] QString name() const;
@@ -44,6 +50,9 @@ public:
     [[nodiscard]] QString genericName() const;
     [[nodiscard]] QString categories() const;
     [[nodiscard]] QString keywords() const;
+
+    // UTF-8 text of a field, cached for matching
+    [[nodiscard]] const std::string& searchText(const QString& field) const;
 
 signals:
     void frequencyChanged();
@@ -58,6 +67,9 @@ signals:
 private:
     QObject* m_entry;
     quint32 m_frequency;
+    qint64 m_lastUsed; // Unix seconds, 0 if never launched
+    // Node based so references from searchText stay valid when more fields are cached
+    mutable std::unordered_map<QString, std::string> m_searchTexts;
 
     [[nodiscard]] QVariant entryProperty(const char* name) const;
 };
@@ -88,7 +100,10 @@ public:
 
     [[nodiscard]] QQmlListProperty<AppEntry> apps();
 
-    Q_INVOKABLE void incrementFrequency(const QString& id);
+    Q_INVOKABLE void registerLaunch(const QString& id);
+
+    // Entries matching the query, best match and most used first. A field limits matching to that field
+    [[nodiscard]] Q_INVOKABLE QObjectList search(const QString& query, const QString& field = {}) const;
 
 signals:
     void pathChanged();
@@ -105,13 +120,13 @@ private:
     QStringList m_favouriteApps;                    // unedited string list from qml
     QList<QRegularExpression> m_favouriteAppsRegex; // pre-regexified m_favouriteApps list
     QHash<QString, AppEntry*> m_apps;
-    mutable QList<AppEntry*> m_sortedApps;
+    QList<AppEntry*> m_sortedApps;
 
     static QString regexifyString(const QString& original);
-    QList<AppEntry*>& getSortedApps() const;
+    bool sortApps();
     bool isFavourite(const AppEntry* app) const;
-    quint32 getFrequency(const QString& id) const;
-    void updateAppFrequencies();
+    std::pair<quint32, qint64> getUsage(const QString& id) const;
+    void updateAppUsage();
     void updateApps();
 };
 

@@ -1,26 +1,41 @@
 #include "appdb.hpp"
 
+#include <qdatetime.h>
 #include <qloggingcategory.h>
+#include <qqmlengine.h>
 #include <qsqldatabase.h>
 #include <qsqlquery.h>
+#include <qsqlrecord.h>
 #include <quuid.h>
 
+#include <fuzzy/fuzzy-searchable.hpp>
+
 #include <algorithm>
+
+using Qt::StringLiterals::operator""_s;
 
 namespace {
 
 Q_LOGGING_CATEGORY(lcAppDb, "caelestia.appdb", QtInfoMsg)
 
+void initDb(const QSqlDatabase& db) {
+    QSqlQuery query(db);
+    query.exec(u"CREATE TABLE IF NOT EXISTS frequencies (id TEXT PRIMARY KEY, frequency INTEGER, last_used INTEGER)"_s);
+
+    // Databases from before launch times were tracked
+    if (!db.record(u"frequencies"_s).contains(u"last_used"_s))
+        query.exec(u"ALTER TABLE frequencies ADD COLUMN last_used INTEGER"_s);
+}
+
 } // namespace
 
 namespace caelestia::models {
 
-using Qt::StringLiterals::operator""_s;
-
-AppEntry::AppEntry(QObject* entry, unsigned int frequency, QObject* parent)
+AppEntry::AppEntry(QObject* entry, quint32 frequency, qint64 lastUsed, QObject* parent)
     : QObject(parent)
     , m_entry(entry)
-    , m_frequency(frequency) {
+    , m_frequency(frequency)
+    , m_lastUsed(lastUsed) {
     const auto* mo = m_entry->metaObject();
     const auto* tmo = &AppEntry::staticMetaObject;
 
@@ -30,6 +45,20 @@ AppEntry::AppEntry(QObject* entry, unsigned int frequency, QObject* parent)
         const auto thisMetaProp = tmo->property(tmo->indexOfProperty(prop));
         QObject::connect(m_entry, metaProp.notifySignal(), this, thisMetaProp.notifySignal());
     }
+
+    const auto clearSearchTexts = [this] {
+        m_searchTexts.clear();
+    };
+    QObject::connect(this, &AppEntry::nameChanged, this, clearSearchTexts);
+    QObject::connect(this, &AppEntry::commentChanged, this, clearSearchTexts);
+    QObject::connect(this, &AppEntry::execStringChanged, this, clearSearchTexts);
+    QObject::connect(this, &AppEntry::startupClassChanged, this, clearSearchTexts);
+    QObject::connect(this, &AppEntry::genericNameChanged, this, clearSearchTexts);
+    QObject::connect(this, &AppEntry::categoriesChanged, this, clearSearchTexts);
+    QObject::connect(this, &AppEntry::keywordsChanged, this, clearSearchTexts);
+
+    // Entries are handed straight to QML by AppDb::search, so stop the JS GC claiming them
+    QQmlEngine::setObjectOwnership(m_entry, QQmlEngine::CppOwnership);
 
     QObject::connect(m_entry, &QObject::destroyed, this, [this] {
         m_entry = nullptr;
@@ -45,16 +74,30 @@ quint32 AppEntry::frequency() const {
     return m_frequency;
 }
 
-void AppEntry::setFrequency(unsigned int frequency) {
+void AppEntry::setUsage(quint32 frequency, qint64 lastUsed) {
+    m_lastUsed = lastUsed;
     if (m_frequency != frequency) {
         m_frequency = frequency;
         emit frequencyChanged();
     }
 }
 
-void AppEntry::incrementFrequency() {
+void AppEntry::registerLaunch(qint64 time) {
+    m_lastUsed = time;
     m_frequency++;
     emit frequencyChanged();
+}
+
+double AppEntry::frecency(qint64 now) const {
+    return fuzzy::frecency(
+        m_frequency, m_lastUsed > 0 ? std::optional(static_cast<std::uint64_t>(m_lastUsed)) : std::nullopt, now);
+}
+
+const std::string& AppEntry::searchText(const QString& field) const {
+    auto [it, inserted] = m_searchTexts.try_emplace(field);
+    if (inserted)
+        it->second = property(field.toLatin1().constData()).toString().toStdString();
+    return it->second;
 }
 
 QVariant AppEntry::entryProperty(const char* name) const {
@@ -104,9 +147,7 @@ AppDb::AppDb(QObject* parent)
     auto db = QSqlDatabase::addDatabase(u"QSQLITE"_s, m_uuid);
     db.setDatabaseName(u":memory:"_s);
     db.open();
-
-    QSqlQuery query(db);
-    query.exec(u"CREATE TABLE IF NOT EXISTS frequencies (id TEXT PRIMARY KEY, frequency INTEGER)"_s);
+    initDb(db);
 }
 
 QString AppDb::uuid() const {
@@ -131,11 +172,9 @@ void AppDb::setPath(const QString& path) {
     db.close();
     db.setDatabaseName(newPath);
     db.open();
+    initDb(db);
 
-    QSqlQuery query(db);
-    query.exec(u"CREATE TABLE IF NOT EXISTS frequencies (id TEXT PRIMARY KEY, frequency INTEGER)"_s);
-
-    updateAppFrequencies();
+    updateAppUsage();
 }
 
 QObjectList AppDb::entries() const {
@@ -175,7 +214,9 @@ void AppDb::setFavouriteApps(const QStringList& favApps) {
         }
     }
 
-    emit appsChanged();
+    if (sortApps()) {
+        emit appsChanged();
+    }
 }
 
 QString AppDb::regexifyString(const QString& original) {
@@ -187,25 +228,25 @@ QString AppDb::regexifyString(const QString& original) {
 }
 
 QQmlListProperty<AppEntry> AppDb::apps() {
-    return { this, &getSortedApps() };
+    return { this, &m_sortedApps };
 }
 
-void AppDb::incrementFrequency(const QString& id) {
+void AppDb::registerLaunch(const QString& id) {
+    const auto now = QDateTime::currentSecsSinceEpoch();
     const auto db = QSqlDatabase::database(m_uuid);
     QSqlQuery query(db);
 
-    query.prepare(u"INSERT INTO frequencies (id, frequency) "
-                  "VALUES (:id, 1) "
-                  "ON CONFLICT (id) DO UPDATE SET frequency = frequency + 1"_s);
+    query.prepare(u"INSERT INTO frequencies (id, frequency, last_used) "
+                  "VALUES (:id, 1, :now) "
+                  "ON CONFLICT (id) DO UPDATE SET frequency = frequency + 1, last_used = :now"_s);
     query.bindValue(u":id"_s, id);
+    query.bindValue(u":now"_s, now);
     query.exec();
 
     auto* app = m_apps.value(id);
     if (app) {
-        const auto before = getSortedApps();
-        app->incrementFrequency();
-        getSortedApps();
-        if (before != m_sortedApps) {
+        app->registerLaunch(now);
+        if (sortApps()) {
             emit appsChanged();
         }
     } else {
@@ -213,27 +254,82 @@ void AppDb::incrementFrequency(const QString& id) {
     }
 }
 
-QList<AppEntry*>& AppDb::getSortedApps() const {
-    m_sortedApps = m_apps.values();
+QObjectList AppDb::search(const QString& query, const QString& field) const {
+    QObjectList results;
+    const fuzzy::Query fuzzyQuery(query.toStdString());
 
-    // Pre-compute favourite status to avoid repeated regex matching during sort
-    QSet<const AppEntry*> favSet;
-    favSet.reserve(m_sortedApps.size());
-    for (const auto* app : std::as_const(m_sortedApps)) {
-        if (isFavourite(app))
-            favSet.insert(app);
+    if (fuzzyQuery.empty()) {
+        results.reserve(m_sortedApps.size());
+        for (const auto* app : m_sortedApps) {
+            if (app->entry())
+                results << app->entry();
+        }
+        return results;
     }
 
-    std::ranges::sort(m_sortedApps, [&favSet](AppEntry* a, AppEntry* b) {
+    struct Match {
+        AppEntry* app;
+        double score;
+    };
+
+    const auto now = QDateTime::currentSecsSinceEpoch();
+    QList<Match> matches;
+    for (auto* app : m_sortedApps) {
+        if (!app->entry())
+            continue;
+
+        // Same fields and weights as vicinae, plus the generic name so "browser" finds browsers
+        const auto match =
+            field.isEmpty()
+                ? fuzzy::scoreWeighted(
+                      { { app->searchText(u"name"_s), 1.0 }, { app->searchText(u"genericName"_s), 0.6 },
+                          { app->searchText(u"keywords"_s), 0.6 }, { app->searchText(u"categories"_s), 0.6 } },
+                      fuzzyQuery)
+                : fuzzy::scoreWeighted({ { app->searchText(field), 1.0 } }, fuzzyQuery);
+        if (match.accepted())
+            matches.append({ app, match.score + fuzzy::FRECENCY_WEIGHT * app->frecency(now) });
+    }
+
+    // Stable so ties keep the favourite/frecency order
+    std::ranges::stable_sort(matches, [](const Match& a, const Match& b) {
+        return a.score > b.score;
+    });
+
+    results.reserve(matches.size());
+    for (const auto& match : std::as_const(matches))
+        results << match.app->entry();
+    return results;
+}
+
+bool AppDb::sortApps() {
+    auto sorted = m_apps.values();
+    const auto now = QDateTime::currentSecsSinceEpoch();
+
+    // Pre-compute favourite status and frecency to avoid recomputing them during sort
+    QSet<const AppEntry*> favSet;
+    QHash<const AppEntry*, double> frecencies;
+    favSet.reserve(sorted.size());
+    frecencies.reserve(sorted.size());
+    for (const auto* app : std::as_const(sorted)) {
+        if (isFavourite(app))
+            favSet.insert(app);
+        frecencies.insert(app, app->frecency(now));
+    }
+
+    std::ranges::sort(sorted, [&favSet, &frecencies](AppEntry* a, AppEntry* b) {
         const bool aIsFav = favSet.contains(a);
         const bool bIsFav = favSet.contains(b);
         if (aIsFav != bIsFav)
             return aIsFav;
-        if (a->frequency() != b->frequency())
-            return a->frequency() > b->frequency();
+        if (const auto order = frecencies.value(a) <=> frecencies.value(b); order != 0)
+            return order > 0;
         return a->name().localeAwareCompare(b->name()) < 0;
     });
-    return m_sortedApps;
+
+    if (sorted == m_sortedApps)
+        return false;
+    m_sortedApps = sorted;
+    return true;
 }
 
 bool AppDb::isFavourite(const AppEntry* app) const {
@@ -243,29 +339,27 @@ bool AppDb::isFavourite(const AppEntry* app) const {
     });
 }
 
-quint32 AppDb::getFrequency(const QString& id) const {
+std::pair<quint32, qint64> AppDb::getUsage(const QString& id) const {
     const auto db = QSqlDatabase::database(m_uuid);
     QSqlQuery query(db);
 
-    query.prepare(u"SELECT frequency FROM frequencies WHERE id = :id"_s);
+    query.prepare(u"SELECT frequency, last_used FROM frequencies WHERE id = :id"_s);
     query.bindValue(u":id"_s, id);
 
     if (query.exec() && query.next()) {
-        return query.value(0).toUInt();
+        return { query.value(0).toUInt(), query.value(1).toLongLong() };
     }
 
-    return 0;
+    return {};
 }
 
-void AppDb::updateAppFrequencies() {
-    const auto before = getSortedApps();
-
+void AppDb::updateAppUsage() {
     for (auto* app : std::as_const(m_apps)) {
-        app->setFrequency(getFrequency(app->id()));
+        const auto [frequency, lastUsed] = getUsage(app->id());
+        app->setUsage(frequency, lastUsed);
     }
 
-    getSortedApps();
-    if (before != m_sortedApps) {
+    if (sortApps()) {
         emit appsChanged();
     }
 }
@@ -279,9 +373,11 @@ void AppDb::updateApps() {
         newIds.insert(id);
         if (!m_apps.contains(id)) {
             dirty = true;
-            auto* const newEntry = new AppEntry(entry, getFrequency(id), this);
+            const auto [frequency, lastUsed] = getUsage(id);
+            auto* const newEntry = new AppEntry(entry, frequency, lastUsed, this);
             QObject::connect(newEntry, &QObject::destroyed, this, [id, this] {
                 if (m_apps.remove(id)) {
+                    sortApps();
                     emit appsChanged();
                 }
             });
@@ -300,6 +396,7 @@ void AppDb::updateApps() {
     }
 
     if (dirty) {
+        sortApps();
         emit appsChanged();
     }
 }

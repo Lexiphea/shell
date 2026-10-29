@@ -5,15 +5,17 @@ import QtQuick
 import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
+import Caelestia.Models
 import Caelestia.Services
 import qs.services
 import qs.utils
 
-Searcher {
+Singleton {
     id: root
 
-    list: variants.instances
-    useFuzzy: GlobalConfig.launcher.useFuzzy.actions
+    function query(search: string): var {
+        return Fuzzy.search(variants.instances, search, ["name", "desc"], [1, 0.5]);
+    }
 
     Variants {
         id: variants

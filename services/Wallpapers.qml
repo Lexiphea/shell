@@ -8,8 +8,10 @@ import Caelestia.Models
 import qs.services
 import qs.utils
 
-Searcher {
+Singleton {
     id: root
+
+    readonly property list<FileSystemEntry> list: wallpapers.entries
 
     readonly property string currentNamePath: `${Paths.state}/wallpaper/path.txt`
     readonly property list<string> smartArg: GlobalConfig.services.smartScheme ? [] : ["--no-smart"]
@@ -27,6 +29,10 @@ Searcher {
         if (category.includes("/"))
             category = category.slice(0, category.indexOf("/"));
         return category;
+    }
+
+    function query(search: string): var {
+        return Fuzzy.search(list, search, "relativePath");
     }
 
     function setRandom(): void {
@@ -61,13 +67,6 @@ Searcher {
             Colours.showPreview = false;
         }
     }
-
-    list: wallpapers.entries
-    key: "relativePath"
-    useFuzzy: GlobalConfig.launcher.useFuzzy.wallpapers
-    extraOpts: useFuzzy ? ({}) : ({
-            forward: false
-        })
 
     IpcHandler {
         function get(): string {
