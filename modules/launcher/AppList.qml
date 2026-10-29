@@ -43,6 +43,7 @@ StyledListView {
             displayText = search.text;
     }
 
+    reuseItems: true
     model: ScriptModel {
         values: root.results.values
         onValuesChanged: root.currentIndex = 0
