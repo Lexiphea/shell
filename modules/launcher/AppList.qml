@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Widgets
 import Caelestia
 import Caelestia.Config
 import qs.components
@@ -118,6 +119,20 @@ StyledListView {
 
     QtObject {
         id: calcEntry
+    }
+
+    // Loads every app icon at the row size up front, so a new result doesn't stall typing on its first icon load
+    Repeater {
+        model: DesktopEntries.applications
+
+        IconImage {
+            required property DesktopEntry modelData
+
+            visible: false
+            asynchronous: true
+            implicitSize: (Tokens.sizes.launcher.itemHeight - Tokens.padding.small * 2) * 0.8
+            source: Quickshell.iconPath(modelData.icon, "image-missing")
+        }
     }
 
     Component {
