@@ -60,7 +60,7 @@ Item {
                 property: "opacity"
                 from: 1
                 to: 0
-                type: Anim.DefaultEffects
+                type: Anim.FastEffects
             }
             PropertyAction {}
             Anim {
@@ -68,7 +68,7 @@ Item {
                 property: "opacity"
                 from: 0
                 to: 1
-                type: Anim.DefaultEffects
+                type: Anim.FastEffects
             }
         }
     }
@@ -164,6 +164,9 @@ Item {
     Behavior on implicitHeight {
         enabled: root.screenState.launcher
 
-        Anim {}
+        // Follows the result count while typing, so kept quick
+        Anim {
+            type: Anim.FastSpatial
+        }
     }
 }

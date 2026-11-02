@@ -86,6 +86,7 @@ StyledListView {
     move: Transition {
         Anim {
             property: "y"
+            type: Anim.FastSpatial
         }
     }
 
@@ -99,6 +100,7 @@ StyledListView {
     displaced: Transition {
         Anim {
             property: "y"
+            type: Anim.FastSpatial
         }
     }
 
