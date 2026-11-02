@@ -1,11 +1,13 @@
 #pragma once
 
 #include <qqmlintegration.h>
-#include <qquickpainteditem.h>
+#include <qquickitem.h>
 
 namespace caelestia::components {
 
-class WavyLine : public QQuickPaintedItem {
+// A sine wave stroke with round caps, along a line or an arc. Drawn by a shader, so animating the wave only updates
+// uniforms
+class WavyLine : public QQuickItem {
     Q_OBJECT
     QML_NAMED_ELEMENT(WavyLine)
 
@@ -68,8 +70,6 @@ public:
     [[nodiscard]] qreal value() const;
     void setValue(qreal value);
 
-    void paint(QPainter* painter) override;
-
 signals:
     void lineWidthChanged();
     void amplitudeMultiplierChanged();
@@ -84,10 +84,10 @@ signals:
     void radiusChanged();
     void valueChanged();
 
-private:
-    void paintLinear(QPainter* painter);
-    void paintArc(QPainter* painter);
+protected:
+    QSGNode* updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData* data) override;
 
+private:
     int m_lineWidth;
     qreal m_amplitudeMultiplier;
     int m_frequency;
