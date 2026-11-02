@@ -88,10 +88,19 @@ Singleton {
         return Hyprland.monitorFor(screen);
     }
 
-    function hasFullscreen(monitor: HyprlandMonitor): bool {
+    function openSpecialFor(monitor: HyprlandMonitor): HyprlandWorkspace {
         const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
-        const workspace = specialName ? workspaces.values.find(ws => ws.name === specialName) : monitor?.activeWorkspace;
+        return specialName ? workspaces.values.find(ws => ws.name === specialName) ?? null : null;
+    }
+
+    function hasFullscreen(monitor: HyprlandMonitor): bool {
+        const workspace = openSpecialFor(monitor) ?? monitor?.activeWorkspace;
         return workspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
+    }
+
+    // Whether only floating, non-fullscreen windows sit over the monitor's desktop, counting an open special workspace
+    function desktopVisible(monitor: HyprlandMonitor): bool {
+        return [monitor?.activeWorkspace, openSpecialFor(monitor)].every(ws => ws?.toplevels.values.every(t => t.lastIpcObject.floating && !t.lastIpcObject.fullscreen) ?? true);
     }
 
     function trimWsName(name: string): string {

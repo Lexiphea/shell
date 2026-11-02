@@ -16,8 +16,8 @@ Item {
 
     required property ShellScreen screen
     property string source: Wallpapers.current
-    // Videos only play while no tiled window covers them
-    readonly property bool desktopVisible: Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
+    // Videos only play while the desktop shows and the session is unlocked
+    readonly property bool desktopVisible: !ShellState.locked && Hypr.desktopVisible(Hypr.monitorFor(screen))
     property CachingImage current
     property list<CachingImage> images: []
     property bool completed
