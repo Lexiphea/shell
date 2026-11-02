@@ -2,5 +2,6 @@ import QtQuick
 import Quickshell
 
 FontLoader {
-    source: Quickshell.shellPath("assets/google-sans-flex/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf")
+    // Skip the bundled copy when the font is installed, so it isn't loaded twice
+    source: Qt.fontFamilies().includes("Google Sans Flex") ? "" : Quickshell.shellPath("assets/google-sans-flex/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf")
 }
