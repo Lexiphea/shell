@@ -12,4 +12,5 @@ qml_module(caelestia-images
         Qt::Concurrent
         JPEG::JPEG
         wuffs
+        caelestia-util
 )

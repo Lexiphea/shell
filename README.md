@@ -32,7 +32,7 @@ Build:
 - A C++20 compiler (`gcc` or `clang`)
 - `qt6-shadertools`
 - `git` - the version is read from the latest tag. Without tags, pass `-DVERSION=<version> -DGIT_REVISION=<commit>`
-- Development headers for `libpipewire`, `aubio` and `libcava` (included in the Arch packages)
+- Development headers for `libpipewire`, `aubio`, `libcava` and `libjpeg-turbo` (included in the Arch packages)
 
 ## Building
 

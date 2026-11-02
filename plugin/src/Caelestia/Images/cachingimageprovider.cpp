@@ -11,6 +11,7 @@
 #include <memory>
 #include <utility>
 
+#include "util/video.hpp"
 #include "decoder.hpp"
 #include "imagecacher.hpp"
 
@@ -142,14 +143,13 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, FillMode fill
             size.setHeight(qRound(size.width() * sourceSize.height() / static_cast<qreal>(sourceSize.width())));
     }
 
-    // Only small images (thumbnails, avatars) use the lossy disk cache. Full-screen images like the wallpaper
-    // are decoded straight from the source instead, so they never lose quality to a re-encode
+    // Only small images (thumbnails, avatars) are cached, as reading those back is far faster than decoding the source.
+    // A full-screen decode takes about as long as reading a cached copy, and writing one takes over a second. Video
+    // frames are always cached: getting one from ffmpeg takes ~250ms, against ~30ms to read it back
     constexpr qint64 k_maxCachedArea = 1024 * 1024;
-    const bool useCache = static_cast<qint64>(size.width()) * size.height() <= k_maxCachedArea;
-
-    // Try to use cached image
-    const auto cachePath = useCache ? ImageCacher::cachePathFor(sourceInfo, size, fillMode) : QString();
-    if (!cachePath.isEmpty()) {
+    const bool cached = util::isVideo(path) || static_cast<qint64>(size.width()) * size.height() <= k_maxCachedArea;
+    const auto cachePath = cached ? ImageCacher::cachePathFor(sourceInfo, size, fillMode) : QString();
+    if (cached) {
         QImageReader cacheReader(cachePath);
         if (cacheReader.canRead()) {
             result.image = cacheReader.read();

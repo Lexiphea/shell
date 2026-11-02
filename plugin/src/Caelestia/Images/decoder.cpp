@@ -2,6 +2,7 @@
 
 #include <qfile.h>
 #include <qimagereader.h>
+#include <qprocess.h>
 
 #include <jpeglib.h>
 #include <wuffs-v0.4.c>
@@ -11,6 +12,8 @@
 #include <csetjmp>
 #include <cstdio>
 #include <cstdlib>
+
+#include "util/video.hpp"
 
 namespace caelestia::images {
 
@@ -122,6 +125,25 @@ QImage decodeJpeg(QByteArrayView data, const std::function<QSize(QSize)>& target
     return scaledTo(image, target);
 }
 
+DecodeResult decodeVideoFrame(const QString& path, const std::function<QSize(QSize)>& targetFor) {
+    // BMP is uncompressed, so it is cheap for ffmpeg to write and Qt to read. Frame threading would decode several
+    // frames before returning the first, so split the one frame across threads instead (~25% faster)
+    QProcess ffmpeg;
+    ffmpeg.start(u"ffmpeg"_s, { u"-nostdin"_s, u"-v"_s, u"error"_s, u"-thread_type"_s, u"slice"_s, u"-i"_s, path,
+                                  u"-frames:v"_s, u"1"_s, u"-f"_s, u"image2pipe"_s, u"-c:v"_s, u"bmp"_s, u"-"_s });
+    if (!ffmpeg.waitForFinished() || ffmpeg.exitStatus() != QProcess::NormalExit || ffmpeg.exitCode() != 0) {
+        const QString reason = ffmpeg.error() == QProcess::UnknownError
+                                   ? QString::fromUtf8(ffmpeg.readAllStandardError()).trimmed()
+                                   : ffmpeg.errorString();
+        return { {}, u"Failed to decode "_s + path + u": "_s + reason };
+    }
+
+    const QImage image = QImage::fromData(ffmpeg.readAllStandardOutput(), "BMP");
+    if (image.isNull())
+        return { {}, u"Failed to decode "_s + path + u": ffmpeg gave no frame"_s };
+    return { scaledTo(image, targetFor(image.size())), {} };
+}
+
 DecodeResult decodeWithQt(const QString& path, const std::function<QSize(QSize)>& targetFor) {
     QImageReader reader(path);
     const QSize source = reader.size();
@@ -140,6 +162,9 @@ DecodeResult decodeWithQt(const QString& path, const std::function<QSize(QSize)>
 } // namespace
 
 DecodeResult decodeImage(const QString& path, const std::function<QSize(QSize)>& targetFor) {
+    if (util::isVideo(path))
+        return decodeVideoFrame(path, targetFor);
+
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
         return { {}, u"Failed to open "_s + path + u": "_s + file.errorString() };

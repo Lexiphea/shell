@@ -14,7 +14,8 @@ struct DecodeResult {
 };
 
 // Decodes the image at path at the size targetFor picks from the source size. PNGs go through Wuffs, and JPEGs through
-// libjpeg so they can skip most of the work when scaled down. Qt decodes anything else
+// libjpeg so they can skip most of the work when scaled down. Videos give their first frame through ffmpeg. Qt decodes
+// anything else
 DecodeResult decodeImage(const QString& path, const std::function<QSize(QSize)>& targetFor);
 
 } // namespace caelestia::images

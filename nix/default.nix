@@ -20,6 +20,7 @@
   quickshell,
   aubio,
   libjpeg,
+  ffmpeg,
   libcava,
   fftw,
   pipewire,
@@ -48,6 +49,7 @@
       wl-clipboard
       bash
       hyprland
+      ffmpeg
     ]
     ++ extraRuntimeDeps
     ++ lib.optional withCli caelestia-cli;
