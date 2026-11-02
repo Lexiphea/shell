@@ -7,6 +7,8 @@
 #include <optional>
 #include <utility>
 
+#include "util/video.hpp"
+
 namespace caelestia::models {
 
 using Qt::StringLiterals::operator""_s;
@@ -190,11 +192,11 @@ void FileSystemModel::setSortReverse(bool sortReverse) {
     }
 }
 
-FileSystemModel::Filter FileSystemModel::filter() const {
+FileSystemModel::Filters FileSystemModel::filter() const {
     return m_filter;
 }
 
-void FileSystemModel::setFilter(Filter filter) {
+void FileSystemModel::setFilter(Filters filter) {
     if (m_filter == filter) {
         return;
     }
@@ -329,26 +331,40 @@ void FileSystemModel::updateEntriesForDir(const QString& dir) {
 }
 
 FileSystemModel::ScanFilters FileSystemModel::filtersFor(
-    Filter filter, const QStringList& nameFilters, bool showHidden) {
+    Filters filter, const QStringList& nameFilters, bool showHidden) {
     ScanFilters filters;
     filters.nameFilters = nameFilters;
 
-    if (filter == Filter::Images) {
-        const auto formats = QImageReader::supportedImageFormats();
-        for (const auto& format : formats)
-            filters.nameFilters << u"*."_s + QString::fromUtf8(format);
+    const bool images = filter.testFlag(Filter::Images);
+    const bool videos = filter.testFlag(Filter::Videos);
+    const bool allFiles = filter.testFlag(Filter::Files);
+    const bool dirs = filter.testFlag(Filter::Dirs);
 
-        filters.filterFn = [](const QString& path) {
-            return QImageReader(path).canRead();
+    if (!allFiles && (images || videos)) {
+        if (images) {
+            const auto formats = QImageReader::supportedImageFormats();
+            for (const auto& format : formats)
+                filters.nameFilters << u"*."_s + QString::fromUtf8(format);
+        }
+        if (videos) {
+            for (const auto& extension : util::videoExtensions())
+                filters.nameFilters << u"*."_s + extension;
+        }
+
+        filters.filterFn = [images, videos](const QString& path) {
+            if (util::isVideo(path))
+                return videos;
+            return images && QImageReader(path).canRead();
         };
     }
 
-    if (filter == Filter::Files || filter == Filter::Images)
-        filters.filters = QDir::Files;
-    else if (filter == Filter::Dirs)
-        filters.filters = QDir::Dirs | QDir::NoDotAndDotDot;
-    else
-        filters.filters = QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot;
+    const bool files = allFiles || images || videos;
+    if (!files && !dirs)
+        filters.filters = QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot;
+    if (files)
+        filters.filters |= QDir::Files;
+    if (dirs)
+        filters.filters |= QDir::Dirs | QDir::NoDotAndDotDot;
 
     if (showHidden)
         filters.filters |= QDir::Hidden;

@@ -9,4 +9,5 @@ qml_module(caelestia-models
         Qt::Concurrent
         Qt::Sql
         vicinae-fuzzy
+        caelestia-util
 )
