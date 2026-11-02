@@ -6,6 +6,7 @@ import Quickshell
 import Caelestia.Config
 import qs.components.controls
 import qs.services
+import qs.utils
 
 PathView {
     id: root
@@ -53,7 +54,12 @@ PathView {
         onValuesChanged: root.currentIndex = search ? 0 : values.findIndex(w => w.path === Wallpapers.actualCurrent)
     }
 
-    Component.onCompleted: currentIndex = Wallpapers.list.findIndex(w => w.path === Wallpapers.actualCurrent)
+    Component.onCompleted: {
+        currentIndex = Wallpapers.list.findIndex(w => w.path === Wallpapers.actualCurrent);
+        // Previewing a video wallpaper loads the media backend, which would otherwise freeze the UI on the first one
+        if (Wallpapers.list.some(w => Images.isVideo(w.path)))
+            Wallpapers.video.preload();
+    }
     Component.onDestruction: Wallpapers.stopPreview()
 
     onCurrentItemChanged: previewTimer.restart()

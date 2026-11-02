@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Caelestia.Config
+import Caelestia.Images
 import Caelestia.Models
 import qs.services
 import qs.utils
@@ -23,6 +24,10 @@ Singleton {
     property string actualCurrent
     property bool previewColourLock
     property bool pendingPreviewClear
+    // Decodes a video wallpaper once for every screen showing it
+    readonly property SharedVideo video: SharedVideo {
+        source: Images.isVideo(root.current) ? Qt.resolvedUrl(root.current) : ""
+    }
 
     function getCategoryFor(w: FileSystemEntry): string {
         let category = w.parentDir.slice(Paths.wallsdir.length + 1);

@@ -6,9 +6,11 @@ qml_module(caelestia-images
         imagecacher.cpp
         imageanalyser.cpp
         iutils.cpp
+        sharedvideo.cpp
     LIBRARIES
         Qt::Gui
         Qt::Quick
+        Qt::Multimedia
         Qt::Concurrent
         JPEG::JPEG
         wuffs

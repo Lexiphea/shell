@@ -13,6 +13,7 @@ Built with [Quickshell](https://quickshell.outfoxxed.me) for [Hyprland](https://
 - [`quickshell-git`](https://git.outfoxxed.me/quickshell/quickshell) - the git version, not the latest tag
 - `qt6-base` (6.9 or newer), `qt6-declarative`
 - `qt6-imageformats` - the image cache is stored as WebP
+- `qt6-multimedia` with a backend (`qt6-multimedia-ffmpeg`), `ffmpeg` - video wallpapers
 - [`qt6-m3shapes-git`](https://github.com/soramanew/m3shapes)
 - `ddcutil`, `brightnessctl`, `networkmanager`, `lm_sensors`, `power-profiles-daemon`
 - `libpipewire`, `aubio`, `libcava`

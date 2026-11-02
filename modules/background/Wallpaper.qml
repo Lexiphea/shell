@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtMultimedia
+import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -12,7 +14,10 @@ import qs.utils
 Item {
     id: root
 
+    required property ShellScreen screen
     property string source: Wallpapers.current
+    // Videos only play while no tiled window covers them
+    readonly property bool desktopVisible: Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true
     property CachingImage current
     property list<CachingImage> images: []
     property bool completed
@@ -130,6 +135,31 @@ Item {
                 running: false
                 from: 0
                 to: 1
+            }
+
+            Loader {
+                anchors.fill: parent
+                // The first frame shows until the backend is ready
+                active: Images.isVideo(img.path) && Wallpapers.video.ready
+
+                sourceComponent: VideoOutput {
+                    id: videoOut
+
+                    readonly property bool fed: img.path === root.source && root.desktopVisible
+
+                    function update(): void {
+                        if (fed)
+                            Wallpapers.video.addOutput(videoOut);
+                        else
+                            Wallpapers.video.removeOutput(videoOut);
+                    }
+
+                    fillMode: VideoOutput.PreserveAspectCrop
+
+                    onFedChanged: update()
+                    Component.onCompleted: update()
+                    Component.onDestruction: Wallpapers.video.removeOutput(videoOut)
+                }
             }
 
             Timer {
