@@ -15,6 +15,9 @@ public:
 protected:
     virtual void tick() = 0;
 
+    // Runs when the last user releases the service, to free anything tick() holds open
+    virtual void stopped() {}
+
 private:
     void start() final;
     void stop() final;

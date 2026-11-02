@@ -3,6 +3,7 @@
 #include <qprocess.h>
 #include <qqmlintegration.h>
 #include <qstringlist.h>
+#include <qthreadpool.h>
 
 #include "config/enums.hpp"
 #include "tickingservice.hpp"
@@ -40,6 +41,7 @@ signals:
 
 protected:
     void tick() override;
+    void stopped() override;
 
 private:
     // Applies the user override, or probes for the type when it is Auto. Supersedes any
@@ -53,7 +55,8 @@ private:
     void finishNameSource(int index, int generation, QString name);
 
     void readGenericUsage();
-    void startNvidiaUsage();
+    void readNvidiaUsage();
+    void closeNvml();
     void readGpuTemperature();
     void resetUsage();
 
@@ -83,6 +86,7 @@ private:
 
     // Bumped per resolution so callbacks from a superseded probe are dropped
     int m_generation = 0;
+    QThreadPool m_nvmlThread;
     bool m_nvidiaQuerying = false;
 };
 
