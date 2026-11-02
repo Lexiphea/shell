@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qfileinfo.h>
 #include <qimage.h>
 #include <qmutex.h>
 #include <qobject.h>
@@ -22,7 +23,7 @@ public:
     static ImageCacher* instance();
 
     static const QString& cacheDir();
-    static QString cachePathFor(const QString& sourcePath, const QSize& size, FillMode fillMode);
+    static QString cachePathFor(const QFileInfo& source, const QSize& size, FillMode fillMode);
 
     void schedule(const QString& cachePath, const QImage& image);
 

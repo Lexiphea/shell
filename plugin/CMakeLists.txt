@@ -1,5 +1,6 @@
 find_package(Qt6 REQUIRED COMPONENTS ShaderTools Core Qml Gui Quick QuickControls2 Concurrent Sql Network DBus)
 find_package(PkgConfig REQUIRED)
+find_package(JPEG REQUIRED)
 pkg_check_modules(Pipewire IMPORTED_TARGET libpipewire-0.3 REQUIRED)
 pkg_check_modules(Aubio IMPORTED_TARGET aubio REQUIRED)
 pkg_check_modules(Fftw IMPORTED_TARGET fftw3 REQUIRED)

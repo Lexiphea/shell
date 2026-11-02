@@ -8,6 +8,7 @@
 #include <qquickwindow.h>
 #include <qtconcurrentrun.h>
 
+#include "decoder.hpp"
 #include "imagecacher.hpp"
 
 namespace {
@@ -151,30 +152,31 @@ void ImageAnalyser::update() {
         // Copy the members, the UI thread can change them while this runs
         m_futureWatcher->setFuture(
             QtConcurrent::run([source = m_source, rescaleSize = m_rescaleSize](QPromise<AnalyseResult>& promise) {
-                QImageReader reader(source);
-                const QSize size = reader.size();
+                const QSize size = QImageReader(source).size();
                 if (rescaleSize <= 0 || (size.width() <= rescaleSize && size.height() <= rescaleSize)) {
-                    analyse(promise, reader.read(), rescaleSize);
+                    const DecodeResult result = decodeImage(source, std::identity());
+                    analyse(promise, result.image, rescaleSize);
                     return;
                 }
 
                 // Only a thumbnail is analysed, so keep it in the image cache rather than decoding the source every
-                // time (a 4K PNG wallpaper takes ~0.2s, and most formats can't decode at a smaller size)
+                // time (a 4K PNG wallpaper takes ~70ms)
                 const QSize scaled = size.scaled(rescaleSize, rescaleSize, Qt::KeepAspectRatio);
-                const QString cachePath = ImageCacher::cachePathFor(source, scaled, ImageCacher::FillMode::Stretch);
+                const QString cachePath =
+                    ImageCacher::cachePathFor(QFileInfo(source), scaled, ImageCacher::FillMode::Stretch);
                 if (const QImage cached(cachePath); !cached.isNull()) {
                     analyse(promise, cached, rescaleSize);
                     return;
                 }
 
-                if (reader.supportsOption(QImageIOHandler::ScaledSize)) {
-                    reader.setScaledSize(scaled);
-                }
-                const QImage image = reader.read().scaled(scaled, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-                if (!image.isNull()) {
-                    ImageCacher::instance()->schedule(cachePath, image);
-                }
-                analyse(promise, image, rescaleSize);
+                const DecodeResult result = decodeImage(source, [scaled](QSize /*sourceSize*/) {
+                    return scaled;
+                });
+                if (result.image.isNull())
+                    qCWarning(lcImageAnalyser).noquote() << result.error;
+                else
+                    ImageCacher::instance()->schedule(cachePath, result.image);
+                analyse(promise, result.image, rescaleSize);
             }));
     }
 }

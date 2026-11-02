@@ -2,6 +2,7 @@ qml_module(caelestia-images
     URI Caelestia.Images
     SOURCES
         cachingimageprovider.cpp
+        decoder.cpp
         imagecacher.cpp
         imageanalyser.cpp
         iutils.cpp
@@ -9,4 +10,6 @@ qml_module(caelestia-images
         Qt::Gui
         Qt::Quick
         Qt::Concurrent
+        JPEG::JPEG
+        wuffs
 )

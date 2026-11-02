@@ -2,7 +2,6 @@
 
 #include <qcoreapplication.h>
 #include <qfileinfo.h>
-#include <qimage.h>
 #include <qimagereader.h>
 #include <qloggingcategory.h>
 #include <qmutex.h>
@@ -12,6 +11,7 @@
 #include <memory>
 #include <utility>
 
+#include "decoder.hpp"
 #include "imagecacher.hpp"
 
 namespace {
@@ -28,7 +28,6 @@ namespace {
 
 struct DecodePool {
     DecodePool() {
-        pool.setMaxThreadCount(4);
         // Decoding uses QtGui, which is torn down after quitting, so drop queued decodes and finish running ones first
         auto* const app = QCoreApplication::instance();
         QObject::connect(app, &QCoreApplication::aboutToQuit, app, [this] {
@@ -45,16 +44,13 @@ QThreadPool& decodePool() {
     return s_pool.pool;
 }
 
-struct DecodeResult {
-    QImage image;
-    QString error;
-};
+using FillMode = CachingImageProvider::FillMode;
 
-DecodeResult decode(const QString& id, const QSize& requestedSize, ImageCacher::FillMode fillMode);
+DecodeResult decode(const QString& id, const QSize& requestedSize, FillMode fillMode);
 
 class CachingImageResponse final : public QQuickImageResponse {
 public:
-    CachingImageResponse(const QString& id, const QSize& requestedSize, ImageCacher::FillMode fillMode);
+    CachingImageResponse(const QString& id, const QSize& requestedSize, FillMode fillMode);
     ~CachingImageResponse() override;
 
     [[nodiscard]] QQuickTextureFactory* textureFactory() const override;
@@ -73,8 +69,7 @@ private:
     DecodeResult m_result;
 };
 
-CachingImageResponse::CachingImageResponse(
-    const QString& id, const QSize& requestedSize, ImageCacher::FillMode fillMode) {
+CachingImageResponse::CachingImageResponse(const QString& id, const QSize& requestedSize, FillMode fillMode) {
     m_link->response = this;
     decodePool().start([link = m_link, id, requestedSize, fillMode] {
         DecodeResult result = decode(id, requestedSize, fillMode);
@@ -106,13 +101,14 @@ QString CachingImageResponse::errorString() const {
     return m_result.error;
 }
 
-DecodeResult decode(const QString& id, const QSize& requestedSize, ImageCacher::FillMode fillMode) {
+DecodeResult decode(const QString& id, const QSize& requestedSize, FillMode fillMode) {
     DecodeResult result;
     QString path = QString::fromUtf8(id.toUtf8().percentDecoded());
     if (!path.startsWith(u'/'))
         path.prepend(u'/');
 
-    if (!QFileInfo::exists(path)) {
+    const QFileInfo sourceInfo(path);
+    if (!sourceInfo.exists()) {
         result.error = u"Source file does not exist: "_s + path;
         qCWarning(lcCProv).noquote() << result.error;
         return result;
@@ -125,18 +121,15 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, ImageCacher::
     // If both dimensions are missing, return the original directly
     if (needsW && needsH) {
         qCDebug(lcCProv).noquote() << "Given source size is invalid, returning original:" << path;
-        result.image = QImage(path);
-        if (result.image.isNull()) {
-            result.error = u"Failed to decode source: "_s + path;
+        result = decodeImage(path, std::identity());
+        if (result.image.isNull())
             qCWarning(lcCProv).noquote() << result.error;
-        }
         return result;
     }
 
     // If one dimension is missing, derive it from the source aspect ratio
     if (needsW || needsH) {
-        const QImageReader sourceReader(path);
-        const QSize sourceSize = sourceReader.size();
+        const QSize sourceSize = QImageReader(path).size();
         if (!sourceSize.isValid() || sourceSize.isEmpty()) {
             result.error = u"Could not determine source size for: "_s + path;
             qCWarning(lcCProv).noquote() << result.error;
@@ -155,7 +148,7 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, ImageCacher::
     const bool useCache = static_cast<qint64>(size.width()) * size.height() <= k_maxCachedArea;
 
     // Try to use cached image
-    const auto cachePath = useCache ? ImageCacher::cachePathFor(path, size, fillMode) : QString();
+    const auto cachePath = useCache ? ImageCacher::cachePathFor(sourceInfo, size, fillMode) : QString();
     if (!cachePath.isEmpty()) {
         QImageReader cacheReader(cachePath);
         if (cacheReader.canRead()) {
@@ -165,43 +158,37 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, ImageCacher::
         }
     }
 
-    QImageReader sourceReader(path);
-    const QSize sourceSize = sourceReader.size();
-    if (!sourceSize.isValid() || sourceSize.isEmpty()) {
-        result.error = u"Could not determine source size for: "_s + path;
-        qCWarning(lcCProv).noquote() << result.error;
-        return result;
-    }
-
     Qt::AspectRatioMode scaleMode;
     switch (fillMode) {
-    case ImageCacher::FillMode::Crop:
+    case FillMode::Crop:
         scaleMode = Qt::KeepAspectRatioByExpanding;
         break;
-    case ImageCacher::FillMode::Fit:
+    case FillMode::Fit:
         scaleMode = Qt::KeepAspectRatio;
         break;
-    case ImageCacher::FillMode::Stretch:
+    case FillMode::Stretch:
         scaleMode = Qt::IgnoreAspectRatio;
         break;
     }
 
-    sourceReader.setScaledSize(sourceSize.scaled(size, scaleMode));
-    QImage image = sourceReader.read();
-    if (image.isNull()) {
-        result.error = u"Failed to decode source: "_s + path + u": "_s + sourceReader.errorString();
+    result = decodeImage(path, [&](QSize source) {
+        return source.scaled(size, scaleMode);
+    });
+    if (result.image.isNull()) {
         qCWarning(lcCProv).noquote() << result.error;
         return result;
     }
 
-    if (fillMode == ImageCacher::FillMode::Stretch) {
-        result.image = image;
-    } else {
-        result.image = QImage(size, QImage::Format_ARGB32);
-        result.image.fill(Qt::transparent);
+    // Crop or pad to the requested size
+    if (result.image.size() != size) {
+        QImage canvas(size, QImage::Format_ARGB32_Premultiplied);
+        canvas.fill(Qt::transparent);
 
-        QPainter painter(&result.image);
-        painter.drawImage((size.width() - image.width()) / 2, (size.height() - image.height()) / 2, image);
+        QPainter painter(&canvas);
+        painter.drawImage(
+            (size.width() - result.image.width()) / 2, (size.height() - result.image.height()) / 2, result.image);
+        painter.end();
+        result.image = canvas;
     }
 
     ImageCacher::instance()->schedule(cachePath, result.image);

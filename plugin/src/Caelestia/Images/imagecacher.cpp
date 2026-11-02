@@ -64,18 +64,17 @@ const QString& ImageCacher::cacheDir() {
     return k_dir;
 }
 
-QString ImageCacher::cachePathFor(const QString& sourcePath, const QSize& size, FillMode fillMode) {
-    const QFileInfo info(sourcePath);
-    const QString canonicalPath = info.canonicalFilePath();
+QString ImageCacher::cachePathFor(const QFileInfo& source, const QSize& size, FillMode fillMode) {
+    const QString canonicalPath = source.canonicalFilePath();
     if (canonicalPath.isEmpty())
         return {};
 
     QCryptographicHash hash(QCryptographicHash::Sha256);
     hash.addData(canonicalPath.toUtf8());
     hash.addData(QByteArrayView("\0", 1));
-    hash.addData(QByteArray::number(info.size()));
+    hash.addData(QByteArray::number(source.size()));
     hash.addData(QByteArrayView("\0", 1));
-    hash.addData(QByteArray::number(info.lastModified().toMSecsSinceEpoch()));
+    hash.addData(QByteArray::number(source.lastModified().toMSecsSinceEpoch()));
 
     const QString filename = u"%1@%2x%3-%4.webp"_s.arg(QString::fromLatin1(hash.result().toHex()),
         QString::number(size.width()), QString::number(size.height()), fillSuffix(fillMode));
