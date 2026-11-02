@@ -49,15 +49,16 @@ public:
         m_count = std::min(m_count + n, cap);
     }
 
-    // Copies the newest min(out.size(), count()) values, oldest first, to the start of out
+    // Copies out.size() values starting at index first (0 is the oldest) to out
     template <typename U, typename Convert = std::identity>
-    void copyLatest(std::span<U> out, Convert convert = {}) const {
-        const auto n = std::min<qsizetype>(std::ssize(out), m_count);
+    void copy(qsizetype first, std::span<U> out, Convert convert = {}) const {
+        const auto n = static_cast<qsizetype>(out.size());
+        Q_ASSERT(first >= 0 && first + n <= m_count);
         if (n == 0)
             return;
 
         const auto cap = capacity();
-        const auto start = (m_head - n + cap) % cap;
+        const auto start = (m_head - m_count + first + cap) % cap;
         const auto firstRun = std::min(n, cap - start);
         std::transform(m_data.begin() + start, m_data.begin() + start + firstRun, out.begin(), convert);
         std::transform(m_data.begin(), m_data.begin() + (n - firstRun), out.begin() + firstRun, convert);

@@ -33,7 +33,7 @@ namespace caelestia::services {
 CavaProcessor::CavaProcessor(QObject* parent)
     : AudioProcessor(parent)
     , m_plan(nullptr)
-    , m_in(new double[ac::k_chunkSize])
+    , m_in(new double[ac::k_bufferSize])
     , m_out(nullptr)
     , m_bars(0) {};
 
@@ -47,9 +47,8 @@ void CavaProcessor::process() {
         return;
     }
 
-    const int count = static_cast<int>(AudioCollector::instance().readChunk(m_in));
-
-    // Process in data via cava
+    // cava keeps its own window and wants only the new samples. With none it still lets the bars fall
+    const int count = static_cast<int>(AudioCollector::instance().readNew(m_in, ac::k_bufferSize, m_cursor));
     cava_execute(m_in, count, m_out, m_plan);
 
     // Apply monstercat filter

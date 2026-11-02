@@ -30,6 +30,7 @@ private:
 
     int m_bars;
     QVector<double> m_values;
+    quint64 m_cursor = 0;
 
     void cleanup();
 };

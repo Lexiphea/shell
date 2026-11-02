@@ -3,6 +3,7 @@
 #include <qloggingcategory.h>
 
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <span>
 #include <stop_token>
@@ -112,7 +113,7 @@ void PipeWireWorker::handleTimeout(void* data, uint64_t /*expirations*/) {
 
     if (!self->m_idle) {
         if (++self->m_pausedTicks < 10) {
-            self->m_collector->clearBuffer();
+            self->m_collector->pushSilence();
         } else {
             self->m_idle = true;
             timespec timeout = { .tv_sec = 0, .tv_nsec = 500 * SPA_NSEC_PER_MSEC };
@@ -173,6 +174,15 @@ void AudioCollector::clearBuffer() {
     m_discardPending.store(true, std::memory_order_release);
 }
 
+void AudioCollector::pushSilence() {
+    static constexpr std::array<float, ac::k_chunkSize> silence{};
+
+    const std::scoped_lock lock(m_samplesLock);
+    m_samples.push(std::span<const float>(silence));
+    m_written += ac::k_chunkSize;
+    m_discardPending.store(true, std::memory_order_release);
+}
+
 void AudioCollector::loadChunk(const qint16* samples, quint32 count) {
     if (m_discardPending.exchange(false, std::memory_order_acquire)) {
         m_pending.clear();
@@ -189,41 +199,38 @@ void AudioCollector::loadChunk(const qint16* samples, quint32 count) {
         return;
     }
 
+    m_written += static_cast<quint64>(m_pending.count()) + count;
     m_pending.pushTo(m_samples);
     m_pending.clear();
     m_samples.push(std::span(samples, count), toFloat);
 }
 
-template <typename T> quint32 AudioCollector::readLatest(T* out, quint32 count) {
-    if (count == 0 || count > ac::k_chunkSize) {
-        count = ac::k_chunkSize;
-    }
-
-    const std::span dest(out, count);
+template <typename T> quint32 AudioCollector::readNewImpl(T* out, quint32 max, quint64& cursor) {
     const std::scoped_lock lock(m_samplesLock);
 
-    // Pad the front with silence until the window has filled after a clear
-    const auto available = static_cast<size_t>(std::min(m_samples.count(), static_cast<qsizetype>(count)));
-    std::ranges::fill(dest.first(count - available), T(0));
-    m_samples.copyLatest(dest.last(available), [](float sample) {
+    // Samples overwritten or cleared before this read are skipped
+    const auto unread = static_cast<qsizetype>(std::min(m_written - cursor, static_cast<quint64>(m_samples.count())));
+    const auto n = std::min<qsizetype>(unread, max);
+    m_samples.copy(m_samples.count() - unread, std::span(out, static_cast<size_t>(n)), [](float sample) {
         return static_cast<T>(sample);
     });
+    cursor = m_written - static_cast<quint64>(unread - n);
 
-    return count;
+    return static_cast<quint32>(n);
 }
 
-quint32 AudioCollector::readChunk(float* out, quint32 count) {
-    return readLatest(out, count);
+quint32 AudioCollector::readNew(float* out, quint32 max, quint64& cursor) {
+    return readNewImpl(out, max, cursor);
 }
 
-quint32 AudioCollector::readChunk(double* out, quint32 count) {
-    return readLatest(out, count);
+quint32 AudioCollector::readNew(double* out, quint32 max, quint64& cursor) {
+    return readNewImpl(out, max, cursor);
 }
 
 AudioCollector::AudioCollector(QObject* parent)
     : Service(parent)
-    , m_samples(ac::k_chunkSize)
-    , m_pending(ac::k_chunkSize)
+    , m_samples(ac::k_bufferSize)
+    , m_pending(ac::k_bufferSize)
     , m_discardPending(false) {}
 
 AudioCollector::~AudioCollector() {
