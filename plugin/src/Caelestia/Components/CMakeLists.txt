@@ -28,3 +28,12 @@ qt_add_shaders(caelestia-components "components_shaders"
         shaders/wavyline.frag
         shaders/wavyline.vert
 )
+
+# Used from QML ShaderEffects, so built for the same GLSL versions as Qt's default vertex shader
+qt_add_shaders(caelestia-components "components_effect_shaders"
+    BATCHABLE OPTIMIZED NOHLSL NOMSL
+    GLSL "100es,120,150"
+    PREFIX "/"
+    FILES
+        shaders/covermask.frag
+)
