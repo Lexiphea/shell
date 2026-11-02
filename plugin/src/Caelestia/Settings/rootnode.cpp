@@ -40,7 +40,9 @@ void RootNode::reloadFromFile() {
 }
 
 void RootNode::saveToFile() {
-    m_file->write(toJson());
+    m_file->write([this] {
+        return toJson();
+    });
 }
 
 } // namespace caelestia::settings

@@ -5,6 +5,8 @@
 #include <qobject.h>
 #include <qtimer.h>
 
+#include <functional>
+
 namespace caelestia::settings {
 
 class SettingsFile : public QObject {
@@ -21,7 +23,9 @@ public:
     explicit SettingsFile(QString path, QObject* parent = nullptr);
 
     [[nodiscard]] std::optional<QJsonValue> read() const;
-    void write(const QJsonValue& json);
+    // Saves what serialize returns. It runs only when the save does, at most every 500ms, so a slider drag doesn't
+    // serialise the whole tree on every change
+    void write(std::function<QJsonValue()> serialize);
 
     LoadResult load(bool reportErrors = true);
 
@@ -37,7 +41,7 @@ private:
     QTimer* m_loadDebounce;
     int m_loadRetries;
     std::optional<QJsonValue> m_lastData;
-    std::optional<QJsonValue> m_pendingWrite;
+    std::function<QJsonValue()> m_pendingWrite;
 
     void onFileChanged();
     void onDirChanged();

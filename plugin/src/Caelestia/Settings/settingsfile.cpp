@@ -55,8 +55,8 @@ std::optional<QJsonValue> SettingsFile::read() const {
     return m_lastData;
 }
 
-void SettingsFile::write(const QJsonValue& json) {
-    m_pendingWrite = json;
+void SettingsFile::write(std::function<QJsonValue()> serialize) {
+    m_pendingWrite = std::move(serialize);
     save();
 }
 
@@ -150,7 +150,7 @@ SettingsFile::LoadResult SettingsFile::load(bool reportErrors) {
         return LoadResult::Unchanged;
 
     // Clear pending write, stuff loaded from file should take precedence
-    m_pendingWrite = std::nullopt;
+    m_pendingWrite = nullptr;
 
     m_lastData = json;
     emit changed();
@@ -176,9 +176,8 @@ void SettingsFile::save() {
     // Debounce regardless of whether the save actually succeeded
     m_saveDebounce->start();
 
-    const auto json = m_pendingWrite.value();
+    const auto json = std::exchange(m_pendingWrite, nullptr)();
     const auto data = (json.isObject() ? QJsonDocument(json.toObject()) : QJsonDocument(json.toArray())).toJson();
-    m_pendingWrite = std::nullopt;
 
     const auto dir = QFileInfo(m_path).absolutePath();
 
