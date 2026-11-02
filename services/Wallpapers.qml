@@ -95,12 +95,8 @@ Singleton {
                 root.actualCurrent = wall;
             else
                 root.setWallpaper(root.fallback);
-            root.previewColourLock = false;
         }
-        onLoadFailed: {
-            root.setWallpaper(root.fallback);
-            root.previewColourLock = false;
-        }
+        onLoadFailed: root.setWallpaper(root.fallback)
     }
 
     FileSystemModel {

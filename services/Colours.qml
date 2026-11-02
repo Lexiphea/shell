@@ -109,7 +109,11 @@ Singleton {
         path: `${Paths.state}/scheme.json`
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root.load(text(), false)
+        onLoaded: {
+            root.load(text(), false);
+            // Keep showing the preview colours until the new scheme is in. The CLI writes it after the wallpaper path
+            Wallpapers.previewColourLock = false;
+        }
     }
 
     ImageAnalyser {
