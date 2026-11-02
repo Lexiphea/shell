@@ -54,7 +54,7 @@ Scope {
     DrawerShortcut {
         name: "sidebar"
         description: "Toggle sidebar"
-        available: Config.sidebar.enabled
+        available: GlobalConfig.sidebar.enabled
     }
 
     DrawerShortcut {
