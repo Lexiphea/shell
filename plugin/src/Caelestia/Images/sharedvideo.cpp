@@ -4,6 +4,7 @@
 #include <qtimer.h>
 
 #include <chrono>
+#include <cstring>
 #include <utility>
 
 extern "C" {
@@ -17,9 +18,30 @@ namespace {
 using namespace std::chrono_literals;
 
 constexpr auto k_releaseDelay = 3s;
+constexpr auto k_idleRelease = 30s;
 
 QVideoSink* sinkOf(QObject* output) {
     return output ? output->property("videoSink").value<QVideoSink*>() : nullptr;
+}
+
+// A copy in system memory, so showing it doesn't keep the decoder that made the frame alive
+QVideoFrame detached(QVideoFrame frame) {
+    if (!frame.map(QVideoFrame::ReadOnly))
+        return {};
+
+    QVideoFrame copy(frame.surfaceFormat());
+    if (copy.map(QVideoFrame::WriteOnly)) {
+        for (int i = 0; i < frame.planeCount(); ++i) {
+            const int rows = std::min(
+                frame.mappedBytes(i) / frame.bytesPerLine(i), copy.mappedBytes(i) / copy.bytesPerLine(i));
+            const auto len = static_cast<size_t>(std::min(frame.bytesPerLine(i), copy.bytesPerLine(i)));
+            for (int y = 0; y < rows; ++y)
+                std::memcpy(copy.bits(i) + y * copy.bytesPerLine(i), frame.bits(i) + y * frame.bytesPerLine(i), len);
+        }
+        copy.unmap();
+    }
+    frame.unmap();
+    return copy;
 }
 
 } // namespace
@@ -33,6 +55,10 @@ SharedVideo::SharedVideo(QObject* parent)
     // Qt Multimedia, so the cap applies nowhere else
     av_cpu_force_count(2);
     m_context.moveToThread(&m_thread);
+
+    m_idleTimer.setSingleShot(true);
+    m_idleTimer.setInterval(k_idleRelease);
+    connect(&m_idleTimer, &QTimer::timeout, this, &SharedVideo::releaseIdle);
 }
 
 SharedVideo::~SharedVideo() {
@@ -74,6 +100,7 @@ void SharedVideo::setSource(const QUrl& source) {
     if (source.isEmpty()) {
         onDecoderThread([this] {
             releasePlayer();
+            m_resumePosition = -1;
         });
         // The outputs keep their own copy of the last frame
         for (const auto& output : std::as_const(m_outputs)) {
@@ -84,6 +111,7 @@ void SharedVideo::setSource(const QUrl& source) {
         onDecoderThread([this, source, generation = m_generation] {
             if (!m_player)
                 createPlayer();
+            m_resumePosition = -1;
             m_player->setSource(source);
             // After setSource, which stops the old source's frames
             m_decodingGeneration = generation;
@@ -107,6 +135,8 @@ void SharedVideo::addOutput(QObject* output) {
         return;
 
     m_outputs << sink;
+    if (!m_viewers.contains(sink))
+        m_viewers << sink;
     // Show the current frame straight away rather than waiting for the next one
     if (m_frame.isValid())
         sink->setVideoFrame(m_frame);
@@ -123,11 +153,43 @@ void SharedVideo::updatePlayback() {
     if (m_source.isEmpty())
         return;
 
-    onDecoderThread([this, play = !m_outputs.isEmpty()] {
-        if (play)
-            m_player->play();
-        else
-            m_player->pause();
+    const bool play = !m_outputs.isEmpty();
+    if (play)
+        m_idleTimer.stop();
+    else if (!m_idleTimer.isActive())
+        m_idleTimer.start();
+
+    onDecoderThread([this, play, source = m_source, generation = m_generation] {
+        m_playing = play;
+        // Released while idle, so pick up from the same spot
+        if (play && !m_player) {
+            createPlayer();
+            m_player->setSource(source);
+            m_decodingGeneration = generation;
+        }
+        applyPlayback();
+    });
+}
+
+void SharedVideo::releaseIdle() {
+    if (!m_outputs.isEmpty() || m_source.isEmpty())
+        return;
+
+    // Removed outputs still show the last frame, which would keep the decoder alive, so swap in a copy
+    if (auto copy = detached(m_frame); copy.isValid()) {
+        m_frame = copy;
+        m_viewers.removeAll(nullptr);
+        for (const auto& sink : std::as_const(m_viewers))
+            sink->setVideoFrame(m_frame);
+    }
+
+    onDecoderThread([this] {
+        if (!m_player)
+            return;
+        // Still loading after a previous release, so its position isn't known yet
+        if (m_resumePosition < 0)
+            m_resumePosition = m_player->position();
+        releasePlayer();
     });
 }
 
@@ -151,12 +213,30 @@ void SharedVideo::createPlayer() {
     m_player = std::make_unique<QMediaPlayer>();
     m_player->setLoops(QMediaPlayer::Infinite);
     m_player->setVideoSink(m_sink.get());
+    // Seeking or playing while the media loads would be ignored or start from the beginning, so resume once loaded
+    QObject::connect(m_player.get(), &QMediaPlayer::mediaStatusChanged, m_player.get(),
+        [this](QMediaPlayer::MediaStatus status) {
+            if (status != QMediaPlayer::LoadedMedia || m_resumePosition < 0)
+                return;
+            m_player->setPosition(std::exchange(m_resumePosition, -1));
+            applyPlayback();
+        });
     backendLoaded();
 }
 
 void SharedVideo::releasePlayer() {
     m_player.reset();
     m_sink.reset();
+}
+
+void SharedVideo::applyPlayback() {
+    if (!m_player || m_resumePosition >= 0)
+        return;
+
+    if (m_playing)
+        m_player->play();
+    else
+        m_player->pause();
 }
 
 void SharedVideo::backendLoaded() {
