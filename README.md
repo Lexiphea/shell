@@ -72,6 +72,8 @@ PartOf=graphical-session.target
 [Service]
 Environment=QML2_IMPORT_PATH=%h/caelestia-shell/build/qml:
 Environment=CAELESTIA_LIB_DIR=%h/caelestia-shell/build/lib
+# Fewer jemalloc arenas, so memory freed on one thread can be reused by the others (~190 MB less heap)
+Environment=MALLOC_CONF=narenas:4
 Type=simple
 ExecStartPre=-/usr/bin/qs -c caelestia kill
 ExecStart=/usr/bin/caelestia shell

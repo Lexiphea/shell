@@ -99,6 +99,8 @@ in {
           Environment =
             [
               "QT_QPA_PLATFORM=wayland"
+              # Fewer jemalloc arenas, so memory freed on one thread can be reused by the others (~190 MB less heap)
+              "MALLOC_CONF=narenas:4"
             ]
             ++ cfg.systemd.environment;
 
