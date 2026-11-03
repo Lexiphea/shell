@@ -13,6 +13,7 @@ qml_module(caelestia-images
         Qt::Multimedia
         Qt::Concurrent
         JPEG::JPEG
+        PkgConfig::Avutil
         wuffs
         caelestia-util
 )

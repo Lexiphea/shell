@@ -6,6 +6,10 @@
 #include <chrono>
 #include <utility>
 
+extern "C" {
+#include <libavutil/cpu.h>
+}
+
 namespace caelestia::images {
 
 namespace {
@@ -23,6 +27,11 @@ QVideoSink* sinkOf(QObject* output) {
 SharedVideo::SharedVideo(QObject* parent)
     : QObject(parent) {
     m_thread.setObjectName(QStringLiteral("SharedVideo"));
+    // Qt opens decoders with threads=auto, one per core plus one. For H.264 each frame thread keeps its own tables and
+    // pictures (~10 MB per thread at 4K), though with hardware decoding the GPU does the work. Three threads keep
+    // that small and still decode 4K60 in software when there's no hardware decoder. FFmpeg in this process is only
+    // Qt Multimedia, so the cap applies nowhere else
+    av_cpu_force_count(2);
     m_context.moveToThread(&m_thread);
 }
 
