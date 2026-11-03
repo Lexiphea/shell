@@ -7,6 +7,7 @@
 #include <qqmlintegration.h>
 #include <qquickitem.h>
 #include <qrect.h>
+#include <qvarlengtharray.h>
 #include <qvariant.h>
 #include <qvector.h>
 
@@ -237,10 +238,13 @@ private:
 
     // Delegate lifecycle
     void syncDelegates();
-    [[nodiscard]] QList<int> delegatesOutsideViewport(int first, int last, const QRectF& viewport) const;
-    [[nodiscard]] QList<int> missingDelegates(int first, int last) const;
-    int destroyDelegates(const QList<int>& indices, int budget);
-    int createDelegates(const QList<int>& indices, int budget);
+    // Index lists built on each polish; sized for a viewport's worth of delegates
+    using IndexList = QVarLengthArray<int, 32>;
+
+    [[nodiscard]] IndexList delegatesOutsideViewport(int first, int last, const QRectF& viewport) const;
+    [[nodiscard]] IndexList missingDelegates(int first, int last) const;
+    int destroyDelegates(const IndexList& indices, int budget);
+    int createDelegates(const IndexList& indices, int budget);
     DelegateEntry createDelegate(int modelIndex);
     void connectDelegate(const DelegateEntry& entry);
     [[nodiscard]] int indexOfDelegate(QQuickItem* item) const;

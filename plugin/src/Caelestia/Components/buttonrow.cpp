@@ -1,5 +1,7 @@
 #include "buttonrow.hpp"
 
+#include <qvarlengtharray.h>
+
 namespace caelestia::components {
 
 ButtonRow::ButtonRow(QQuickItem* parent)
@@ -60,7 +62,7 @@ void ButtonRow::invalidate() {
 void ButtonRow::relayout() {
     const auto allChildren = childItems();
 
-    QList<QQuickItem*> validChildren;
+    QVarLengthArray<QQuickItem*, 8> validChildren;
     for (auto* const child : allChildren) {
         if (child->isVisible() && !child->inherits("QQuickRepeater"))
             validChildren.append(child);
@@ -92,8 +94,7 @@ void ButtonRow::relayout() {
 
     const auto widthPerItem = (width() - totalSpacing - reservedWidth) / static_cast<qreal>(fillWidthCount);
 
-    QList<qreal> baseWidths;
-    baseWidths.reserve(nChildren);
+    QVarLengthArray<qreal, 8> baseWidths;
     for (const auto* child : validChildren)
         baseWidths.append(child->property("fillWidth").toBool() ? widthPerItem : child->implicitWidth());
 

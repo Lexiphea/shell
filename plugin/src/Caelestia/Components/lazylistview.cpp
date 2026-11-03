@@ -736,8 +736,8 @@ void LazyListView::syncDelegates() {
 
 // Delegates safe to destroy - outside [first, last] and no longer visually
 // overlapping the viewport, so nothing mid-animation disappears.
-QList<int> LazyListView::delegatesOutsideViewport(int first, int last, const QRectF& viewport) const {
-    QList<int> outside;
+LazyListView::IndexList LazyListView::delegatesOutsideViewport(int first, int last, const QRectF& viewport) const {
+    IndexList outside;
 
     for (auto it = m_delegates.constBegin(); it != m_delegates.constEnd(); ++it) {
         if (it.key() >= first && it.key() <= last)
@@ -757,11 +757,11 @@ QList<int> LazyListView::delegatesOutsideViewport(int first, int last, const QRe
     return outside;
 }
 
-QList<int> LazyListView::missingDelegates(int first, int last) const {
+LazyListView::IndexList LazyListView::missingDelegates(int first, int last) const {
     if (first < 0)
         return {};
 
-    QList<int> missing;
+    IndexList missing;
     for (int i = first; i <= last; ++i) {
         if (!m_delegates.contains(i))
             missing.append(i);
@@ -770,11 +770,10 @@ QList<int> LazyListView::missingDelegates(int first, int last) const {
     return missing;
 }
 
-int LazyListView::destroyDelegates(const QList<int>& indices, int budget) {
+int LazyListView::destroyDelegates(const IndexList& indices, int budget) {
     // Take entries out of the maps first so destruction cannot observe
     // a delegate that is already unreachable from the view.
-    QVector<DelegateEntry> removed;
-    removed.reserve(std::min(budget, static_cast<int>(indices.size())));
+    QVarLengthArray<DelegateEntry, k_asyncBatchDestroy> removed;
 
     for (const int idx : indices) {
         if (static_cast<int>(removed.size()) >= budget)
@@ -792,7 +791,7 @@ int LazyListView::destroyDelegates(const QList<int>& indices, int budget) {
     return static_cast<int>(removed.size());
 }
 
-int LazyListView::createDelegates(const QList<int>& indices, int budget) {
+int LazyListView::createDelegates(const IndexList& indices, int budget) {
     int created = 0;
 
     for (const int idx : indices) {

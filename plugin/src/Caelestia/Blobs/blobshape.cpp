@@ -191,7 +191,7 @@ void BlobShape::updatePolish() {
     updatePaddedBounds(pad);
 
     // Tracks shape pointers parallel to m_cachedRects for pairwise exclusion lookups
-    QVector<BlobShape*> rectShapes;
+    RectShapes rectShapes;
     collectNearbyRects(pad, rectShapes);
     computeExcludeMasks(rectShapes);
     cacheInvertedRect(pad);
@@ -249,13 +249,12 @@ void BlobShape::writeRectData(BlobRectData& r, const QPointF& scenePos) const {
     r.screenHalfY = std::abs(m10) * r.hw + std::abs(m11) * r.hh;
 }
 
-void BlobShape::collectNearbyRects(float pad, QVector<BlobShape*>& rectShapes) {
+void BlobShape::collectNearbyRects(float pad, RectShapes& rectShapes) {
     m_cachedRects.clear();
     m_cachedMyIndex = -2;
 
     const bool inverted = isInvertedRect();
 
-    rectShapes.reserve(k_maxRects);
     m_cachedRects.reserve(k_maxRects);
 
     for (BlobShape* other : m_group->shapes()) {
@@ -291,7 +290,7 @@ void BlobShape::collectNearbyRects(float pad, QVector<BlobShape*>& rectShapes) {
         m_cachedMyIndex = -1;
 }
 
-void BlobShape::computeExcludeMasks(const QVector<BlobShape*>& rectShapes) {
+void BlobShape::computeExcludeMasks(const RectShapes& rectShapes) {
     // Bit j in entry i is set iff rect i excludes rect j or rect j excludes rect i.
     // The shader uses this to avoid smin between excluded pairs.
     const auto cachedCount = m_cachedRects.size();
@@ -347,7 +346,7 @@ void BlobShape::cacheInvertedRect(float pad) {
     toCentreHalf(inner, m_cachedInvertedInner);
 }
 
-void BlobShape::accumulateNeighbourFill(qsizetype index, const QVector<BlobShape*>& rectShapes, const float cornerX[4],
+void BlobShape::accumulateNeighbourFill(qsizetype index, const RectShapes& rectShapes, const float cornerX[4],
     const float cornerY[4], float smoothFactor, float factors[4]) const {
     const auto rectCount = m_cachedRects.size();
     const quint32 excludeMask = m_cachedRects[index].excludeMask;
@@ -386,7 +385,7 @@ void BlobShape::accumulateInvertedFill(
     }
 }
 
-void BlobShape::applyCornerFill(float smoothFactor, const QVector<BlobShape*>& rectShapes) {
+void BlobShape::applyCornerFill(float smoothFactor, const RectShapes& rectShapes) {
     // Pre-computes effective per-corner radii (moves O(N^2) work from GPU to CPU)
     constexpr float k_minR = 2.0f;
     const bool cornerFill = m_group->cornerFill();

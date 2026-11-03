@@ -3,6 +3,7 @@
 #include <qmatrix4x4.h>
 #include <qquickitem.h>
 #include <qsgnode.h>
+#include <qvarlengtharray.h>
 #include <qvector.h>
 
 #include "blobmaterial.hpp"
@@ -60,15 +61,16 @@ protected:
     [[nodiscard]] QRectF paddedSceneRect(const QPointF& scenePos, float pad) const;
     void writeRectData(BlobRectData& r, const QPointF& scenePos) const;
     void updatePaddedBounds(float pad);
-    void collectNearbyRects(float pad, QVector<BlobShape*>& rectShapes);
-    void computeExcludeMasks(const QVector<BlobShape*>& rectShapes);
+    using RectShapes = QVarLengthArray<BlobShape*, k_maxRects>;
+    void collectNearbyRects(float pad, RectShapes& rectShapes);
+    void computeExcludeMasks(const RectShapes& rectShapes);
     [[nodiscard]] bool isNearInvertedBorder(const QRectF& inner, qreal margin) const;
     void cacheInvertedRect(float pad);
-    void accumulateNeighbourFill(qsizetype index, const QVector<BlobShape*>& rectShapes, const float cornerX[4],
+    void accumulateNeighbourFill(qsizetype index, const RectShapes& rectShapes, const float cornerX[4],
         const float cornerY[4], float smoothFactor, float factors[4]) const;
     void accumulateInvertedFill(
         const float cornerX[4], const float cornerY[4], float smoothFactor, float factors[4]) const;
-    void applyCornerFill(float smoothFactor, const QVector<BlobShape*>& rectShapes);
+    void applyCornerFill(float smoothFactor, const RectShapes& rectShapes);
     void updateMaterial(QSGGeometryNode* node) const;
     void markGroupDirty() const;
 
