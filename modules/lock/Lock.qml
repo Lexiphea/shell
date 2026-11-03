@@ -18,13 +18,13 @@ Scope {
         LockSurface {
             lock: lock
             pam: pam
-        }
-    }
 
-    Binding {
-        target: ShellState
-        property: "locked"
-        value: lock.locked
+            // Quickshell only signals locking, as it checks isLocked() after releasing the lock. The surfaces go with
+            // the lock though, so check again then
+            Component.onDestruction: ShellState.locked = lock.locked
+        }
+
+        onLockStateChanged: ShellState.locked = locked
     }
 
     Pam {
