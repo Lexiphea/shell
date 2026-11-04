@@ -22,8 +22,6 @@ PageBase {
         spacing: Tokens.spacing.large
 
         ClipRect {
-            id: wallWrapper
-
             Layout.alignment: Qt.AlignHCenter
             implicitWidth: {
                 const screen = root.nState.screen;

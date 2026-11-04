@@ -6,14 +6,11 @@ Image {
     id: root
 
     property bool hadPrevious
-    property bool preventInit
-    property int fadeOutAnim: Anim.FastEffects
-    property int fadeInAnim: Anim.DefaultEffects
     property int fadeInLargeAnim: Anim.StandardLarge
 
     function maybeStartInAnim(): void {
-        if (!preventInit && !opacityInAnim.running && status === Image.Ready) {
-            opacityInAnim.type = hadPrevious ? fadeInAnim : fadeInLargeAnim;
+        if (!opacityInAnim.running && status === Image.Ready) {
+            opacityInAnim.type = hadPrevious ? Anim.DefaultEffects : fadeInLargeAnim;
             opacityInAnim.start();
         }
     }
@@ -30,7 +27,6 @@ Image {
     opacity: 0
 
     onStatusChanged: maybeStartInAnim()
-    onPreventInitChanged: maybeStartInAnim()
 
     Anim on opacity {
         id: opacityInAnim
@@ -48,7 +44,7 @@ Image {
                 target: root
                 property: "opacity"
                 to: 0
-                type: root.fadeOutAnim
+                type: Anim.FastEffects
             }
             PropertyAction {
                 target: root
