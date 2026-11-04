@@ -11,6 +11,8 @@
 #include <qsavefile.h>
 #include <qthreadpool.h>
 
+#include <algorithm>
+
 namespace {
 
 Q_LOGGING_CATEGORY(lcCacher, "caelestia.images.cacher", QtInfoMsg)
@@ -41,6 +43,18 @@ QThreadPool& cacheWritePool() {
     return s_pool.pool;
 }
 
+bool isOpaque(const QImage& image) {
+    if (!image.hasAlphaChannel())
+        return true;
+    const QImage argb = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    for (int y = 0; y < argb.height(); ++y) {
+        const auto* const row = reinterpret_cast<const QRgb*>(argb.constScanLine(y));
+        if (!std::all_of(row, row + argb.width(), [](QRgb pixel) { return qAlpha(pixel) == 255; }))
+            return false;
+    }
+    return true;
+}
+
 QString fillSuffix(ImageCacher::FillMode fillMode) {
     switch (fillMode) {
     case ImageCacher::FillMode::Crop:
@@ -64,7 +78,8 @@ const QString& ImageCacher::cacheDir() {
     return k_dir;
 }
 
-QString ImageCacher::cachePathFor(const QFileInfo& source, const QSize& size, FillMode fillMode) {
+QString ImageCacher::cachePathFor(
+    const QFileInfo& source, const QSize& size, FillMode fillMode, QStringView extension) {
     const QString canonicalPath = source.canonicalFilePath();
     if (canonicalPath.isEmpty())
         return {};
@@ -76,8 +91,8 @@ QString ImageCacher::cachePathFor(const QFileInfo& source, const QSize& size, Fi
     hash.addData(QByteArrayView("\0", 1));
     hash.addData(QByteArray::number(source.lastModified().toMSecsSinceEpoch()));
 
-    const QString filename = u"%1@%2x%3-%4.webp"_s.arg(QString::fromLatin1(hash.result().toHex()),
-        QString::number(size.width()), QString::number(size.height()), fillSuffix(fillMode));
+    const QString filename = u"%1@%2x%3-%4.%5"_s.arg(QString::fromLatin1(hash.result().toHex()),
+        QString::number(size.width()), QString::number(size.height()), fillSuffix(fillMode), extension);
 
     return cacheDir() + u'/' + filename;
 }
@@ -89,11 +104,11 @@ ImageCacher* ImageCacher::instance() {
 
 ImageCacher::ImageCacher(QObject* parent)
     : QObject(parent) {
-    // The cache used to be PNG, so clear out any files left from before the switch to WebP
+    // Clear out files left from the old PNG and WebP-only formats
     cacheWritePool().start([] {
         QDir dir(cacheDir());
-        const QStringList pngs = dir.entryList({ u"*.png"_s }, QDir::Files);
-        for (const QString& name : pngs)
+        const QStringList old = dir.entryList({ u"*.png"_s, u"*.webp"_s }, QDir::Files);
+        for (const QString& name : old)
             dir.remove(name);
     });
 }
@@ -127,8 +142,11 @@ void ImageCacher::runJob(const QString& cachePath, const QImage& image) {
         return;
     }
 
+    // Opaque images are stored as JPEG, which reads ~2.5x and writes ~30x faster than WebP for ~25% more disk. Readers
+    // tell the formats apart by content
     QSaveFile saveFile(cachePath);
-    if (!saveFile.open(QIODevice::WriteOnly) || !image.save(&saveFile, "WEBP", 90) || !saveFile.commit()) {
+    const char* const format = isOpaque(image) ? "JPEG" : "WEBP";
+    if (!saveFile.open(QIODevice::WriteOnly) || !image.save(&saveFile, format, 90) || !saveFile.commit()) {
         qCWarning(
             lcCacher, "Failed to save to %s: %s", qUtf8Printable(cachePath), qUtf8Printable(saveFile.errorString()));
         return;

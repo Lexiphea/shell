@@ -144,8 +144,8 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, FillMode fill
     }
 
     // Only small images (thumbnails, avatars) are cached, as reading those back is far faster than decoding the source.
-    // A full-screen decode takes about as long as reading a cached copy, and writing one takes over a second. Video
-    // frames are always cached: getting one from ffmpeg takes ~250ms, against ~30ms to read it back
+    // A full-screen decode takes about as long as reading a cached copy. Video frames are always cached: getting one
+    // from ffmpeg takes ~250ms, against ~10ms to read it back
     constexpr qint64 k_maxCachedArea = 1024 * 1024;
     const bool cached = util::isVideo(path) || static_cast<qint64>(size.width()) * size.height() <= k_maxCachedArea;
     const auto cachePath = cached ? ImageCacher::cachePathFor(sourceInfo, size, fillMode) : QString();

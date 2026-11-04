@@ -23,7 +23,8 @@ public:
     static ImageCacher* instance();
 
     static const QString& cacheDir();
-    static QString cachePathFor(const QFileInfo& source, const QSize& size, FillMode fillMode);
+    static QString cachePathFor(
+        const QFileInfo& source, const QSize& size, FillMode fillMode, QStringView extension = u"img");
 
     void schedule(const QString& cachePath, const QImage& image);
 
