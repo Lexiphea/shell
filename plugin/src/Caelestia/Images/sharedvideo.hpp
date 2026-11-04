@@ -4,6 +4,7 @@
 #include <qmediaplayer.h>
 #include <qobject.h>
 #include <qpointer.h>
+#include <qprocess.h>
 #include <qqmlintegration.h>
 #include <qthread.h>
 #include <qtimer.h>
@@ -21,7 +22,9 @@ namespace caelestia::images {
 // while at least one output is added. The player and its sink exist only while there's a source: the first sink takes
 // ~0.8s to load the media backend, which image wallpapers shouldn't pay at startup. They live on their own thread,
 // since every new source sets up a hardware decoder (~70ms) on the player's thread, which would stall the UI. After a
-// while with no outputs the player is released too, as a paused 4K decoder holds ~280 MB; it resumes where it left off
+// while with no outputs the player is released too, as a paused 4K decoder holds ~280 MB; it resumes where it left off.
+// Videos larger than the screens get a copy at screen size, played in place of the source once made: a 4K60 video
+// costs ~2x the CPU of a 1440p one, as every frame is copied out of the GPU decoder and uploaded again
 class SharedVideo : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -52,6 +55,8 @@ signals:
 private:
     void updatePlayback();
     void releaseIdle();
+    void updateProxyPath();
+    void makeProxy();
     // On m_thread
     void createPlayer();
     void releasePlayer();
@@ -66,6 +71,11 @@ private:
     QList<QPointer<QVideoSink>> m_outputs;
     QList<QPointer<QVideoSink>> m_viewers; // Every output given frames, including removed ones still showing the last
     QTimer m_idleTimer;
+    QString m_proxyPath;         // Where the screen-sized copy of the source goes
+    QSize m_proxyBox;            // The size the copy has to cover
+    bool m_proxyPending = false; // Whether to consider a copy once the source's first frame shows its size and format
+    QTimer m_proxyTimer;
+    std::unique_ptr<QProcess> m_proxyJob;
 
     QThread m_thread;
     QObject m_context; // Lives on m_thread, to queue calls there
