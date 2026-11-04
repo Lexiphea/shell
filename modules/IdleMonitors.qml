@@ -15,7 +15,11 @@ Scope {
     required property Lock lock
     readonly property bool hasPlayer: Players.list.some(p => p.isPlaying)
     readonly property bool isCharging: !UPower.onBattery
+    // Headless outputs (e.g. for remote play) report no model: with no physical display, there's nothing to lock or blank
+    readonly property bool headless: Quickshell.screens.length > 0 && Quickshell.screens.every(s => !s.model)
     readonly property bool enabled: {
+        if (headless)
+            return false;
         if (GlobalConfig.general.idle.inhibitWhenAudio && hasPlayer)
             return false;
         if (GlobalConfig.general.idle.inhibitWhenCharging && isCharging)
