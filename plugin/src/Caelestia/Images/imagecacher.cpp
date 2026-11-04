@@ -19,7 +19,7 @@ Q_LOGGING_CATEGORY(lcCacher, "caelestia.images.cacher", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -49,7 +49,9 @@ bool isOpaque(const QImage& image) {
     const QImage argb = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
     for (int y = 0; y < argb.height(); ++y) {
         const auto* const row = reinterpret_cast<const QRgb*>(argb.constScanLine(y));
-        if (!std::all_of(row, row + argb.width(), [](QRgb pixel) { return qAlpha(pixel) == 255; }))
+        if (!std::all_of(row, row + argb.width(), [](QRgb pixel) {
+                return qAlpha(pixel) == 255;
+            }))
             return false;
     }
     return true;
@@ -155,4 +157,4 @@ void ImageCacher::runJob(const QString& cachePath, const QImage& image) {
     qCDebug(lcCacher).noquote() << "Saved to" << cachePath;
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

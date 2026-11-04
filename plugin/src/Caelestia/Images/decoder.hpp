@@ -6,7 +6,7 @@
 
 #include <functional>
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 struct DecodeResult {
     QImage image;
@@ -18,4 +18,4 @@ struct DecodeResult {
 // anything else
 DecodeResult decodeImage(const QString& path, const std::function<QSize(QSize)>& targetFor);
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

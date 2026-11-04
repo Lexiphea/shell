@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -312,4 +312,4 @@ void Storage::applyDisks(const AccumHash& byDisk) {
         emit primaryDiskChanged();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

@@ -4,7 +4,7 @@
 
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 namespace {
 
@@ -106,4 +106,4 @@ Tokens* Tokens::qmlAttachedProperties(QObject* object) {
     return new Tokens(object);
 }
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

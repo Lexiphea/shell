@@ -16,7 +16,7 @@ Q_LOGGING_CATEGORY(lcAcWorker, "caelestia.services.ac.worker", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     : m_loop(nullptr)
@@ -256,4 +256,4 @@ void AudioCollector::stop() {
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

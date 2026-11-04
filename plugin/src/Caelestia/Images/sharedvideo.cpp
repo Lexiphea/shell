@@ -29,7 +29,7 @@ Q_LOGGING_CATEGORY(lcVideo, "caelestia.images.video", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 namespace {
 
@@ -69,8 +69,8 @@ QVideoFrame detached(QVideoFrame frame) {
     QVideoFrame copy(frame.surfaceFormat());
     if (copy.map(QVideoFrame::WriteOnly)) {
         for (int i = 0; i < frame.planeCount(); ++i) {
-            const int rows = std::min(
-                frame.mappedBytes(i) / frame.bytesPerLine(i), copy.mappedBytes(i) / copy.bytesPerLine(i));
+            const int rows =
+                std::min(frame.mappedBytes(i) / frame.bytesPerLine(i), copy.mappedBytes(i) / copy.bytesPerLine(i));
             const auto len = static_cast<size_t>(std::min(frame.bytesPerLine(i), copy.bytesPerLine(i)));
             for (int y = 0; y < rows; ++y)
                 std::memcpy(copy.bits(i) + y * copy.bytesPerLine(i), frame.bits(i) + y * frame.bytesPerLine(i), len);
@@ -301,13 +301,13 @@ void SharedVideo::makeProxy() {
             qCWarning(lcVideo).noquote() << "Failed to make a screen-sized copy:"
                                          << QString::fromUtf8(job->readAllStandardError()).trimmed();
         });
-    // Lanczos and CRF 18, x264's usual visually lossless point, keep the copy indistinguishable from the source scaled on
-    // the GPU (SSIM ~0.99) at ~40% of a 4K source's size
-    m_proxyJob->start(u"ffmpeg"_s,
-        { u"-nostdin"_s, u"-v"_s, u"error"_s, u"-y"_s, u"-i"_s, m_source.toLocalFile(), u"-vf"_s,
-            u"scale=%1:%2:flags=lanczos"_s.arg(even(frame.width())).arg(even(frame.height())), u"-c:v"_s,
-            u"libx264"_s, u"-preset"_s, u"medium"_s, u"-crf"_s, u"18"_s, u"-pix_fmt"_s, u"yuv420p"_s, u"-an"_s,
-            u"-movflags"_s, u"+faststart"_s, u"-f"_s, u"mp4"_s, part });
+    // Lanczos and CRF 18, x264's usual visually lossless point, keep the copy indistinguishable from the source scaled
+    // on the GPU (SSIM ~0.99) at ~40% of a 4K source's size
+    m_proxyJob->start(
+        u"ffmpeg"_s, { u"-nostdin"_s, u"-v"_s, u"error"_s, u"-y"_s, u"-i"_s, m_source.toLocalFile(), u"-vf"_s,
+                         u"scale=%1:%2:flags=lanczos"_s.arg(even(frame.width())).arg(even(frame.height())), u"-c:v"_s,
+                         u"libx264"_s, u"-preset"_s, u"medium"_s, u"-crf"_s, u"18"_s, u"-pix_fmt"_s, u"yuv420p"_s,
+                         u"-an"_s, u"-movflags"_s, u"+faststart"_s, u"-f"_s, u"mp4"_s, part });
 }
 
 void SharedVideo::createPlayer() {
@@ -334,8 +334,8 @@ void SharedVideo::createPlayer() {
     m_player->setLoops(QMediaPlayer::Infinite);
     m_player->setVideoSink(m_sink.get());
     // Seeking or playing while the media loads would be ignored or start from the beginning, so resume once loaded
-    QObject::connect(m_player.get(), &QMediaPlayer::mediaStatusChanged, m_player.get(),
-        [this](QMediaPlayer::MediaStatus status) {
+    QObject::connect(
+        m_player.get(), &QMediaPlayer::mediaStatusChanged, m_player.get(), [this](QMediaPlayer::MediaStatus status) {
             if (status != QMediaPlayer::LoadedMedia || m_resumePosition < 0)
                 return;
             m_player->setPosition(std::exchange(m_resumePosition, -1));
@@ -373,4 +373,4 @@ void SharedVideo::onDecoderThread(std::function<void()> fn) {
     QMetaObject::invokeMethod(&m_context, std::move(fn));
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

@@ -8,13 +8,13 @@
 
 #include "blobmaterial.hpp"
 
-namespace caelestia::blobs {
+namespace caelestia::shell::blobs {
 
 class BlobGroup;
 
 class BlobShape : public QQuickItem {
     Q_OBJECT
-    Q_PROPERTY(caelestia::blobs::BlobGroup* group READ group WRITE setGroup NOTIFY groupChanged)
+    Q_PROPERTY(caelestia::shell::blobs::BlobGroup* group READ group WRITE setGroup NOTIFY groupChanged)
     Q_PROPERTY(qreal radius READ radius WRITE setRadius NOTIFY radiusChanged)
     Q_PROPERTY(QMatrix4x4 deformMatrix READ deformMatrix NOTIFY deformMatrixChanged)
     Q_PROPERTY(QMatrix4x4 rawDeformMatrix READ rawDeformMatrix NOTIFY rawDeformMatrixChanged)
@@ -92,4 +92,4 @@ protected:
     float m_cachedInvertedInner[4] = {};
 };
 
-} // namespace caelestia::blobs
+} // namespace caelestia::shell::blobs

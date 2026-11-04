@@ -3,7 +3,7 @@
 #include <qobject.h>
 #include <qqmlintegration.h>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 class DiskInfo : public QObject {
     Q_OBJECT
@@ -38,4 +38,4 @@ private:
     bool m_hasRoot;
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

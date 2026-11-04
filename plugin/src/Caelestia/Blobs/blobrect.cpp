@@ -5,7 +5,7 @@
 
 #include "blobgroup.hpp"
 
-namespace caelestia::blobs {
+namespace caelestia::shell::blobs {
 
 BlobRect::BlobRect(QQuickItem* parent)
     : BlobShape(parent) {}
@@ -303,4 +303,4 @@ void BlobRect::resetDeform() {
     m_physicsActive = false;
 }
 
-} // namespace caelestia::blobs
+} // namespace caelestia::shell::blobs

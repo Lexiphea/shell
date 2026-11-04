@@ -6,39 +6,40 @@ import Quickshell
 import Quickshell.Io
 import Caelestia.Config
 import qs.components.misc
+import qs.services
 
 Singleton {
     id: root
 
     property var ddcBuses: ({}) // Connector name -> I2C bus number
-    readonly property list<Monitor> monitors: variants.instances // qmllint disable incompatible-type
+    readonly property list<Monitor> monitors: variants.instances
     property bool appleDisplayPresent: false
 
     function getMonitorForScreen(screen: ShellScreen): var {
-        return monitors.find(m => m.modelData === screen); // qmllint disable missing-property
+        return monitors.find(m => m.modelData === screen);
     }
 
     function getMonitor(query: string): var {
         if (query === "active") {
-            return monitors.find(m => Hypr.monitorFor(m.modelData)?.focused); // qmllint disable missing-property
+            return monitors.find(m => Hypr.monitorFor(m.modelData)?.focused);
         }
 
         if (query.startsWith("model:")) {
             const model = query.slice(6);
-            return monitors.find(m => m.modelData.model === model); // qmllint disable missing-property
+            return monitors.find(m => m.modelData.model === model);
         }
 
         if (query.startsWith("serial:")) {
             const serial = query.slice(7);
-            return monitors.find(m => m.modelData.serialNumber === serial); // qmllint disable missing-property
+            return monitors.find(m => m.modelData.serialNumber === serial);
         }
 
         if (query.startsWith("id:")) {
             const id = parseInt(query.slice(3), 10);
-            return monitors.find(m => Hypr.monitorFor(m.modelData)?.id === id); // qmllint disable missing-property
+            return monitors.find(m => Hypr.monitorFor(m.modelData)?.id === id);
         }
 
-        return monitors.find(m => m.modelData.name === query); // qmllint disable missing-property
+        return monitors.find(m => m.modelData.name === query);
     }
 
     function increaseBrightness(): void {

@@ -2,7 +2,7 @@
 
 #include "cachingimageprovider.hpp"
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -43,4 +43,4 @@ QUrl IUtils::urlForPath(const QString& path, int fillMode) {
     return url;
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

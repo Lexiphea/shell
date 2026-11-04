@@ -16,7 +16,7 @@
 #include <functional>
 #include <memory>
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 // Loops one video into any number of QML VideoOutputs, so each frame is decoded once however many show it. Plays only
 // while at least one output is added. The player and its sink exist only while there's a source: the first sink takes
@@ -87,4 +87,4 @@ private:
     std::atomic<quint64> m_decodingGeneration = 0; // The generation the player is decoding, read as frames arrive
 };
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

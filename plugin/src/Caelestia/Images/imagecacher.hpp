@@ -8,7 +8,7 @@
 #include <qsize.h>
 #include <qstring.h>
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 class ImageCacher : public QObject {
     Q_OBJECT
@@ -37,4 +37,4 @@ private:
     QSet<QString> m_inflight;
 };
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

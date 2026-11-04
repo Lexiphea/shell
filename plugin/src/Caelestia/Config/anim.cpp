@@ -7,7 +7,7 @@
 #include "rootnodes.hpp"
 #include "tokens.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 AnimTokens::AnimTokens(QObject* parent)
     : QObject(parent) {
@@ -110,4 +110,4 @@ void AnimTokens::rebuildCurves() {
     emit curvesChanged();
 }
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

@@ -28,7 +28,7 @@ QByteArray wisdomPath() {
 
 } // namespace
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 CavaProcessor::CavaProcessor(QObject* parent)
     : AudioProcessor(parent)
@@ -150,4 +150,4 @@ void CavaProvider::updateValues(const QVector<double>& values) {
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

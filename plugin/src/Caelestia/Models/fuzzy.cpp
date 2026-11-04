@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 Fuzzy::Fuzzy(QObject* parent)
     : QObject(parent) {}
@@ -39,4 +39,4 @@ QObjectList Fuzzy::search(const QObjectList& items, const QString& query, const 
     return results;
 }
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models

@@ -13,7 +13,7 @@
 #include "config/serviceconfig.hpp"
 #include "sensorslib.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -246,9 +246,9 @@ Gpu::Gpu(QObject* parent)
     m_nvmlThread.setMaxThreadCount(1);
     m_busyFiles = gpuBusyFiles();
 
-    const auto* svc = caelestia::config::ConfigSingleton::instance()->services();
+    const auto* svc = caelestia::shell::config::ConfigSingleton::instance()->services();
     m_userType = svc->gpuType();
-    QObject::connect(svc, &caelestia::config::ServiceConfig::gpuTypeChanged, this, [this, svc] {
+    QObject::connect(svc, &caelestia::shell::config::ServiceConfig::gpuTypeChanged, this, [this, svc] {
         const GpuType value = svc->gpuType();
         if (value == m_userType) {
             return;
@@ -489,4 +489,4 @@ void Gpu::setTemperature(qreal value) {
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

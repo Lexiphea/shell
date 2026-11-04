@@ -16,7 +16,7 @@ Q_LOGGING_CATEGORY(lcSensorsLib, "caelestia.services.sensorslib", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::services::sensorslib {
+namespace caelestia::shell::services::sensorslib {
 
 namespace {
 
@@ -172,4 +172,4 @@ std::optional<double> gpuPciAverageTemp() {
     return fallback.average();
 }
 
-} // namespace caelestia::services::sensorslib
+} // namespace caelestia::shell::services::sensorslib

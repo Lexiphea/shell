@@ -9,7 +9,7 @@
 #include "blobgroup.hpp"
 #include "blobinvertedrect.hpp"
 
-namespace caelestia::blobs {
+namespace caelestia::shell::blobs {
 
 namespace {
 
@@ -477,4 +477,4 @@ void BlobShape::updateMaterial(QSGGeometryNode* node) const {
     node->markDirty(QSGNode::DirtyMaterial);
 }
 
-} // namespace caelestia::blobs
+} // namespace caelestia::shell::blobs

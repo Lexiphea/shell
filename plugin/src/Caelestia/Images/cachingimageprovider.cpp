@@ -21,7 +21,7 @@ Q_LOGGING_CATEGORY(lcCProv, "caelestia.images.cacheprovider", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -204,4 +204,4 @@ QQuickImageResponse* CachingImageProvider::requestImageResponse(const QString& i
     return new CachingImageResponse(id, requestedSize, m_fillMode);
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

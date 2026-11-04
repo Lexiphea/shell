@@ -7,14 +7,14 @@
 #include <qqmlintegration.h>
 #include <qquickitem.h>
 #include <qrect.h>
-#include <qvarlengtharray.h>
 #include <qvariant.h>
+#include <qvarlengtharray.h>
 #include <qvector.h>
 
 #include <functional>
 #include <utility>
 
-namespace caelestia::components {
+namespace caelestia::shell::components {
 
 class LazyListViewAttached : public QObject {
     Q_OBJECT
@@ -304,4 +304,4 @@ private:
     QList<QMetaObject::Connection> m_modelConnections;
 };
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

@@ -19,7 +19,7 @@ Q_LOGGING_CATEGORY(lcLyrics, "caelestia.lyrics", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 using Qt::StringLiterals::operator""_ba;
@@ -1029,4 +1029,4 @@ QVector<LyricLine> Lyrics::parseLrc(const QString& text) {
     return result;
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

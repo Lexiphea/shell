@@ -3,7 +3,7 @@
 #include "blobinvertedrect.hpp"
 #include "blobshape.hpp"
 
-namespace caelestia::blobs {
+namespace caelestia::shell::blobs {
 
 namespace {
 
@@ -133,4 +133,4 @@ void BlobGroup::ensurePhysicsUpdated() {
         shape->updatePhysics();
 }
 
-} // namespace caelestia::blobs
+} // namespace caelestia::shell::blobs

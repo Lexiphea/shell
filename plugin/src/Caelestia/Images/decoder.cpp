@@ -15,7 +15,7 @@
 
 #include "util/video.hpp"
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -182,4 +182,4 @@ DecodeResult decodeImage(const QString& path, const std::function<QSize(QSize)>&
     return { image, {} };
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

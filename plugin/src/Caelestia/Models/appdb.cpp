@@ -34,7 +34,7 @@ double frecency(quint32 frequency, qint64 lastUsed, qint64 now) {
 
 } // namespace
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 AppEntry::AppEntry(QObject* entry, quint32 frequency, qint64 lastUsed, QObject* parent)
     : QObject(parent)
@@ -422,4 +422,4 @@ void AppDb::updateApps() {
     }
 }
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models

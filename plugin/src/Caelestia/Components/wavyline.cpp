@@ -9,7 +9,7 @@
 #include <cmath>
 #include <cstring>
 
-namespace caelestia::components {
+namespace caelestia::shell::components {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -281,4 +281,4 @@ QSGNode* WavyLine::updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData* data) 
     return node;
 }
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

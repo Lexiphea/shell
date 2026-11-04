@@ -6,7 +6,7 @@
 
 #include "node.hpp"
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 class ObjectNode : public Node {
     Q_OBJECT
@@ -26,4 +26,4 @@ private:
     void resetUnvisited(const QSet<QString>& visited);
 };
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

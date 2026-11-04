@@ -1192,7 +1192,7 @@ Singleton {
                 id: stderrCollector
             }
 
-            onExited: code => { // qmllint disable signal-handler-parameters
+            onExited: code => {
                 Qt.callLater(() => {
                     const callback = proc.callback;
                     const result = {
@@ -1317,7 +1317,7 @@ Singleton {
         id: rescanProc
 
         command: ["nmcli", "dev", "wifi", "list", "--rescan", "yes"]
-        onExited: root.getNetworks() // qmllint disable signal-handler-parameters
+        onExited: root.getNetworks()
     }
 
     Process {
@@ -1332,7 +1332,7 @@ Singleton {
         stdout: SplitParser {
             onRead: monitorDebounceTimer.restart()
         }
-        onExited: monitorRestartTimer.start() // qmllint disable signal-handler-parameters
+        onExited: monitorRestartTimer.start()
     }
 
     Timer {
@@ -1392,7 +1392,7 @@ Singleton {
             }
         }
 
-        onExited: code => { // qmllint disable signal-handler-parameters
+        onExited: code => {
             exitCode = code;
 
             Qt.callLater(() => {

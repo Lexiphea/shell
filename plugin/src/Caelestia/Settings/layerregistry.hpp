@@ -6,7 +6,7 @@
 
 #include "node.hpp"
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 // Derived from Node and has ctor(path, fallback, parent)
 template <typename T>
@@ -71,4 +71,4 @@ template <LayerType T> T* LayerRegistry<T>::get(const QString& name, T* fallback
     return layer;
 }
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

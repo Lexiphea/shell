@@ -3,7 +3,7 @@
 #include <qobject.h>
 #include <qqmlintegration.h>
 
-namespace caelestia::models {
+namespace caelestia::shell::models {
 
 // fzf style matching of arbitrary objects by a string property
 class Fuzzy : public QObject {
@@ -19,4 +19,4 @@ public:
         const QObjectList& items, const QString& query, const QString& key);
 };
 
-} // namespace caelestia::models
+} // namespace caelestia::shell::models

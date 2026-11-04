@@ -2,7 +2,7 @@
 
 #include "tokens.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 namespace {
 
@@ -91,4 +91,4 @@ SCALED_TOKEN(AnimDurations, expressiveSlowEffects)
 
 #undef SCALED_TOKEN
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

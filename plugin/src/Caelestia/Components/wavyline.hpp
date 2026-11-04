@@ -3,7 +3,7 @@
 #include <qqmlintegration.h>
 #include <qquickitem.h>
 
-namespace caelestia::components {
+namespace caelestia::shell::components {
 
 // A sine wave stroke with round caps, along a line or an arc. Drawn by a shader, so animating the wave only updates
 // uniforms
@@ -102,4 +102,4 @@ private:
     qreal m_value;
 };
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

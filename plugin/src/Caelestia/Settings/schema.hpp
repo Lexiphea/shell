@@ -7,7 +7,7 @@
 #include <qstring.h>
 #include <qvariant.h>
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 class ValueCodec;
 
@@ -49,4 +49,4 @@ private:
     QHash<QString, qsizetype> m_keyToIndex;
 };
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings
