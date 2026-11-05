@@ -1,5 +1,7 @@
 #include "fuzzy.hpp"
 
+#include <qvariant.h>
+
 #include <fuzzy/fuzzy-searchable.hpp>
 
 #include <algorithm>
@@ -23,8 +25,8 @@ QObjectList Fuzzy::search(const QObjectList& items, const QString& query, const 
     QList<Match> matches;
     for (auto* item : items) {
         const auto text = item->property(keyName.constData()).toString().toStdString();
-        if (const auto match = fuzzy::scoreWeighted({ { text, 1.0 } }, fuzzyQuery); match.accepted())
-            matches.append({ item, match.score });
+        if (const auto match = fuzzy::scoreWeighted({ { .text = text, .weight = 1.0 } }, fuzzyQuery); match.accepted())
+            matches.append({ .item = item, .score = match.score });
     }
 
     // Stable so ties keep the original order

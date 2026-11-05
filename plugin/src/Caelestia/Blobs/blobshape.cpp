@@ -21,7 +21,7 @@ float deformPadding(const QMatrix4x4& dm, float hw, float hh) {
     const float dm11 = dm(1, 1);
     const float boundX = std::abs(dm00) * hw + std::abs(dm01) * hh;
     const float boundY = std::abs(dm10) * hw + std::abs(dm11) * hh;
-    return std::max(std::max(boundX - hw, 0.0f), std::max(boundY - hh, 0.0f));
+    return std::max({ boundX - hw, boundY - hh, 0.0f });
 }
 
 float cpuSdBox(float px, float py, float cx, float cy, float hw, float hh) {

@@ -30,7 +30,7 @@ namespace {
 struct DecodePool {
     DecodePool() {
         // Decoding uses QtGui, which is torn down after quitting, so drop queued decodes and finish running ones first
-        auto* const app = QCoreApplication::instance();
+        const auto* const app = QCoreApplication::instance();
         QObject::connect(app, &QCoreApplication::aboutToQuit, app, [this] {
             pool.clear();
             pool.waitForDone();
@@ -146,7 +146,7 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, FillMode fill
     // Only small images (thumbnails, avatars) are cached, as reading those back is far faster than decoding the source.
     // A full-screen decode takes about as long as reading a cached copy. Video frames are always cached: getting one
     // from ffmpeg takes ~250ms, against ~10ms to read it back
-    constexpr qint64 k_maxCachedArea = 1024 * 1024;
+    constexpr qint64 k_maxCachedArea = qint64{ 1024 } * 1024;
     const bool cached = util::isVideo(path) || static_cast<qint64>(size.width()) * size.height() <= k_maxCachedArea;
     const auto cachePath = cached ? ImageCacher::cachePathFor(sourceInfo, size, fillMode) : QString();
     if (cached) {
@@ -188,7 +188,7 @@ DecodeResult decode(const QString& id, const QSize& requestedSize, FillMode fill
         painter.drawImage(
             (size.width() - result.image.width()) / 2, (size.height() - result.image.height()) / 2, result.image);
         painter.end();
-        result.image = canvas;
+        result.image = std::move(canvas);
     }
 
     ImageCacher::instance()->schedule(cachePath, result.image);

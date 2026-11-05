@@ -779,10 +779,10 @@ int LazyListView::destroyDelegates(const IndexList& indices, int budget) {
         if (static_cast<int>(removed.size()) >= budget)
             break;
 
-        auto entry = m_delegates.take(idx);
+        const auto entry = m_delegates.take(idx);
         if (entry.item)
             m_itemToIndex.remove(entry.item);
-        removed.append(std::move(entry));
+        removed.append(entry);
     }
 
     for (auto& entry : removed)

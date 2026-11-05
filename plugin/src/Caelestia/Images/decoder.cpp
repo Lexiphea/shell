@@ -5,7 +5,7 @@
 #include <qprocess.h>
 
 #include <jpeglib.h>
-#include <wuffs-v0.4.c>
+#include <wuffs-v0.4.c> // NOLINT(bugprone-suspicious-include): Wuffs ships as a single C file
 
 #include <algorithm>
 #include <cmath>
@@ -28,6 +28,7 @@ QImage scaledTo(const QImage& image, QSize size) {
 }
 
 class PngCallbacks final : public wuffs_aux::DecodeImageCallbacks {
+public:
     wuffs_base__pixel_format SelectPixfmt(const wuffs_base__image_config& /*config*/) override {
         // Byte order of QImage::Format_ARGB32_Premultiplied on little-endian
         return wuffs_base__make_pixel_format(WUFFS_BASE__PIXEL_FORMAT__BGRA_PREMUL);
@@ -70,12 +71,14 @@ QImage decodeJpeg(QByteArrayView data, const std::function<QSize(QSize)>& target
 
     info.err = jpeg_std_error(&error.mgr);
     error.mgr.error_exit = [](j_common_ptr common) {
+        // libjpeg reports errors through a callback that must not return, so jump back out of it
+        // NOLINTNEXTLINE(modernize-avoid-setjmp-longjmp)
         std::longjmp(reinterpret_cast<JpegError*>(common->err)->jump, 1);
     };
     error.mgr.output_message = [](j_common_ptr) {
     };
 
-    if (setjmp(error.jump)) {
+    if (setjmp(error.jump)) { // NOLINT(modernize-avoid-setjmp-longjmp)
         jpeg_destroy_decompress(&info);
         return {};
     }
@@ -129,19 +132,33 @@ DecodeResult decodeVideoFrame(const QString& path, const std::function<QSize(QSi
     // BMP is uncompressed, so it is cheap for ffmpeg to write and Qt to read. Frame threading would decode several
     // frames before returning the first, so split the one frame across threads instead (~25% faster)
     QProcess ffmpeg;
-    ffmpeg.start(u"ffmpeg"_s, { u"-nostdin"_s, u"-v"_s, u"error"_s, u"-thread_type"_s, u"slice"_s, u"-i"_s, path,
-                                  u"-frames:v"_s, u"1"_s, u"-f"_s, u"image2pipe"_s, u"-c:v"_s, u"bmp"_s, u"-"_s });
+    ffmpeg.start(u"ffmpeg"_s, {
+                                  u"-nostdin"_s,
+                                  u"-v"_s,
+                                  u"error"_s,
+                                  u"-thread_type"_s,
+                                  u"slice"_s,
+                                  u"-i"_s,
+                                  path,
+                                  u"-frames:v"_s,
+                                  u"1"_s,
+                                  u"-f"_s,
+                                  u"image2pipe"_s,
+                                  u"-c:v"_s,
+                                  u"bmp"_s,
+                                  u"-"_s,
+                              });
     if (!ffmpeg.waitForFinished() || ffmpeg.exitStatus() != QProcess::NormalExit || ffmpeg.exitCode() != 0) {
         const QString reason = ffmpeg.error() == QProcess::UnknownError
                                    ? QString::fromUtf8(ffmpeg.readAllStandardError()).trimmed()
                                    : ffmpeg.errorString();
-        return { {}, u"Failed to decode "_s + path + u": "_s + reason };
+        return { .image = {}, .error = u"Failed to decode "_s + path + u": "_s + reason };
     }
 
     const QImage image = QImage::fromData(ffmpeg.readAllStandardOutput(), "BMP");
     if (image.isNull())
-        return { {}, u"Failed to decode "_s + path + u": ffmpeg gave no frame"_s };
-    return { scaledTo(image, targetFor(image.size())), {} };
+        return { .image = {}, .error = u"Failed to decode "_s + path + u": ffmpeg gave no frame"_s };
+    return { .image = scaledTo(image, targetFor(image.size())), .error = {} };
 }
 
 DecodeResult decodeWithQt(const QString& path, const std::function<QSize(QSize)>& targetFor) {
@@ -152,11 +169,11 @@ DecodeResult decodeWithQt(const QString& path, const std::function<QSize(QSize)>
 
     QImage image = reader.read();
     if (image.isNull())
-        return { {}, u"Failed to decode "_s + path + u": "_s + reader.errorString() };
+        return { .image = {}, .error = u"Failed to decode "_s + path + u": "_s + reader.errorString() };
 
     if (!source.isValid())
         image = scaledTo(image, targetFor(image.size()));
-    return { image, {} };
+    return { .image = image, .error = {} };
 }
 
 } // namespace
@@ -167,7 +184,7 @@ DecodeResult decodeImage(const QString& path, const std::function<QSize(QSize)>&
 
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
-        return { {}, u"Failed to open "_s + path + u": "_s + file.errorString() };
+        return { .image = {}, .error = u"Failed to open "_s + path + u": "_s + file.errorString() };
 
     const QByteArray data = file.readAll();
     QImage image;
@@ -179,7 +196,7 @@ DecodeResult decodeImage(const QString& path, const std::function<QSize(QSize)>&
     // Other formats, and files the fast paths reject (e.g. CMYK JPEGs)
     if (image.isNull())
         return decodeWithQt(path, targetFor);
-    return { image, {} };
+    return { .image = image, .error = {} };
 }
 
 } // namespace caelestia::shell::images

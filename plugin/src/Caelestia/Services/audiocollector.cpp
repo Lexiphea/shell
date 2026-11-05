@@ -175,10 +175,10 @@ void AudioCollector::clearBuffer() {
 }
 
 void AudioCollector::pushSilence() {
-    static constexpr std::array<float, ac::k_chunkSize> silence{};
+    static constexpr std::array<float, ac::k_chunkSize> k_silence{};
 
     const std::scoped_lock lock(m_samplesLock);
-    m_samples.push(std::span<const float>(silence));
+    m_samples.push(std::span<const float>(k_silence));
     m_written += ac::k_chunkSize;
     m_discardPending.store(true, std::memory_order_release);
 }

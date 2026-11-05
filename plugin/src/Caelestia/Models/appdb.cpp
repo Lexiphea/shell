@@ -11,6 +11,8 @@
 #include <fuzzy/fuzzy-searchable.hpp>
 
 #include <algorithm>
+#include <compare>
+#include <utility>
 
 using Qt::StringLiterals::operator""_s;
 
@@ -280,26 +282,33 @@ QObjectList AppDb::search(const QString& query, const QString& field, const QObj
 
     const auto now = QDateTime::currentSecsSinceEpoch();
     QList<Match> matches;
-    for (auto* app : m_sortedApps) {
+    for (const auto* app : m_sortedApps) {
         if (!app->entry())
             continue;
 
         // Same fields and weights as vicinae, plus the generic name so "browser" finds browsers
         const auto match =
-            field.isEmpty()
-                ? fuzzy::scoreWeighted(
-                      { { app->searchText(u"name"_s), 1.0 }, { app->searchText(u"genericName"_s), 0.6 },
-                          { app->searchText(u"keywords"_s), 0.6 }, { app->searchText(u"categories"_s), 0.6 } },
-                      fuzzyQuery)
-                : fuzzy::scoreWeighted({ { app->searchText(field), 1.0 } }, fuzzyQuery);
+            field.isEmpty() ? fuzzy::scoreWeighted(
+                                  {
+                                      { .text = app->searchText(u"name"_s), .weight = 1.0 },
+                                      { .text = app->searchText(u"genericName"_s), .weight = 0.6 },
+                                      { .text = app->searchText(u"keywords"_s), .weight = 0.6 },
+                                      { .text = app->searchText(u"categories"_s), .weight = 0.6 },
+                                  },
+                                  fuzzyQuery)
+                            : fuzzy::scoreWeighted({ { .text = app->searchText(field), .weight = 1.0 } }, fuzzyQuery);
         if (match.accepted())
-            matches.append({ app->entry(), match.score + fuzzy::FRECENCY_WEIGHT * app->frecency(now) });
+            matches.append(
+                { .item = app->entry(), .score = match.score + fuzzy::FRECENCY_WEIGHT * app->frecency(now) });
     }
 
     // Scored on the same scale, so "lock" ranks the Lock command over Deadlock
     for (auto* command : commands) {
-        const auto match = fuzzy::scoreWeighted({ { command->property("name").toString().toStdString(), 1.0 },
-                                                    { command->property("desc").toString().toStdString(), 0.5 } },
+        const auto match = fuzzy::scoreWeighted(
+            {
+                { .text = command->property("name").toString().toStdString(), .weight = 1.0 },
+                { .text = command->property("desc").toString().toStdString(), .weight = 0.5 },
+            },
             fuzzyQuery);
         if (!match.accepted())
             continue;
@@ -308,7 +317,8 @@ QObjectList AppDb::search(const QString& query, const QString& field, const QObj
         auto it = m_commandUsage.find(id);
         if (it == m_commandUsage.end())
             it = m_commandUsage.insert(id, getUsage(id));
-        matches.append({ command, match.score + fuzzy::FRECENCY_WEIGHT * frecency(it->first, it->second, now) });
+        matches.append(
+            { .item = command, .score = match.score + fuzzy::FRECENCY_WEIGHT * frecency(it->first, it->second, now) });
     }
 
     // Stable so ties keep the favourite/frecency order, with apps before commands
@@ -342,14 +352,14 @@ bool AppDb::sortApps() {
         const bool bIsFav = favSet.contains(b);
         if (aIsFav != bIsFav)
             return aIsFav;
-        if (const auto order = frecencies.value(a) <=> frecencies.value(b); order != 0)
-            return order > 0;
+        if (const auto order = frecencies.value(a) <=> frecencies.value(b); std::is_neq(order))
+            return std::is_gt(order);
         return a->name().localeAwareCompare(b->name()) < 0;
     });
 
     if (sorted == m_sortedApps)
         return false;
-    m_sortedApps = sorted;
+    m_sortedApps = std::move(sorted);
     return true;
 }
 

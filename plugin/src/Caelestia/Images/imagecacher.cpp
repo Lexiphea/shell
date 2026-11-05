@@ -29,7 +29,7 @@ struct CacheWritePool {
     CacheWritePool() {
         pool.setMaxThreadCount(2);
         // Encoding uses QtGui, which is torn down after quitting, so finish pending writes first
-        auto* const app = QCoreApplication::instance();
+        const auto* const app = QCoreApplication::instance();
         QObject::connect(app, &QCoreApplication::aboutToQuit, app, [this] {
             pool.waitForDone();
         });

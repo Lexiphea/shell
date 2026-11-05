@@ -172,8 +172,10 @@ public:
     [[nodiscard]] QSGMaterialShader* createShader(QSGRendererInterface::RenderMode mode) const override;
 
     int compare(const QSGMaterial* other) const override {
+        // Only orders materials for batching, so comparing float bit patterns is fine
+        // NOLINTNEXTLINE(bugprone-suspicious-memory-comparison)
         const auto c = std::memcmp(&uniforms, &static_cast<const WaveMaterial*>(other)->uniforms, sizeof(uniforms));
-        return c < 0 ? -1 : (c > 0 ? 1 : 0);
+        return (c > 0) - (c < 0);
     }
 
     WaveUniforms uniforms{};
