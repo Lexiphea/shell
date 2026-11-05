@@ -8,6 +8,7 @@ import Caelestia.I18n
 import Caelestia.Services
 import qs.services
 import qs.utils
+import qs.modules.launcher.services
 
 Singleton {
     id: root

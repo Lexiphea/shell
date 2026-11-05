@@ -140,7 +140,8 @@ StyledListView {
             required property var modelData
 
             function activate(): void {
-                item.activate();
+                // AppItem, ActionItem and SoulverItem all have activate()
+                item.activate(); // qmllint disable missing-property
             }
 
             anchors.left: parent?.left

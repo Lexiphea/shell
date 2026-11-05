@@ -83,7 +83,8 @@ Item {
 
             readonly property int currentIndex: root.screenState.dashboardTab
             readonly property Item currentItem: {
-                row.children; // Trigger update when delegates are added or removed
+                // Trigger update when delegates are added or removed
+                row.children; // qmllint disable confusing-expression-statement
                 return repeater.itemAt(currentIndex);
             }
 

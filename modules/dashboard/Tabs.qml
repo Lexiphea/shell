@@ -18,7 +18,8 @@ Item {
     readonly property alias count: repeater.count
     readonly property int currentIndex: screenState.dashboardTab
     readonly property Item currentItem: {
-        bar.children; // Trigger update when delegates are added or removed
+        // Trigger update when delegates are added or removed
+        bar.children; // qmllint disable confusing-expression-statement
         return repeater.itemAt(currentIndex);
     }
 
