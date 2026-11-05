@@ -24,7 +24,6 @@ StyledRect {
             if (!item.enabled || seenIds.has(item.id))
                 return false;
 
-
             if (item.id === "vpn") {
                 return VPN.selectedProviders.length > 0;
             }

@@ -14,11 +14,11 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    title: Tr.tr("Network")
-
     readonly property Ref vpnRef: Ref {
         service: VPN
     }
+
+    title: Tr.tr("Network")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter

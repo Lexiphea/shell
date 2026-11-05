@@ -28,14 +28,23 @@ StyledListView {
         const query = displayText.trim();
         const forced = query.startsWith("=");
         if (!forced && (values.length > 0 || query.length < 3))
-            return { values };
+            return {
+                values
+            };
 
         const expr = forced ? query.slice(1) : query;
         const result = Soulver.eval(expr);
         if (!result || result.value === expr.trim())
-            return { values };
+            return {
+                values
+            };
         values.unshift(calcEntry);
-        return { values, calc: Object.assign({ question: expr.trim() }, result) };
+        return {
+            values,
+            calc: Object.assign({
+                question: expr.trim()
+            }, result)
+        };
     }
 
     function syncDisplayText(): void {

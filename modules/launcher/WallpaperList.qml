@@ -45,6 +45,12 @@ PathView {
         return visible;
     }
 
+    function preview(): void {
+        const path = (currentItem as WallpaperItem)?.modelData.path;
+        if (path && !(Wallpapers.showPreview && Wallpapers.previewPath === path))
+            Wallpapers.preview(path);
+    }
+
     model: ScriptModel {
         id: scriptModel
 
@@ -65,12 +71,6 @@ PathView {
             Wallpapers.video.preload();
     }
     Component.onDestruction: Wallpapers.stopPreview()
-
-    function preview(): void {
-        const path = (currentItem as WallpaperItem)?.modelData.path;
-        if (path && !(Wallpapers.showPreview && Wallpapers.previewPath === path))
-            Wallpapers.preview(path);
-    }
 
     // Preview straight away, but while the selection keeps moving only where it stops, as each preview loads the
     // wallpaper and its colours

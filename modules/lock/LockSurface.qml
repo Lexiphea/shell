@@ -17,11 +17,6 @@ WlSessionLockSurface {
     readonly property alias unlocking: unlockAnim.running
     property bool oledBlackActive
 
-    contentItem.Config.screen: screen.name
-    contentItem.Tokens.screen: screen.name
-
-    color: "black"
-
     function stopOledBlackTimer(): void {
         oledBlackActive = false;
         blackoutDelay.stop();
@@ -62,6 +57,18 @@ WlSessionLockSurface {
             blackoutDelay.start();
     }
 
+    contentItem.Config.screen: screen.name
+    contentItem.Tokens.screen: screen.name
+
+    color: "black"
+
+    onVisibleChanged: {
+        if (root.visible && root.lock.locked)
+            activateLockSurface();
+        else
+            stopOledBlackTimer();
+    }
+
     Connections {
         function onLockStateChanged(): void {
             if (root.lock.locked)
@@ -76,13 +83,6 @@ WlSessionLockSurface {
         }
 
         target: root.lock
-    }
-
-    onVisibleChanged: {
-        if (root.visible && root.lock.locked)
-            activateLockSurface();
-        else
-            stopOledBlackTimer();
     }
 
     SequentialAnimation {

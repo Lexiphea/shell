@@ -15,6 +15,8 @@ Scope {
 
         signal unlock
 
+        onLockStateChanged: ShellState.locked = locked
+
         LockSurface {
             lock: lock
             pam: pam
@@ -23,8 +25,6 @@ Scope {
             // the lock though, so check again then
             Component.onDestruction: ShellState.locked = lock.locked
         }
-
-        onLockStateChanged: ShellState.locked = locked
     }
 
     Pam {

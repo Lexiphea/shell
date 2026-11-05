@@ -11,6 +11,9 @@ Singleton {
     // execDetached child stays in the service's cgroup, so restarting the shell kills the app too
     function app(command: list<string>, workingDirectory: var): void {
         const cmd = inSystemdUnit ? ["systemd-run", "--user", "--scope", "--collect", "--quiet", "--expand-environment=no", "--", ...command] : command;
-        Quickshell.execDetached(workingDirectory ? { command: cmd, workingDirectory } : cmd);
+        Quickshell.execDetached(workingDirectory ? {
+            command: cmd,
+            workingDirectory
+        } : cmd);
     }
 }
