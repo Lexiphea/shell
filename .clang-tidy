@@ -25,7 +25,7 @@ Checks: >
   -readability-redundant-access-specifiers,
   -readability-uppercase-literal-suffix
 
-ExcludeHeaderFilterRegex: 'build/.*'
+ExcludeHeaderFilterRegex: '(build|vendor)/.*'
 WarningsAsErrors: ''
 FormatStyle: file
 

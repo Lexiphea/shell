@@ -85,7 +85,7 @@ jobs:
         run: |
           clang-tidy --version
           run-clang-tidy -p build -quiet -j "$(nproc)" -warnings-as-errors='*' \
-            -source-filter='^(?!.*/build/).*\.cpp$'
+            -source-filter='^(?!.*/(build|vendor)/).*\.cpp$'
 
   lint-check:
     if: always()
