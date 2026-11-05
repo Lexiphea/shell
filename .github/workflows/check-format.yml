@@ -53,7 +53,7 @@ jobs:
         shell: fish {0}
         run: |
           clang-format --version
-          find plugin extras -name '*.cpp' -o -name '*.hpp' \
+          find plugin extras -path plugin/vendor -prune -o \( -name '*.cpp' -o -name '*.hpp' \) -print \
             | xargs clang-format --dry-run --Werror
 
   format-check:
