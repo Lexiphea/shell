@@ -3,13 +3,17 @@
 #include <qdir.h>
 #include <qdiriterator.h>
 #include <qfile.h>
+#include <qlibrary.h>
 #include <qregularexpression.h>
+
+#include <mutex>
+#include <optional>
 
 #include "config/rootnodes.hpp"
 #include "config/serviceconfig.hpp"
 #include "sensorslib.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -133,6 +137,103 @@ const std::array<NameSource, 3>& nameSources() {
     return k_sources;
 }
 
+// NVML, the library nvidia-smi is built on. Loaded at runtime so the plugin builds and runs without the NVIDIA driver.
+// Querying an open handle takes ~0.2ms where starting nvidia-smi took ~15ms of CPU, most of it initialising NVML.
+// Its calls can block on the driver, so they only run on Gpu's NVML thread. The lock covers the brief overlap of two
+// Gpu instances while QML reloads
+class Nvml {
+public:
+    // Each reading is missing if the GPU doesn't support it
+    struct Sample {
+        std::optional<unsigned int> usage;
+        std::optional<unsigned int> temperature;
+    };
+
+    // Opens the first GPU, unless already open. False if the driver isn't there
+    bool open() {
+        const std::scoped_lock lock(m_mutex);
+        if (m_device) {
+            return true;
+        }
+        if (!m_lib.isLoaded()) {
+            m_lib.setFileNameAndVersion(u"nvidia-ml"_s, 1);
+            if (!m_lib.load()) {
+                return false;
+            }
+            m_init = reinterpret_cast<Init>(m_lib.resolve("nvmlInit_v2"));
+            m_shutdown = reinterpret_cast<Shutdown>(m_lib.resolve("nvmlShutdown"));
+            m_handleByIndex = reinterpret_cast<HandleByIndex>(m_lib.resolve("nvmlDeviceGetHandleByIndex_v2"));
+            m_utilization = reinterpret_cast<Utilization>(m_lib.resolve("nvmlDeviceGetUtilizationRates"));
+            m_temperature = reinterpret_cast<Temperature>(m_lib.resolve("nvmlDeviceGetTemperature"));
+        }
+        if (!m_init || !m_shutdown || !m_handleByIndex || !m_utilization || !m_temperature || m_init() != k_success) {
+            return false;
+        }
+        if (m_handleByIndex(0, &m_device) != k_success) {
+            m_device = nullptr;
+            m_shutdown();
+            return false;
+        }
+        return true;
+    }
+
+    // Lets the driver power the GPU down again
+    void close() {
+        const std::scoped_lock lock(m_mutex);
+        if (m_device) {
+            m_device = nullptr;
+            m_shutdown();
+        }
+    }
+
+    // Reads the open GPU, or nothing if open() failed
+    [[nodiscard]] Sample sample() const {
+        const std::scoped_lock lock(m_mutex);
+        Sample out;
+        if (!m_device) {
+            return out;
+        }
+        if (UtilizationRates rates{}; m_utilization(m_device, &rates) == k_success) {
+            out.usage = rates.gpu;
+        }
+        if (unsigned int temp = 0; m_temperature(m_device, k_temperatureGpu, &temp) == k_success) {
+            out.temperature = temp;
+        }
+        return out;
+    }
+
+private:
+    // The subset of nvml.h used here
+    using Device = void*;
+
+    struct UtilizationRates {
+        unsigned int gpu;
+        unsigned int memory;
+    };
+
+    static constexpr int k_success = 0;
+    static constexpr int k_temperatureGpu = 0;
+    using Init = int (*)();
+    using Shutdown = int (*)();
+    using HandleByIndex = int (*)(unsigned int, Device*);
+    using Utilization = int (*)(Device, UtilizationRates*);
+    using Temperature = int (*)(Device, int, unsigned int*);
+
+    mutable std::mutex m_mutex;
+    QLibrary m_lib;
+    Init m_init = nullptr;
+    Shutdown m_shutdown = nullptr;
+    HandleByIndex m_handleByIndex = nullptr;
+    Utilization m_utilization = nullptr;
+    Temperature m_temperature = nullptr;
+    Device m_device = nullptr;
+};
+
+Nvml& nvml() {
+    static Nvml s_nvml;
+    return s_nvml;
+}
+
 // Indices within nameSources(): nvidia-smi, then the driver-agnostic probes.
 constexpr int k_nvidiaSource = 0;
 constexpr int k_firstGenericSource = 1;
@@ -141,11 +242,13 @@ constexpr int k_firstGenericSource = 1;
 
 Gpu::Gpu(QObject* parent)
     : TickingService(parent) {
+    // One thread, so NVML opens, reads and closes in the order they were asked for
+    m_nvmlThread.setMaxThreadCount(1);
     m_busyFiles = gpuBusyFiles();
 
-    const auto* svc = caelestia::config::ConfigSingleton::instance()->services();
+    const auto* svc = caelestia::shell::config::ConfigSingleton::instance()->services();
     m_userType = svc->gpuType();
-    QObject::connect(svc, &caelestia::config::ServiceConfig::gpuTypeChanged, this, [this, svc] {
+    QObject::connect(svc, &caelestia::shell::config::ServiceConfig::gpuTypeChanged, this, [this, svc] {
         const GpuType value = svc->gpuType();
         if (value == m_userType) {
             return;
@@ -181,6 +284,9 @@ void Gpu::setType(GpuType value) {
     if (value == m_type) {
         return;
     }
+    if (m_type == GpuType::Nvidia) {
+        closeNvml();
+    }
     m_type = value;
     if (m_type == GpuType::None) {
         resetUsage();
@@ -209,7 +315,7 @@ void Gpu::tick() {
         readGenericUsage();
         readGpuTemperature();
     } else if (m_type == GpuType::Nvidia) {
-        startNvidiaUsage();
+        readNvidiaUsage();
     } else {
         resetUsage();
     }
@@ -322,66 +428,65 @@ void Gpu::readGenericUsage() {
             ++count;
         }
     }
-    const qreal newPerc = count > 0 ? sum / count / 100.0 : 0.0;
-    if (std::abs(newPerc - m_percentage) > 0.0001) {
-        m_percentage = newPerc;
-        emit percentageChanged();
-    }
+    setPercentage(count > 0 ? sum / count / 100.0 : 0.0);
 }
 
-void Gpu::startNvidiaUsage() {
+void Gpu::stopped() {
+    closeNvml();
+}
+
+void Gpu::readNvidiaUsage() {
     if (m_nvidiaQuerying) {
         return;
     }
     m_nvidiaQuerying = true;
     const int generation = m_generation;
-    runProcess(u"nvidia-smi"_s,
-        { u"--query-gpu=utilization.gpu,temperature.gpu"_s, u"--format=csv,noheader,nounits"_s },
-        [this, generation](const QByteArray& out) {
+    m_nvmlThread.start([this, generation] {
+        const auto sample = nvml().open() ? nvml().sample() : Nvml::Sample{};
+        QMetaObject::invokeMethod(this, [this, generation, sample] {
             m_nvidiaQuerying = false;
 
             // The type moved out from under the sample, so it no longer describes the GPU
             if (generation != m_generation) {
                 return;
             }
-
-            const QList<QByteArray> parts = out.trimmed().split(',');
-            if (parts.size() < 2) {
-                return;
+            if (sample.usage) {
+                setPercentage(*sample.usage / 100.0);
             }
-            bool ok1 = false;
-            bool ok2 = false;
-            const qreal usage = parts.at(0).trimmed().toDouble(&ok1) / 100.0;
-            const qreal temp = parts.at(1).trimmed().toDouble(&ok2);
-            if (ok1 && std::abs(usage - m_percentage) > 0.0001) {
-                m_percentage = usage;
-                emit percentageChanged();
-            }
-            if (ok2 && std::abs(temp - m_temperature) > 0.05) {
-                m_temperature = temp;
-                emit temperatureChanged();
+            if (sample.temperature) {
+                setTemperature(*sample.temperature);
             }
         });
+    });
+}
+
+void Gpu::closeNvml() {
+    m_nvmlThread.start([] {
+        nvml().close();
+    });
 }
 
 void Gpu::readGpuTemperature() {
-    const auto t = sensorslib::gpuPciAverageTemp();
-    const qreal newTemp = t.value_or(0.0);
-    if (std::abs(newTemp - m_temperature) > 0.05) {
-        m_temperature = newTemp;
-        emit temperatureChanged();
-    }
+    setTemperature(sensorslib::gpuPciAverageTemp().value_or(0.0));
 }
 
 void Gpu::resetUsage() {
-    if (std::abs(m_percentage) > 0.0001) {
-        m_percentage = 0.0;
+    setPercentage(0.0);
+    setTemperature(0.0);
+}
+
+void Gpu::setPercentage(qreal value) {
+    if (std::abs(value - m_percentage) > 0.0001) {
+        m_percentage = value;
         emit percentageChanged();
     }
-    if (std::abs(m_temperature) > 0.05) {
-        m_temperature = 0.0;
+}
+
+void Gpu::setTemperature(qreal value) {
+    if (std::abs(value - m_temperature) > 0.05) {
+        m_temperature = value;
         emit temperatureChanged();
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

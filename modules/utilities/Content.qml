@@ -5,14 +5,12 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
-import qs.modules.bar.popouts as BarPopouts
 
 Item {
     id: root
 
     required property var props
     required property ScreenState screenState
-    required property BarPopouts.Wrapper popouts
     required property matrix4x4 deformMatrix
 
     readonly property int enabledCards: (idleInhibit.active ? 1 : 0) + (record.active ? 1 : 0) + (toggles.active ? 1 : 0)
@@ -66,7 +64,6 @@ Item {
                 objectName: "utilitiesQuickToggles"
 
                 screenState: root.screenState
-                popouts: root.popouts
             }
         }
     }

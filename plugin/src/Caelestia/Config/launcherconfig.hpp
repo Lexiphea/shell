@@ -8,20 +8,12 @@
 #include "util/i18n.hpp"
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 using Qt::StringLiterals::operator""_s;
 using settings::vmap;
 using util::i18n::mark;
 using util::i18n::markCtx;
-
-class LauncherUseFuzzy : public settings::ObjectNode {
-    CONFIG_NODE(LauncherUseFuzzy, settings::ObjectNode)
-
-    CONFIG_PROPERTY(bool, apps, false)
-    CONFIG_PROPERTY(bool, actions, false)
-    CONFIG_PROPERTY(bool, wallpapers, false)
-};
 
 class LauncherAction : public settings::ObjectNode {
     CONFIG_NODE(LauncherAction, settings::ObjectNode)
@@ -48,7 +40,6 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_PROPERTY(bool, vimKeybinds, false)
     CONFIG_GLOBAL_PROPERTY(QStringList, favouriteApps, {})
     CONFIG_GLOBAL_PROPERTY(QStringList, hiddenApps, {})
-    CONFIG_GLOBAL_SUBOBJECT(LauncherUseFuzzy, useFuzzy)
     CONFIG_GLOBAL_LIST(LauncherActionList, actions,
         DEFAULT_ARG({
             vmap({
@@ -117,4 +108,4 @@ class LauncherConfig : public settings::ObjectNode {
         }))
 };
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

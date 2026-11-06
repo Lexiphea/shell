@@ -5,7 +5,6 @@ qml_module(caelestia-settings
         common.cpp
         schema.cpp
         codecs.cpp
-        quarantine.cpp
         node.cpp
         objectnode.cpp
         listnode.cpp

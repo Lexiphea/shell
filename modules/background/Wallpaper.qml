@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -12,42 +13,18 @@ import qs.utils
 Item {
     id: root
 
-    property string source: Wallpapers.current
-    property CachingImage current
-    property list<CachingImage> images: []
+    required property ShellScreen screen
+    // Videos only play while the desktop shows and the session is unlocked
+    readonly property bool desktopVisible: !ShellState.locked && Hypr.desktopVisible(Hypr.monitorFor(screen))
     property bool completed
 
-    function updateImage(): void {
-        if (!completed)
-            return;
-
-        if (!source) {
-            const oldImages = images;
-            images = [];
-            current = null;
-            for (const image of oldImages)
-                image.destroy();
-            return;
-        }
-
-        current = imgComp.createObject(this, {
-            path: source
-        });
-        images = [...images, current];
-    }
-
-    onSourceChanged: updateImage()
-
-    Component.onCompleted: {
-        completed = true;
-        updateImage();
-    }
+    Component.onCompleted: completed = true
 
     Loader {
         asynchronous: true
         anchors.fill: parent
 
-        active: root.completed && !root.source
+        active: root.completed && !Wallpapers.current
 
         sourceComponent: StyledRect {
             color: Colours.palette.m3surfaceContainer
@@ -83,13 +60,12 @@ Item {
                             id: dialog
 
                             title: Tr.tr("Select a wallpaper")
-                            filterLabel: Tr.tr("Image files")
-                            filters: Images.validImageExtensions
+                            filterLabel: Tr.tr("Image and video files")
+                            filters: Images.validWallpaperExtensions
                             onAccepted: path => Wallpapers.setWallpaper(path)
                         }
 
                         StateLayer {
-                            radius: parent.radius
                             color: Colours.palette.m3onPrimary
                             onClicked: dialog.open()
                         }
@@ -109,38 +85,8 @@ Item {
         }
     }
 
-    Component {
-        id: imgComp
-
-        CachingImage {
-            id: img
-
-            anchors.fill: parent
-
-            opacity: 0
-
-            onStatusChanged: {
-                if (status === Image.Ready)
-                    anim.start();
-            }
-
-            Anim on opacity {
-                id: anim
-
-                type: Anim.SlowEffects
-                running: false
-                from: 0
-                to: 1
-            }
-
-            Timer {
-                running: root.current !== img && root.current?.status === Image.Ready
-                interval: anim.duration
-                onTriggered: {
-                    root.images = root.images.filter(image => image !== img);
-                    img.destroy();
-                }
-            }
-        }
+    WallpaperImage {
+        anchors.fill: parent
+        playing: root.desktopVisible
     }
 }

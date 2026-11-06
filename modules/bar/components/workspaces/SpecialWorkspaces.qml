@@ -24,7 +24,7 @@ Item {
     readonly property real maxViewY: Math.max(0, view.contentHeight - height)
 
     readonly property Workspace activeWs: {
-        view.itemsDirty;
+        CUtils.dependency(view.itemsDirty);
         return view.itemAtIndex(activeIdx) as Workspace;
     }
 
@@ -223,7 +223,7 @@ Item {
 
             const ws = view.itemAt(event.x, event.y - view.y) as Workspace;
             if (ws) {
-                const match = Hypr.workspaces.values.find(w => w.id === ws.ws);
+                const match = ws.wsObj;
                 if (match)
                     Hypr.toggleSpecial(Hypr.trimWsName(match.name));
             } else {

@@ -34,17 +34,7 @@ QtObject {
     property bool hasActionIcons
     property list<var> actions
 
-    readonly property bool hasFullscreen: {
-        if (!popup)
-            return false;
-        const monitor = Hypr.focusedMonitor;
-        const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
-        if (specialName) {
-            const specialWs = Hypr.workspaces.values.find(ws => ws.name === specialName);
-            return specialWs?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
-        }
-        return monitor?.activeWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
-    }
+    readonly property bool hasFullscreen: popup && Hypr.hasFullscreen(Hypr.focusedMonitor)
 
     readonly property Timer timer: Timer {
         running: true
@@ -147,9 +137,7 @@ QtObject {
         }
 
         function onActionsChanged(): void {
-            // qmllint disable unresolved-type
-            notif.actions = notif.notification.actions.map(a => ({
-                        // qmllint enable unresolved-type
+            notif.actions = (notif.notification.actions as Array).map(a => ({
                         identifier: a.identifier,
                         text: a.text,
                         invoke: () => a.invoke()
@@ -217,9 +205,8 @@ QtObject {
         urgency = notification.urgency;
         resident = notification.resident;
         hasActionIcons = notification.hasActionIcons;
-        // qmllint disable unresolved-type
-        actions = notification.actions.map(a => ({
-                    // qmllint enable unresolved-type
+
+        actions = (notification.actions as Array).map(a => ({
                     identifier: a.identifier,
                     text: a.text,
                     invoke: () => a.invoke()

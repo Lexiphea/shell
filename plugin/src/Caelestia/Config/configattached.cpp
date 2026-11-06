@@ -4,7 +4,7 @@
 
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 Config::Config(QObject* parent)
     : QQuickAttachedPropertyPropagator(parent) {
@@ -84,12 +84,8 @@ CONFIG_ATTACHED_GETTER(UserPaths, paths)
 
 #undef CONFIG_ATTACHED_GETTER
 
-ConfigRoot* Config::forScreen(const QString& screen) {
-    return ConfigSingleton::instance()->forScreen(screen);
-}
-
 Config* Config::qmlAttachedProperties(QObject* object) {
     return new Config(object);
 }
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

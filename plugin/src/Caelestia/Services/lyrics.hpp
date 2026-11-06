@@ -8,7 +8,7 @@
 
 #include "lyriccandidate.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 struct LyricLine {
     qreal time = 0.0;
@@ -21,13 +21,13 @@ class Lyrics : public QObject {
     QML_SINGLETON
 
     Q_PROPERTY(QStringList lyrics READ lyrics NOTIFY lyricsChanged)
-    Q_PROPERTY(caelestia::config::LyricsBackend::Enum backend READ backend NOTIFY backendChanged)
-    Q_PROPERTY(caelestia::config::LyricsBackend::Enum preferredBackend READ preferredBackend WRITE setPreferredBackend
-            NOTIFY preferredBackendChanged)
-    Q_PROPERTY(
-        QList<caelestia::services::LyricCandidate> lyricCandidates READ lyricCandidates NOTIFY lyricCandidatesChanged)
-    Q_PROPERTY(caelestia::services::LyricCandidate selectedCandidate READ selectedCandidate WRITE setSelectedCandidate
-            NOTIFY selectedCandidateChanged)
+    Q_PROPERTY(caelestia::shell::config::LyricsBackend::Enum backend READ backend NOTIFY backendChanged)
+    Q_PROPERTY(caelestia::shell::config::LyricsBackend::Enum preferredBackend READ preferredBackend WRITE
+            setPreferredBackend NOTIFY preferredBackendChanged)
+    Q_PROPERTY(QList<caelestia::shell::services::LyricCandidate> lyricCandidates READ lyricCandidates NOTIFY
+            lyricCandidatesChanged)
+    Q_PROPERTY(caelestia::shell::services::LyricCandidate selectedCandidate READ selectedCandidate WRITE
+            setSelectedCandidate NOTIFY selectedCandidateChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(bool hasLyrics READ hasLyrics NOTIFY hasLyricsChanged)
     Q_PROPERTY(qreal offset READ offset WRITE setOffset NOTIFY offsetChanged)
@@ -76,6 +76,7 @@ private:
     void clearLines();
     void appendCandidates(const QList<LyricCandidate>& add);
     void clearCandidates();
+    void adoptCandidate(const LyricCandidate& cand);
 
     void scheduleLoad();
     void doLoad();
@@ -94,7 +95,8 @@ private:
     void fetchNetEaseLyricsById(const QString& id, int reqId);
 
     QNetworkReply* getJson(const QUrl& url, const QHash<QByteArray, QByteArray>& headers = {});
-    void trackReply(int reqId, QNetworkReply* reply);
+    QNetworkReply* searchNetEase();
+    void trackReply(QNetworkReply* reply);
 
     void onPreferredBackendConfigChanged();
     void onLyricsDirChanged();
@@ -137,11 +139,10 @@ private:
     qreal m_duration = 0.0;
 
     int m_currentRequestId = 0;
-    QHash<int, QList<QPointer<QNetworkReply>>> m_pendingReplies;
+    QList<QPointer<QNetworkReply>> m_pendingReplies;
 
     QJsonObject m_lyricsMap;
-    bool m_lyricsMapLoaded = false;
     bool m_settingFromPrefs = false;
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

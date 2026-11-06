@@ -5,7 +5,7 @@
 
 #include "tickingservice.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 class Memory : public TickingService {
     Q_OBJECT
@@ -30,10 +30,8 @@ protected:
     void tick() override;
 
 private:
-    qreal m_used = 0.0;
-    qreal m_total = 1.0;
-    quint64 m_lastUsed = 0;
-    quint64 m_lastTotal = 0;
+    quint64 m_used = 0;  // KiB
+    quint64 m_total = 0; // KiB
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

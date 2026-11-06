@@ -9,10 +9,8 @@ import qs.components.controls
 import qs.components.images
 import qs.services
 
-StyledClippingRect {
+ClipRect {
     id: root
-
-    required property var lock
 
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
     radius: Tokens.rounding.extraLarge

@@ -7,13 +7,17 @@
 #include "rootnodes.hpp"
 #include "tokens.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 AnimTokens::AnimTokens(QObject* parent)
     : QObject(parent) {
     QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
-    bindDurations(ConfigSingleton::instance()->appearance()->anim()->durations());
-    bindCurves(TokensSingleton::instance()->appearance()->curves());
+    m_durations = ConfigSingleton::instance()->appearance()->anim()->durations();
+    m_curves = TokensSingleton::instance()->appearance()->curves();
+
+    // Rebuild when any curve control points change
+    connect(m_curves, &AnimCurves::optionChanged, this, &AnimTokens::rebuildCurves);
+    rebuildCurves();
 }
 
 AnimTokens* AnimTokens::instance() {
@@ -90,9 +94,6 @@ QEasingCurve AnimTokens::buildCurve(const QList<qreal>& points) {
 }
 
 void AnimTokens::rebuildCurves() {
-    if (!m_curves)
-        return;
-
     m_emphasized = buildCurve(m_curves->emphasized());
     m_emphasizedAccel = buildCurve(m_curves->emphasizedAccel());
     m_emphasizedDecel = buildCurve(m_curves->emphasizedDecel());
@@ -109,21 +110,4 @@ void AnimTokens::rebuildCurves() {
     emit curvesChanged();
 }
 
-void AnimTokens::bindCurves(AnimCurves* curves) {
-    m_curves = curves;
-
-    // Rebuild when any curve control points change
-    connect(curves, &AnimCurves::optionChanged, this, &AnimTokens::rebuildCurves);
-
-    rebuildCurves();
-}
-
-void AnimTokens::bindDurations(AnimDurations* durations) {
-    if (m_durations == durations)
-        return;
-
-    m_durations = durations;
-    emit durationsChanged();
-}
-
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

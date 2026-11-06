@@ -6,6 +6,7 @@ import Quickshell
 import Caelestia.Config
 import qs.components.controls
 import qs.services
+import qs.utils
 
 PathView {
     id: root
@@ -44,19 +45,40 @@ PathView {
         return visible;
     }
 
+    function preview(): void {
+        const path = (currentItem as WallpaperItem)?.modelData.path;
+        if (path && !(Wallpapers.showPreview && Wallpapers.previewPath === path))
+            Wallpapers.preview(path);
+    }
+
     model: ScriptModel {
         id: scriptModel
 
         readonly property string search: root.search.text.split(" ").slice(1).join(" ")
 
         values: Wallpapers.query(search)
-        onValuesChanged: root.currentIndex = search ? 0 : values.findIndex(w => w.path === Wallpapers.actualCurrent)
+        onValuesChanged: {
+            // Only preview once typing pauses, not each search's first match straight away
+            previewTimer.restart();
+            root.currentIndex = search ? 0 : values.findIndex(w => w.path === Wallpapers.actualCurrent);
+        }
     }
 
-    Component.onCompleted: currentIndex = Wallpapers.list.findIndex(w => w.path === Wallpapers.actualCurrent)
+    Component.onCompleted: {
+        currentIndex = Wallpapers.list.findIndex(w => w.path === Wallpapers.actualCurrent);
+        // Previewing a video wallpaper loads the media backend, which would otherwise freeze the UI on the first one
+        if (Wallpapers.list.some(w => Images.isVideo(w.path)))
+            Wallpapers.video.preload();
+    }
     Component.onDestruction: Wallpapers.stopPreview()
 
-    onCurrentItemChanged: previewTimer.restart()
+    // Preview straight away, but while the selection keeps moving only where it stops, as each preview loads the
+    // wallpaper and its colours
+    onCurrentItemChanged: {
+        if (!previewTimer.running)
+            preview();
+        previewTimer.restart();
+    }
 
     implicitWidth: Math.min(numItems, count) * itemWidth
     pathItemCount: numItems
@@ -96,10 +118,7 @@ PathView {
         id: previewTimer
 
         interval: 150
-        onTriggered: {
-            if (root.currentItem)
-                Wallpapers.preview((root.currentItem as WallpaperItem).modelData.path);
-        }
+        onTriggered: root.preview()
     }
 
     CustomMouseArea {

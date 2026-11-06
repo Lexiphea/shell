@@ -63,7 +63,7 @@ TextField {
         }
 
         Timer {
-            running: root.activeFocus && root.cursorVisible && !cursor.disableBlink
+            running: root.visible && root.activeFocus && root.cursorVisible && !cursor.disableBlink // Hidden fields can keep focus
             repeat: true
             triggeredOnStart: true
             interval: 500

@@ -17,11 +17,6 @@ WlSessionLockSurface {
     readonly property alias unlocking: unlockAnim.running
     property bool oledBlackActive
 
-    contentItem.Config.screen: screen.name
-    contentItem.Tokens.screen: screen.name
-
-    color: "black"
-
     function stopOledBlackTimer(): void {
         oledBlackActive = false;
         blackoutDelay.stop();
@@ -52,15 +47,26 @@ WlSessionLockSurface {
     }
 
     function showLockUi(): void {
-        if (oledBlackActive)
-            oledBlackActive = false;
+        oledBlackActive = false;
         restartOledBlackTimer();
     }
 
     function restartOledBlackTimer(): void {
         blackoutDelay.stop();
-        if (root.lock.locked && root.visible && !root.oledBlackActive)
+        if (root.lock.locked && root.visible)
             blackoutDelay.start();
+    }
+
+    contentItem.Config.screen: screen.name
+    contentItem.Tokens.screen: screen.name
+
+    color: "black"
+
+    onVisibleChanged: {
+        if (root.visible && root.lock.locked)
+            activateLockSurface();
+        else
+            stopOledBlackTimer();
     }
 
     Connections {
@@ -77,18 +83,6 @@ WlSessionLockSurface {
         }
 
         target: root.lock
-    }
-
-    onVisibleChanged: {
-        if (root.visible && root.lock.locked)
-            activateLockSurface();
-        else
-            stopOledBlackTimer();
-    }
-
-    onUnlockingChanged: {
-        if (unlocking)
-            stopOledBlackTimer();
     }
 
     SequentialAnimation {
@@ -246,6 +240,7 @@ WlSessionLockSurface {
 
         Loader {
             anchors.fill: parent
+            active: background.visible // Hidden by the blackout, so don't capture the screen for nothing
             sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
         }
     }
@@ -332,7 +327,6 @@ WlSessionLockSurface {
         hoverEnabled: true
         visible: root.oledBlackActive
         z: 1000
-        onClicked: root.showLockUi()
         onPressed: root.showLockUi()
         onWheel: root.showLockUi()
     }

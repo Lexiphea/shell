@@ -2,7 +2,7 @@
 
 #include "appearanceconfig.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 namespace {
 
@@ -36,43 +36,22 @@ QFont FontStyleBase::buildFont(const settings::ObjectNode* cfg, const QString& f
     const auto italic = cfg->value(u"italic"_s).toBool();
     const auto vaxes = cfg->value(u"vaxes"_s).toMap();
 
-    QFont font;
-    font.setFamily(family.isEmpty() ? fallbackFamily : family);
-    const int scaledSize = static_cast<int>(size * scale);
-    const int cappedSize = scaledSize > 0 ? scaledSize : 1;
-    font.setPointSize(cappedSize);
-    font.setVariableAxis("opsz", static_cast<float>(cappedSize));
-    font.setWeight(weight);
-    font.setVariableAxis("wght", weight);
-    font.setItalic(italic);
-
-    for (auto it = vaxes.constBegin(); it != vaxes.constEnd(); ++it) {
-        if (auto tag = QFont::Tag::fromString(it.key()))
-            font.setVariableAxis(*tag, it.value().toFloat());
-    }
-
-    return font;
+    return FontBuilder(QFont())
+        .family(family.isEmpty() ? fallbackFamily : family)
+        .size(static_cast<int>(size * scale))
+        .weight(weight)
+        .italic(italic)
+        .vaxes(vaxes)
+        .build();
 }
 
 void FontStyleBase::bind(settings::ObjectNode* cfg) {
-    if (m_cfg == cfg)
-        return;
-
-    if (m_cfg) {
-        disconnect(m_cfg, nullptr, this, nullptr);
-        disconnect(style(m_cfg, u"large"_s), nullptr, this, nullptr);
-        disconnect(style(m_cfg, u"medium"_s), nullptr, this, nullptr);
-        disconnect(style(m_cfg, u"small"_s), nullptr, this, nullptr);
-    }
-
     m_cfg = cfg;
 
-    if (cfg) {
-        connect(cfg, &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
-        connect(style(cfg, u"large"_s), &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
-        connect(style(cfg, u"medium"_s), &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
-        connect(style(cfg, u"small"_s), &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
-    }
+    connect(cfg, &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
+    connect(style(cfg, u"large"_s), &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
+    connect(style(cfg, u"medium"_s), &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
+    connect(style(cfg, u"small"_s), &settings::Node::optionChanged, this, &FontStyleBase::rebuild);
 
     rebuild();
 }
@@ -119,16 +98,8 @@ FontBuilder IconFontStyle::size(int pointSize) {
 }
 
 void IconFontStyle::bind(settings::ObjectNode* cfg) {
-    if (m_cfg == cfg)
-        return;
-
-    if (m_cfg)
-        disconnect(style(m_cfg, u"extraLarge"_s), nullptr, this, nullptr);
-
     FontStyleBase::bind(cfg);
-
-    if (cfg)
-        connect(style(cfg, u"extraLarge"_s), &settings::Node::optionChanged, this, &IconFontStyle::rebuild);
+    connect(style(cfg, u"extraLarge"_s), &settings::Node::optionChanged, this, &IconFontStyle::rebuild);
 }
 
 QFont IconFontStyle::extraLarge() const {
@@ -222,35 +193,19 @@ QString FontTokens::workspaces() const {
 }
 
 void FontTokens::bindFont(AppearanceFont* font) {
-    if (m_font == font)
-        return;
-
-    if (m_font)
-        disconnect(m_font, nullptr, this, nullptr);
-
     m_font = font;
 
-    if (font) {
-        rebuildScale();
-        m_headline->bind(font->headline());
-        m_title->bind(font->title());
-        m_body->bind(font->body());
-        m_label->bind(font->label());
-        m_mono->bind(font->mono());
-        m_icon->bind(font->icon());
+    rebuildScale();
+    m_headline->bind(font->headline());
+    m_title->bind(font->title());
+    m_body->bind(font->body());
+    m_label->bind(font->label());
+    m_mono->bind(font->mono());
+    m_icon->bind(font->icon());
 
-        connect(font, &AppearanceFont::clockChanged, this, &FontTokens::rebuildClock);
-        connect(font, &AppearanceFont::scaleChanged, this, &FontTokens::rebuildScale);
-        connect(font, &AppearanceFont::workspacesChanged, this, &FontTokens::workspacesChanged);
-    } else {
-        rebuildScale();
-        m_headline->bind(nullptr);
-        m_title->bind(nullptr);
-        m_body->bind(nullptr);
-        m_label->bind(nullptr);
-        m_mono->bind(nullptr);
-        m_icon->bind(nullptr);
-    }
+    connect(font, &AppearanceFont::clockChanged, this, &FontTokens::rebuildClock);
+    connect(font, &AppearanceFont::scaleChanged, this, &FontTokens::rebuildScale);
+    connect(font, &AppearanceFont::workspacesChanged, this, &FontTokens::workspacesChanged);
 
     rebuildClock();
     emit workspacesChanged();
@@ -274,4 +229,4 @@ void FontTokens::rebuildClock() {
     emit clockChanged();
 }
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

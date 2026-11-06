@@ -4,12 +4,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Caelestia.Config
+import Caelestia.Images
 import Caelestia.Models
 import qs.services
 import qs.utils
 
-Searcher {
+Singleton {
     id: root
+
+    readonly property list<FileSystemEntry> list: wallpapers.entries
 
     readonly property string currentNamePath: `${Paths.state}/wallpaper/path.txt`
     readonly property list<string> smartArg: GlobalConfig.services.smartScheme ? [] : ["--no-smart"]
@@ -21,12 +24,20 @@ Searcher {
     property string actualCurrent
     property bool previewColourLock
     property bool pendingPreviewClear
+    // Decodes a video wallpaper once for every screen showing it
+    readonly property SharedVideo video: SharedVideo {
+        source: Images.isVideo(root.current) ? Qt.resolvedUrl(root.current) : ""
+    }
 
     function getCategoryFor(w: FileSystemEntry): string {
         let category = w.parentDir.slice(Paths.wallsdir.length + 1);
         if (category.includes("/"))
             category = category.slice(0, category.indexOf("/"));
         return category;
+    }
+
+    function query(search: string): var {
+        return Fuzzy.search(list, search, "relativePath");
     }
 
     function setRandom(): void {
@@ -41,6 +52,7 @@ Searcher {
     function preview(path: string): void {
         previewPath = path;
         showPreview = true;
+        pendingPreviewClear = false;
 
         if (Colours.scheme === "dynamic")
             getPreviewColoursProc.exec(["caelestia", "wallpaper", "-p", path, ...smartArg]);
@@ -55,16 +67,11 @@ Searcher {
     }
 
     onPreviewColourLockChanged: {
-        if (!previewColourLock && pendingPreviewClear)
+        if (!previewColourLock && pendingPreviewClear) {
+            pendingPreviewClear = false;
             Colours.showPreview = false;
+        }
     }
-
-    list: wallpapers.entries
-    key: "relativePath"
-    useFuzzy: GlobalConfig.launcher.useFuzzy.wallpapers
-    extraOpts: useFuzzy ? ({}) : ({
-            forward: false
-        })
 
     IpcHandler {
         function get(): string {
@@ -88,19 +95,13 @@ Searcher {
         printErrors: false
         onFileChanged: reload()
         onLoaded: {
-            let wall = text().trim();
-            if (!wall) {
-                wall = root.fallback;
-                Quickshell.execDetached(["caelestia", "wallpaper", "-f", root.fallback, ...root.smartArg]);
-            }
-            root.actualCurrent = wall;
-            root.previewColourLock = false;
+            const wall = text().trim();
+            if (wall)
+                root.actualCurrent = wall;
+            else
+                root.setWallpaper(root.fallback);
         }
-        onLoadFailed: {
-            root.actualCurrent = root.fallback;
-            root.previewColourLock = false;
-            Quickshell.execDetached(["caelestia", "wallpaper", "-f", root.fallback, ...root.smartArg]);
-        }
+        onLoadFailed: root.setWallpaper(root.fallback)
     }
 
     FileSystemModel {
@@ -108,7 +109,7 @@ Searcher {
 
         recursive: true
         path: Paths.wallsdir
-        filter: FileSystemModel.Images
+        filter: FileSystemModel.Images | FileSystemModel.Videos
     }
 
     Process {

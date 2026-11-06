@@ -1,12 +1,13 @@
 #include "buttonrow.hpp"
 
-namespace caelestia::components {
+#include <qvarlengtharray.h>
+
+namespace caelestia::shell::components {
 
 ButtonRow::ButtonRow(QQuickItem* parent)
     : QQuickItem(parent)
     , m_dirty(false)
     , m_spacing(0.0) {
-    setFlag(QQuickItem::ItemHasContents, true);
     QObject::connect(this, &ButtonRow::widthChanged, this, &ButtonRow::invalidate);
 }
 
@@ -61,7 +62,7 @@ void ButtonRow::invalidate() {
 void ButtonRow::relayout() {
     const auto allChildren = childItems();
 
-    QList<QQuickItem*> validChildren;
+    QVarLengthArray<QQuickItem*, 8> validChildren;
     for (auto* const child : allChildren) {
         if (child->isVisible() && !child->inherits("QQuickRepeater"))
             validChildren.append(child);
@@ -93,8 +94,7 @@ void ButtonRow::relayout() {
 
     const auto widthPerItem = (width() - totalSpacing - reservedWidth) / static_cast<qreal>(fillWidthCount);
 
-    QList<qreal> baseWidths;
-    baseWidths.reserve(nChildren);
+    QVarLengthArray<qreal, 8> baseWidths;
     for (const auto* child : validChildren)
         baseWidths.append(child->property("fillWidth").toBool() ? widthPerItem : child->implicitWidth());
 
@@ -129,4 +129,4 @@ qreal ButtonRow::getMorphExpansion(const QQuickItem* item) {
     return item->property("shapeMorphExpansion").toReal();
 }
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Widgets
 import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
@@ -67,7 +66,7 @@ Item {
         tabs: root.dashboardTabs
     }
 
-    ClippingRectangle {
+    ClipRect {
         id: viewWrapper
 
         anchors.top: tabs.bottom
@@ -84,7 +83,8 @@ Item {
 
             readonly property int currentIndex: root.screenState.dashboardTab
             readonly property Item currentItem: {
-                row.children; // Trigger update when delegates are added or removed
+                // Trigger update when delegates are added or removed
+                row.children; // qmllint disable confusing-expression-statement
                 return repeater.itemAt(currentIndex);
             }
 

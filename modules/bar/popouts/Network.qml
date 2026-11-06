@@ -18,7 +18,6 @@ ColumnLayout {
     property string connectingToSsid: ""
     property string view: "wireless" // "wireless" or "ethernet"
     property var passwordNetwork: null
-    property bool showPasswordDialog: false
 
     spacing: Tokens.spacing.small
     width: Tokens.sizes.bar.networkWidth
@@ -46,13 +45,12 @@ ColumnLayout {
         Layout.preferredHeight: visible ? implicitHeight : 0
         Layout.topMargin: visible ? Tokens.spacing.small : 0
         Layout.rightMargin: Tokens.padding.extraSmall
-        text: Tr.trN("%n network available", "%n networks available", Nmcli.networks.length) // qmllint disable missing-property
+        text: Tr.trN("%n network available", "%n networks available", Nmcli.networks.length)
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.body.small
     }
 
     Repeater {
-        visible: root.view === "wireless"
         model: ScriptModel {
             values: [...Nmcli.networks].sort((a, b) => {
                 if (a.active !== b.active)
@@ -66,7 +64,6 @@ ColumnLayout {
 
             required property Nmcli.AccessPoint modelData
             readonly property bool isConnecting: root.connectingToSsid === modelData.ssid
-            readonly property bool loading: networkItem.isConnecting
 
             visible: root.view === "wireless"
             Layout.preferredHeight: visible ? implicitHeight : 0
@@ -122,22 +119,21 @@ ColumnLayout {
 
                 CircularIndicator {
                     anchors.fill: parent
-                    running: networkItem.loading
+                    running: networkItem.isConnecting
                 }
 
                 StateLayer {
                     color: networkItem.modelData.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                    disabled: networkItem.loading || !Nmcli.wifiEnabled
+                    disabled: networkItem.isConnecting || !Nmcli.wifiEnabled
 
                     onClicked: {
                         if (networkItem.modelData.active) {
                             Nmcli.disconnectFromNetwork();
                         } else {
                             root.connectingToSsid = networkItem.modelData.ssid;
-                            NetworkConnection.handleConnect(networkItem.modelData, null, network => {
+                            NetworkConnection.handleConnect(networkItem.modelData, network => {
                                 // Password is required - show password dialog
                                 root.passwordNetwork = network;
-                                root.showPasswordDialog = true;
                                 root.popouts.currentName = "wirelesspassword";
                             });
 
@@ -155,7 +151,7 @@ ColumnLayout {
                     text: networkItem.modelData.active ? "link_off" : "link"
                     color: networkItem.modelData.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
 
-                    opacity: networkItem.loading ? 0 : 1
+                    opacity: networkItem.isConnecting ? 0 : 1
 
                     Behavior on opacity {
                         Anim {
@@ -242,7 +238,6 @@ ColumnLayout {
     }
 
     Repeater {
-        visible: root.view === "ethernet"
         model: ScriptModel {
             values: [...Nmcli.ethernetDevices].sort((a, b) => {
                 if (a.connected !== b.connected)
@@ -255,7 +250,6 @@ ColumnLayout {
             id: ethernetItem
 
             required property var modelData
-            readonly property bool loading: false
 
             visible: root.view === "ethernet"
             Layout.preferredHeight: visible ? implicitHeight : 0
@@ -303,14 +297,8 @@ ColumnLayout {
                 radius: Tokens.rounding.full
                 color: Qt.alpha(Colours.palette.m3primary, ethernetItem.modelData.connected ? 1 : 0)
 
-                CircularIndicator {
-                    anchors.fill: parent
-                    running: ethernetItem.loading
-                }
-
                 StateLayer {
                     color: ethernetItem.modelData.connected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                    disabled: ethernetItem.loading
 
                     onClicked: {
                         if (ethernetItem.modelData.connected && ethernetItem.modelData.connection) {
@@ -328,14 +316,6 @@ ColumnLayout {
                     animate: true
                     text: ethernetItem.modelData.connected ? "link_off" : "link"
                     color: ethernetItem.modelData.connected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-
-                    opacity: ethernetItem.loading ? 0 : 1
-
-                    Behavior on opacity {
-                        Anim {
-                            type: Anim.DefaultEffects
-                        }
-                    }
                 }
             }
         }
@@ -346,8 +326,7 @@ ColumnLayout {
             if (Nmcli.active && root.connectingToSsid === Nmcli.active.ssid) {
                 root.connectingToSsid = "";
                 // Close password dialog if we successfully connected
-                if (root.showPasswordDialog && root.passwordNetwork && Nmcli.active.ssid === root.passwordNetwork.ssid) {
-                    root.showPasswordDialog = false;
+                if (root.passwordNetwork && Nmcli.active.ssid === root.passwordNetwork.ssid) {
                     root.passwordNetwork = null;
                     if (root.popouts.currentName === "wirelesspassword") {
                         root.popouts.currentName = "network";
@@ -356,21 +335,14 @@ ColumnLayout {
             }
         }
 
-        function onScanningChanged(): void {
-            if (!Nmcli.scanning)
-                scanIcon.rotation = 0;
-        }
-
         target: Nmcli
     }
 
     Connections {
         function onCurrentNameChanged(): void {
             // Clear password network when leaving password dialog
-            if (root.popouts.currentName !== "wirelesspassword" && root.showPasswordDialog) {
-                root.showPasswordDialog = false;
+            if (root.popouts.currentName !== "wirelesspassword" && root.passwordNetwork)
                 root.passwordNetwork = null;
-            }
         }
 
         target: root.popouts

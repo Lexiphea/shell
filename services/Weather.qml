@@ -28,8 +28,8 @@ Singleton {
     readonly property string feelsLike: formatTemp(cc?.feelsLikeC)
     readonly property int humidity: cc?.humidity ?? 0
     readonly property real windSpeed: cc?.windSpeed ?? 0
-    readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
-    readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+    readonly property string sunrise: cc ? Tr.formatDateTime(new Date(cc.sunrise), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+    readonly property string sunset: cc ? Tr.formatDateTime(new Date(cc.sunset), Units.twelveHourClock ? "h:mm A" : "h:mm") : "--:--"
 
     readonly property var cachedCities: new Map()
 
@@ -176,7 +176,7 @@ Singleton {
         }
 
         const [lat, lon] = coords.split(",").map(s => s.trim());
-        const lang = Qt.locale().name.split("_")[0] || "en";
+        const lang = Tr.locale.name.split("_")[0] || "en";
 
         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=geocodejson&accept-language=${lang}`;
         const nominatimHeaders = {
@@ -211,7 +211,7 @@ Singleton {
     }
 
     function fetchCoordsFromCity(cityName: string): void {
-        const lang = Qt.locale().name.split("_")[0] || "en";
+        const lang = Tr.locale.name.split("_")[0] || "en";
         const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=${lang}&format=json`;
 
         Requests.get(url, text => {
@@ -243,7 +243,6 @@ Singleton {
                 feelsLikeC: json.current.apparent_temperature,
                 humidity: json.current.relative_humidity_2m,
                 windSpeed: json.current.wind_speed_10m,
-                isDay: json.current.is_day,
                 sunrise: json.daily.sunrise[0].replace("T", " "),
                 sunset: json.daily.sunset[0].replace("T", " ")
             };
@@ -254,7 +253,6 @@ Singleton {
                     date: json.daily.time[i].replace(/-/g, "/"),
                     maxTempC: json.daily.temperature_2m_max[i],
                     minTempC: json.daily.temperature_2m_min[i],
-                    weatherCode: json.daily.weather_code[i],
                     icon: Icons.getWeatherIcon(json.daily.weather_code[i])
                 });
             forecast = forecastList;
@@ -269,10 +267,8 @@ Singleton {
 
                 hourlyList.push({
                     timestamp: json.hourly.time[i],
-                    hour: time.getHours(),
                     tempC: Math.round(json.hourly.temperature_2m[i]),
                     precipChance: json.hourly.precipitation_probability[i],
-                    weatherCode: json.hourly.weather_code[i],
                     icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
                 });
             }

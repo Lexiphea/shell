@@ -18,7 +18,7 @@ Item {
 
     required property Props props
     required property ScreenState screenState
-    readonly property int notifCount: Notifs.list.reduce((acc, n) => n.closed ? acc : acc + 1, 0)
+    readonly property int notifCount: Notifs.notClosed.length
 
     anchors.fill: parent
     anchors.margins: Tokens.padding.medium
@@ -86,7 +86,7 @@ Item {
         }
     }
 
-    ClippingRectangle {
+    ClipRect {
         id: clipRect
 
         anchors.left: parent.left

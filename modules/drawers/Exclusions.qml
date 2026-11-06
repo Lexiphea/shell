@@ -12,21 +12,33 @@ Scope {
     required property ShellScreen screen
     required property Bar.BarWrapper bar
 
-    ExclusionZone {
-        anchors.left: true
-        exclusiveZone: root.bar.exclusiveZone
+    // An unpinned bar with no border reserves nothing, so skip the window until it does
+    LazyLoader {
+        active: root.bar.exclusiveZone > 0
+
+        ExclusionZone {
+            anchors.left: true
+            exclusiveZone: root.bar.exclusiveZone
+        }
     }
 
-    ExclusionZone {
-        anchors.top: true
-    }
+    // A zero-thickness border reserves nothing, so skip these windows (each costs a render thread and GPU context)
+    LazyLoader {
+        active: GlobalConfig.forScreen(root.screen.name).border.thickness > 0
 
-    ExclusionZone {
-        anchors.right: true
-    }
+        Scope {
+            ExclusionZone {
+                anchors.top: true
+            }
 
-    ExclusionZone {
-        anchors.bottom: true
+            ExclusionZone {
+                anchors.right: true
+            }
+
+            ExclusionZone {
+                anchors.bottom: true
+            }
+        }
     }
 
     component ExclusionZone: StyledWindow {

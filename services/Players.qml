@@ -96,11 +96,7 @@ Singleton {
         // qmllint enable unresolved-type
         name: "mediaToggle"
         description: "Toggle media playback"
-        onPressed: {
-            const active = root.active;
-            if (active && active.canTogglePlaying)
-                active.togglePlaying();
-        }
+        onPressed: ipc.playPause()
     }
 
     // qmllint disable unresolved-type
@@ -108,11 +104,7 @@ Singleton {
         // qmllint enable unresolved-type
         name: "mediaPrev"
         description: "Previous track"
-        onPressed: {
-            const active = root.active;
-            if (active && active.canGoPrevious)
-                active.previous();
-        }
+        onPressed: ipc.previous()
     }
 
     // qmllint disable unresolved-type
@@ -120,11 +112,7 @@ Singleton {
         // qmllint enable unresolved-type
         name: "mediaNext"
         description: "Next track"
-        onPressed: {
-            const active = root.active;
-            if (active && active.canGoNext)
-                active.next();
-        }
+        onPressed: ipc.next()
     }
 
     // qmllint disable unresolved-type
@@ -132,10 +120,12 @@ Singleton {
         // qmllint enable unresolved-type
         name: "mediaStop"
         description: "Stop media playback"
-        onPressed: root.active?.stop()
+        onPressed: ipc.stop()
     }
 
     IpcHandler {
+        id: ipc
+
         function getActive(prop: string): string {
             const active = root.active;
             return active ? active[prop] ?? "Invalid property" : "No active player";

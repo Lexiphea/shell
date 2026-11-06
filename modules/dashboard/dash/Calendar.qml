@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import M3Shapes
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.components.effects
@@ -24,11 +25,15 @@ CustomMouseArea {
     property real animTranslate
     property real animOpacity: 1
 
+    function shiftMonth(delta: int): void {
+        screenState.dashboardDate = new Date(nonAnimCurrYear, nonAnimCurrMonth + delta, 1);
+    }
+
     function onWheel(event: WheelEvent): void {
         if (event.angleDelta.y > 0)
-            screenState.dashboardDate = new Date(nonAnimCurrYear, nonAnimCurrMonth - 1, 1);
+            shiftMonth(-1);
         else if (event.angleDelta.y < 0)
-            screenState.dashboardDate = new Date(nonAnimCurrYear, nonAnimCurrMonth + 1, 1);
+            shiftMonth(1);
     }
 
     anchors.left: parent.left
@@ -104,7 +109,7 @@ CustomMouseArea {
                 type: IconButton.Text
                 font: Tokens.font.icon.builders.small.weight(Font.Bold).build()
                 padding: Tokens.padding.small
-                onClicked: root.screenState.dashboardDate = new Date(root.nonAnimCurrYear, root.nonAnimCurrMonth - 1, 1)
+                onClicked: root.shiftMonth(-1)
             }
 
             Item {
@@ -151,7 +156,7 @@ CustomMouseArea {
                 type: IconButton.Text
                 font: Tokens.font.icon.builders.small.weight(Font.Bold).build()
                 padding: Tokens.padding.small
-                onClicked: root.screenState.dashboardDate = new Date(root.nonAnimCurrYear, root.nonAnimCurrMonth + 1, 1)
+                onClicked: root.shiftMonth(1)
             }
         }
 
@@ -192,7 +197,7 @@ CustomMouseArea {
             Grid {
                 id: grid
 
-                readonly property var locale: Qt.locale()
+                readonly property var locale: Tr.locale
                 readonly property real cellWidth: (width - spacing * (columns - 1)) / columns
                 readonly property list<var> days: {
                     const first = new Date(root.currYear, root.currMonth, 1);

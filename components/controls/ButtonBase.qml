@@ -31,7 +31,6 @@ StyledRect {
     readonly property alias pressed: stateLayer.pressed
     readonly property alias hovered: stateLayer.containsMouse
     readonly property alias stateLayer: stateLayer
-    readonly property alias radiusAnim: radiusAnim
 
     property color activeColour
     property color inactiveColour
@@ -81,8 +80,6 @@ StyledRect {
 
     Behavior on radius {
         Anim {
-            id: radiusAnim
-
             type: Anim.DefaultEffects
         }
     }

@@ -2,7 +2,7 @@
 
 #include "util/i18n.hpp"
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -58,20 +58,12 @@ void Node::detachFallback() {
         child->detachFallback();
 }
 
-bool Node::isGlobalOnly() const {
-    return m_globalOnly;
-}
-
 bool Node::isOverride(const QString& key) const {
     return m_overrides.contains(key);
 }
 
-const QSet<QString>& Node::overrides() const {
-    return m_overrides;
-}
-
 bool Node::hasContent() const {
-    return !m_overrides.isEmpty() || m_quarantine ||
+    return !m_overrides.isEmpty() || !m_quarantine.isEmpty() ||
            std::ranges::any_of(findChildren<Node*>(Qt::FindDirectChildrenOnly), &Node::hasContent);
 }
 
@@ -112,7 +104,7 @@ void Node::resetToDefaults() {
     if (m_globalOnly && m_fallbackNode)
         return;
 
-    m_quarantine.reset(); // Reset quarantine as well
+    m_quarantine.clear(); // Reset quarantine as well
 
     // No write scope, callers should create the scope
     for (const auto& desc : schema().descriptors()) {
@@ -121,10 +113,6 @@ void Node::resetToDefaults() {
         else if (!desc.globalOnly() || !m_fallbackNode) // Skip resetting global options on overlays
             setValue(desc.key, m_fallbackNode ? m_fallbackNode->value(desc.key) : desc.defaultValue());
     }
-}
-
-const Quarantine* Node::quarantine() const {
-    return m_quarantine.get();
 }
 
 bool Node::rejectInvalidWrite(const QString& key, const QVariant& value) const {
@@ -242,14 +230,7 @@ bool Node::recordWrite(const QString& key, bool changed) {
 }
 
 bool Node::removeQuarantined(const QString& key) {
-    if (!m_quarantine)
-        return false;
-
-    const auto removed = m_quarantine->remove(key);
-    if (m_quarantine->isEmpty())
-        m_quarantine.reset();
-
-    return removed;
+    return m_quarantine.remove(key);
 }
 
 ChangeBatcher* Node::batcher() const {
@@ -278,4 +259,4 @@ void Node::onFallbackNotify(const QString& key) {
     setValue(key, m_fallbackNode->value(key));
 }
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

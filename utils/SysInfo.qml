@@ -12,17 +12,15 @@ Singleton {
 
     property string osName
     property string osPrettyName
-    property string osId
-    property list<string> osIdLike
     property string osLogo: Qt.resolvedUrl(`${Quickshell.shellDir}/assets/logo.svg`)
     property bool isDefaultLogo: true
 
+    property int refCount: 0
     property string uptime
     // Uptime trimmed to its two largest components
     property string uptimeShort
     readonly property string user: Quickshell.env("USER")
     readonly property string wm: Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env("XDG_SESSION_DESKTOP")
-    readonly property string shell: Quickshell.env("SHELL").split("/").pop()
 
     property string kernel
     property string hostname
@@ -57,8 +55,6 @@ Singleton {
 
             root.osName = fd("NAME");
             root.osPrettyName = fd("PRETTY_NAME");
-            root.osId = fd("ID");
-            root.osIdLike = fd("ID_LIKE").split(" ");
 
             const logo = Quickshell.iconPath(fd("LOGO"), true);
             if (GlobalConfig.general.logo === "caelestia") {
@@ -111,8 +107,9 @@ Singleton {
     }
 
     Timer {
-        running: true
+        running: root.refCount > 0
         repeat: true
+        triggeredOnStart: true
         interval: 15000
         onTriggered: fileUptime.reload()
     }

@@ -94,30 +94,5 @@ PageBase {
             checked: GlobalConfig.launcher.enableDangerousActions
             onToggled: GlobalConfig.launcher.enableDangerousActions = checked
         }
-
-        // Fuzzy search
-        SectionHeader {
-            text: Tr.tr("Fuzzy search")
-        }
-
-        ToggleRow {
-            first: true
-            text: Tr.tr("Apps")
-            checked: GlobalConfig.launcher.useFuzzy.apps
-            onToggled: GlobalConfig.launcher.useFuzzy.apps = checked
-        }
-
-        ToggleRow {
-            text: Tr.tr("Actions")
-            checked: GlobalConfig.launcher.useFuzzy.actions
-            onToggled: GlobalConfig.launcher.useFuzzy.actions = checked
-        }
-
-        ToggleRow {
-            last: true
-            text: Tr.tr("Wallpapers")
-            checked: GlobalConfig.launcher.useFuzzy.wallpapers
-            onToggled: GlobalConfig.launcher.useFuzzy.wallpapers = checked
-        }
     }
 }

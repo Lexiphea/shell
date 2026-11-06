@@ -26,6 +26,7 @@ import argparse
 import json
 import re
 import sys
+from collections import Counter
 from enum import IntEnum
 from pathlib import Path
 
@@ -120,26 +121,34 @@ def import_group(module: str) -> tuple[int, int] | None:
     if module.startswith('"'):
         return None
     depth = module.count(".") + 1
-    if module == "QtQuick" or module.startswith("QtQuick."):
+
+    def is_module(m: str) -> bool:
+        return module == m or module.startswith(f"{m}.")
+
+    if is_module("QtQuick"):
         return (1, depth)
     if module.startswith("Qt"):
         return (2, depth)
-    if module == "Quickshell" or module.startswith("Quickshell."):
+    if is_module("Quickshell"):
         return (3, depth)
-    if module == "M3Shapes":
+    if is_module("M3Shapes"):
         return (4, depth)
-    if module == "Caelestia" or module.startswith("Caelestia."):
+    if is_module("Caelestia"):
         return (5, depth)
-    if module == "qs.components" or module.startswith("qs.components."):
+    if is_module("qs.components"):
         return (6, depth)
-    if module == "qs.services":
+    if is_module("qs.services"):
         return (7, depth)
-    if module == "qs.config":
+    if is_module("qs.config"):
         return (8, depth)
-    if module == "qs.utils":
+    if is_module("qs.utils"):
         return (9, depth)
-    if module == "qs.modules" or module.startswith("qs.modules."):
+    if is_module("qs.modules"):
         return (10, depth)
+    if is_module("qs.daemons"):
+        return (11, depth)
+    if is_module("qs"):  # Any unknown qs imports should be sorted last
+        return (12, depth)
     return None
 
 
@@ -179,23 +188,16 @@ def check_imports(lines: list[str], rel: str) -> list[Violation]:
     """Check that module imports are in the required order."""
     violations = []
     _, _, _, module_imports = parse_imports(lines)
-    imports = [(i, *entry) for i, entry in enumerate(module_imports)]
+    linenos = [
+        i + 1
+        for i, line in enumerate(lines)
+        if (m := IMPORT_RE.match(line.strip())) and import_group(m.group(1)) is not None
+    ]
 
-    for j in range(1, len(imports)):
-        _, _, prev_group, prev_depth, prev_mod = imports[j - 1]
-        _, _, curr_group, curr_depth, curr_mod = imports[j]
-
-        # Find actual line number for the current import
-        lineno = 0
-        count = 0
-        for li, line in enumerate(lines):
-            stripped = line.strip()
-            m = IMPORT_RE.match(stripped)
-            if m and import_group(m.group(1)) is not None:
-                if count == j:
-                    lineno = li + 1
-                    break
-                count += 1
+    for j in range(1, len(module_imports)):
+        _, prev_group, prev_depth, prev_mod = module_imports[j - 1]
+        _, curr_group, curr_depth, curr_mod = module_imports[j]
+        lineno = linenos[j]
 
         if curr_group < prev_group:
             violations.append(
@@ -364,81 +366,10 @@ def fix_file_structure(lines: list[str]) -> list[str]:
 
 def fix_section_separators(lines: list[str]) -> list[str]:
     """Insert blank lines between different sections and return modified lines."""
-    insertions: list[int] = []
-    scopes: dict[str, ScopeTracker] = {}
-    in_block_comment = False
-    func_skip_depth = 0
-    prev_blank: dict[str, bool] = {}
-
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        indent = get_indent(line)
-
-        if in_block_comment:
-            if BLOCK_COMMENT_END.search(stripped):
-                in_block_comment = False
-            continue
-        if BLOCK_COMMENT_START.search(stripped) and not BLOCK_COMMENT_END.search(stripped):
-            in_block_comment = True
-            continue
-
-        if not stripped:
-            for key in prev_blank:
-                prev_blank[key] = True
-            continue
-
-        if COMMENT_LINE_RE.match(stripped):
-            continue
-
-        if func_skip_depth > 0:
-            func_skip_depth += stripped.count("{") - stripped.count("}")
-            func_skip_depth = max(0, func_skip_depth)
-            continue
-
-        if stripped == "}":
-            to_remove = [k for k in scopes if len(k) > len(indent)]
-            for k in to_remove:
-                del scopes[k]
-                prev_blank.pop(k, None)
-            continue
-
-        section = classify_line(stripped)
-        if section is None:
-            continue
-
-        if indent not in scopes:
-            scopes[indent] = ScopeTracker()
-            prev_blank[indent] = True
-
-        tracker = scopes[indent]
-        had_blank = prev_blank.get(indent, True)
-
-        if tracker.last_section is not None and section != tracker.last_section and not had_blank:
-            insertions.append(i)
-
-        if tracker.last_section is None or section >= tracker.last_section:
-            tracker.last_section = section
-            tracker.last_section_line = i + 1
-
-        prev_blank[indent] = False
-
-        brace_count = stripped.count("{") - stripped.count("}")
-        if brace_count > 0 and section == Section.FUNCTION:
-            func_skip_depth = brace_count
-        if brace_count > 0 and section == Section.BINDING:
-            colon_idx = stripped.index(":")
-            after_colon = stripped[colon_idx + 1 :].strip()
-            if not re.match(r"^[A-Z]", after_colon):
-                func_skip_depth = brace_count
-        if brace_count > 0 and section in (Section.CHILD, Section.COMPONENT_DEF):
-            to_remove = [k for k in scopes if len(k) > len(indent)]
-            for k in to_remove:
-                del scopes[k]
-                prev_blank.pop(k, None)
-
     result = list(lines)
-    for idx in reversed(insertions):
-        result.insert(idx, "")
+    for v in reversed(check_sections(lines, "")):
+        if v.rule == "missing-section-separator":
+            result.insert(v.line - 1, "")
     return result
 
 
@@ -495,7 +426,6 @@ class ScopeTracker:
     def __init__(self):
         self.last_section: Section | None = None
         self.last_section_line: int = 0
-        self.had_blank_before_current: bool = True  # no separator needed at start
 
 
 def get_indent(line: str) -> str:
@@ -564,6 +494,13 @@ def check_lines(lines: list[str], rel: str) -> list[Violation]:
 
     violations.extend(check_file_structure(lines, rel))
     violations.extend(check_imports(lines, rel))
+    violations.extend(check_sections(lines, rel))
+    return violations
+
+
+def check_sections(lines: list[str], rel: str) -> list[Violation]:
+    """Check section ordering, separators and brace padding."""
+    violations = []
 
     scopes: dict[str, ScopeTracker] = {}  # indent -> tracker
     in_block_comment = False
@@ -747,10 +684,7 @@ def report(violations: list[Violation], args: argparse.Namespace, checked: int, 
 
     print(file=err)
     if violations:
-        by_rule: dict[str, int] = {}
-        for v in violations:
-            by_rule[v.rule] = by_rule.get(v.rule, 0) + 1
-        for rule, count in sorted(by_rule.items()):
+        for rule, count in sorted(Counter(v.rule for v in violations).items()):
             print(f"  {RULE_COLOURS.get(rule, '')}{rule}{RESET}: {count}", file=err)
         print(f"\n{BOLD}Found {len(violations)} violation(s).{RESET}", file=err)
         return 1

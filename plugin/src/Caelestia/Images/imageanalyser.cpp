@@ -8,13 +8,16 @@
 #include <qquickwindow.h>
 #include <qtconcurrentrun.h>
 
+#include "decoder.hpp"
+#include "imagecacher.hpp"
+
 namespace {
 
 Q_LOGGING_CATEGORY(lcImageAnalyser, "caelestia.imageanalyser", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 ImageAnalyser::ImageAnalyser(QObject* parent)
     : QObject(parent)
@@ -111,7 +114,7 @@ void ImageAnalyser::requestUpdate() {
     if (!m_sourceItem || (m_sourceItem->window() && m_sourceItem->window()->isVisible() && m_sourceItem->width() > 0 &&
                              m_sourceItem->height() > 0)) {
         update();
-    } else if (m_sourceItem) {
+    } else {
         if (!m_sourceItem->window()) {
             QObject::connect(m_sourceItem, &QQuickItem::windowChanged, this, &ImageAnalyser::requestUpdate,
                 Qt::SingleShotConnection);
@@ -131,10 +134,6 @@ void ImageAnalyser::requestUpdate() {
 }
 
 void ImageAnalyser::update() {
-    if (m_source.isEmpty() && !m_sourceItem) {
-        return;
-    }
-
     if (m_futureWatcher->isRunning()) {
         m_futureWatcher->cancel();
     }
@@ -150,15 +149,35 @@ void ImageAnalyser::update() {
             m_futureWatcher->setFuture(QtConcurrent::run(&ImageAnalyser::analyse, grabResult->image(), m_rescaleSize));
         });
     } else {
-        m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
-            QImageReader reader(m_source);
-            const QSize size = reader.size();
-            if (m_rescaleSize > 0 && reader.supportsOption(QImageIOHandler::ScaledSize)
-                && (size.width() > m_rescaleSize || size.height() > m_rescaleSize)) {
-                reader.setScaledSize(size.scaled(m_rescaleSize, m_rescaleSize, Qt::KeepAspectRatio));
-            }
-            analyse(promise, reader.read(), m_rescaleSize);
-        }));
+        // Copy the members, the UI thread can change them while this runs
+        m_futureWatcher->setFuture(
+            QtConcurrent::run([source = m_source, rescaleSize = m_rescaleSize](QPromise<AnalyseResult>& promise) {
+                const QSize size = QImageReader(source).size();
+                if (rescaleSize <= 0 || (size.width() <= rescaleSize && size.height() <= rescaleSize)) {
+                    const DecodeResult result = decodeImage(source, std::identity());
+                    analyse(promise, result.image, rescaleSize);
+                    return;
+                }
+
+                // Only a thumbnail is analysed, so keep it in the image cache rather than decoding the source every
+                // time (a 4K PNG wallpaper takes ~70ms)
+                const QSize scaled = size.scaled(rescaleSize, rescaleSize, Qt::KeepAspectRatio);
+                const QString cachePath =
+                    ImageCacher::cachePathFor(QFileInfo(source), scaled, ImageCacher::FillMode::Stretch);
+                if (const QImage cached(cachePath); !cached.isNull()) {
+                    analyse(promise, cached, rescaleSize);
+                    return;
+                }
+
+                const DecodeResult result = decodeImage(source, [scaled](QSize /*sourceSize*/) {
+                    return scaled;
+                });
+                if (result.image.isNull())
+                    qCWarning(lcImageAnalyser).noquote() << result.error;
+                else
+                    ImageCacher::instance()->schedule(cachePath, result.image);
+                analyse(promise, result.image, rescaleSize);
+            }));
     }
 }
 
@@ -237,4 +256,4 @@ void ImageAnalyser::analyse(QPromise<AnalyseResult>& promise, const QImage& imag
     promise.addResult(qMakePair(QColor((0xFFu << 24u) | dominantColour), count == 0 ? 0.0 : totalLuminance / count));
 }
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

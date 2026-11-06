@@ -4,7 +4,7 @@
 #include <qqmlintegration.h>
 #include <qvariant.h>
 
-namespace caelestia {
+namespace caelestia::shell {
 
 // Natural language calculator backed by SoulverCore (the engine behind Raycast's calculator).
 // libSoulverWrapper.so (soulver-cpp) is loaded at runtime, so it is an optional dependency.
@@ -24,4 +24,4 @@ private:
     char* (*m_evaluate)(const char*) = nullptr;
 };
 
-} // namespace caelestia
+} // namespace caelestia::shell

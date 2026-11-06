@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.components.misc
+import qs.services
 
 Scope {
     property alias lock: lock
@@ -14,9 +15,15 @@ Scope {
 
         signal unlock
 
+        onLockStateChanged: ShellState.locked = locked
+
         LockSurface {
             lock: lock
             pam: pam
+
+            // Quickshell only signals locking, as it checks isLocked() after releasing the lock. The surfaces go with
+            // the lock though, so check again then
+            Component.onDestruction: ShellState.locked = lock.locked
         }
     }
 

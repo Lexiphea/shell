@@ -18,7 +18,8 @@ Item {
     readonly property alias count: repeater.count
     readonly property int currentIndex: screenState.dashboardTab
     readonly property Item currentItem: {
-        bar.children; // Trigger update when delegates are added or removed
+        // Trigger update when delegates are added or removed
+        bar.children; // qmllint disable confusing-expression-statement
         return repeater.itemAt(currentIndex);
     }
 
@@ -53,24 +54,15 @@ Item {
     Item {
         id: indicator
 
+        readonly property real slotWidth: (root.nonAnimWidth - bar.spacing * (root.count - 1)) / root.count
+
         anchors.top: bar.bottom
         anchors.topMargin: 5
 
-        implicitWidth: {
-            const tab = root.currentItem;
-            if (tab)
-                return tab.implicitWidth;
-            const width = (root.nonAnimWidth - bar.spacing * (root.count - 1)) / root.count;
-            return width;
-        }
+        implicitWidth: root.currentItem?.implicitWidth ?? slotWidth
         implicitHeight: 3
 
-        x: {
-            const tab = root.currentItem;
-            const width = (root.nonAnimWidth - bar.spacing * (root.count - 1)) / root.count;
-            const tabWidth = tab?.implicitWidth ?? width;
-            return width * root.currentIndex + (width - tabWidth) / 2;
-        }
+        x: slotWidth * root.currentIndex + (slotWidth - (root.currentItem?.implicitWidth ?? slotWidth)) / 2
 
         clip: true
 
@@ -122,11 +114,6 @@ Item {
         Layout.preferredWidth: 1 // Uniform width across all tabs
         implicitWidth: Math.max(icon.width, label.width)
         implicitHeight: icon.height + label.height
-
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-
-        onPressed: root.screenState.dashboardTab = index
 
         StateLayer {
             anchors.fill: undefined

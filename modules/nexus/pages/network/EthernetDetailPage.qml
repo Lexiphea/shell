@@ -118,43 +118,17 @@ PageBase {
             Layout.minimumWidth: Math.round(root.cappedWidth * 0.5)
             spacing: Tokens.spacing.small
 
-            ButtonBase {
-                id: connectBtn
-
-                fillWidth: true
-                shapeMorph: true
-                isRound: true
+            ActionButton {
                 inactiveColour: root.device?.connected ? Colours.palette.m3primaryContainer : Colours.palette.m3secondaryContainer
                 inactiveOnColour: root.device?.connected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSecondaryContainer
-
-                implicitWidth: connectLayout.implicitWidth + Tokens.padding.extraLarge * 2
-                implicitHeight: connectLayout.implicitHeight + Tokens.padding.medium * 2
+                icon: root.device?.connected ? "link_off" : "link"
+                text: root.device?.connected ? Tr.tr("Disconnect") : Tr.tr("Connect")
 
                 onClicked: {
                     if (root.device?.connected)
                         Nmcli.disconnectEthernet(root.connectionName);
                     else
                         Nmcli.connectEthernet(root.connectionName, root.ifaceName);
-                }
-
-                ColumnLayout {
-                    id: connectLayout
-
-                    anchors.centerIn: parent
-                    spacing: 0
-
-                    MaterialIcon {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: root.device?.connected ? "link_off" : "link"
-                        color: connectBtn.onColour
-                        fontStyle: Tokens.font.icon.medium
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: root.device?.connected ? Tr.tr("Disconnect") : Tr.tr("Connect")
-                        color: connectBtn.onColour
-                    }
                 }
             }
         }
@@ -212,7 +186,6 @@ PageBase {
         SelectRow {
             id: methodSelect
 
-            Layout.fillWidth: true
             first: true
             last: root.ipMethod === "auto"
             label: Tr.tr("IP assignment")

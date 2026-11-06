@@ -9,7 +9,6 @@ Item {
 
     required property ScreenState screenState
     required property bool sidebarVisible
-    readonly property real nonAnimWidth: content.implicitWidth
 
     readonly property bool shouldBeActive: screenState.session && Config.session.enabled
     property real offsetScale: shouldBeActive ? 0 : 1
@@ -32,8 +31,8 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
 
-        // Preloaded on the focused monitor so the animation starts immediately
-        active: Config.session.enabled && (root.screenState.focused || root.visible)
+        // Preloaded once the monitor has had focus so the animation starts immediately
+        active: Config.session.enabled && (root.screenState.preload || root.visible)
 
         sourceComponent: Content {
             screenState: root.screenState

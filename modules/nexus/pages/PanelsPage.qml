@@ -6,6 +6,10 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    function status(enabled: bool): string {
+        return enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status");
+    }
+
     title: Tr.tr("Panels")
 
     ColumnLayout {
@@ -18,7 +22,7 @@ PageBase {
             first: true
             icon: "dashboard"
             text: Tr.tr("Dashboard")
-            subtext: Config.dashboard.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
+            subtext: root.status(Config.dashboard.enabled)
             onClicked: root.nState.openSubPage(1)
         }
 
@@ -32,14 +36,14 @@ PageBase {
         NavRow {
             icon: "apps"
             text: Tr.tr("Launcher")
-            subtext: Config.launcher.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
+            subtext: root.status(Config.launcher.enabled)
             onClicked: root.nState.openSubPage(3)
         }
 
         NavRow {
             icon: "dock_to_right"
             text: Tr.tr("Sidebar")
-            subtext: Config.sidebar.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
+            subtext: root.status(Config.sidebar.enabled)
             onClicked: root.nState.openSubPage(4)
         }
 
@@ -47,7 +51,7 @@ PageBase {
             last: true
             icon: "construction"
             text: Tr.tr("Utilities")
-            subtext: Config.utilities.enabled ? Tr.trCtx("Enabled", "panel status") : Tr.trCtx("Disabled", "panel status")
+            subtext: root.status(Config.utilities.enabled)
             onClicked: root.nState.openSubPage(5)
         }
     }

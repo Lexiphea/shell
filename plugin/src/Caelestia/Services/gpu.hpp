@@ -3,11 +3,12 @@
 #include <qprocess.h>
 #include <qqmlintegration.h>
 #include <qstringlist.h>
+#include <qthreadpool.h>
 
 #include "config/enums.hpp"
 #include "tickingservice.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using GpuType = config::GpuType::Enum;
 
@@ -16,7 +17,7 @@ class Gpu : public TickingService {
     QML_ELEMENT
     QML_SINGLETON
 
-    Q_PROPERTY(caelestia::config::GpuType::Enum type READ type NOTIFY typeChanged)
+    Q_PROPERTY(caelestia::shell::config::GpuType::Enum type READ type NOTIFY typeChanged)
     Q_PROPERTY(QString name READ name NOTIFY nameChanged)
     Q_PROPERTY(bool detecting READ detecting NOTIFY detectingChanged)
     Q_PROPERTY(qreal percentage READ percentage NOTIFY percentageChanged)
@@ -40,6 +41,7 @@ signals:
 
 protected:
     void tick() override;
+    void stopped() override;
 
 private:
     // Applies the user override, or probes for the type when it is Auto. Supersedes any
@@ -53,7 +55,8 @@ private:
     void finishNameSource(int index, int generation, QString name);
 
     void readGenericUsage();
-    void startNvidiaUsage();
+    void readNvidiaUsage();
+    void closeNvml();
     void readGpuTemperature();
     void resetUsage();
 
@@ -64,6 +67,8 @@ private:
     void setType(GpuType value);
     void setName(QString value);
     void setDetecting(bool value);
+    void setPercentage(qreal value);
+    void setTemperature(qreal value);
 
     // The config override, Auto meaning "resolve by probing". Read only to decide
     // whether to probe and which name sources apply; never exposed.
@@ -81,7 +86,8 @@ private:
 
     // Bumped per resolution so callbacks from a superseded probe are dropped
     int m_generation = 0;
+    QThreadPool m_nvmlThread;
     bool m_nvidiaQuerying = false;
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

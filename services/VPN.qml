@@ -345,6 +345,11 @@ Singleton {
         root.syncProviders();
     }
 
+    onRefCountChanged: {
+        if (refCount === 1)
+            refreshStats();
+    }
+
     Adapter {
         id: wireguardAdapter
 
@@ -406,11 +411,6 @@ Singleton {
         }
 
         target: Nmcli // qmllint disable incompatible-type
-    }
-
-    onRefCountChanged: {
-        if (refCount === 1)
-            refreshStats();
     }
 
     Timer {
@@ -487,7 +487,10 @@ Singleton {
 
         property Process statusProcess: Process {
             command: provider.active.statusCmd
-            environment: ({LANG: "C.UTF-8", LC_ALL: "C.UTF-8"}) // qmllint disable incompatible-type
+            environment: ({ // qmllint disable incompatible-type
+                    LANG: "C.UTF-8",
+                    LC_ALL: "C.UTF-8"
+                })
             stdout: StdioCollector {
                 onStreamFinished: provider.updateStatus(provider.active.parse(text))
             }
@@ -515,7 +518,7 @@ Singleton {
                     console.warn(lc, `Failed to start connect command '${command.join(" ")}'`);
                 }
             }
-            onExited: exitCode => { // qmllint disable signal-handler-parameters
+            onExited: exitCode => {
                 provider.connectExited = true;
                 if (exitCode !== 0) {
                     provider.connectPending = false;
@@ -558,14 +561,14 @@ Singleton {
                     console.warn(lc, `Failed to start disconnect command '${command.join(" ")}'`);
                 }
             }
-            onExited: { // qmllint disable signal-handler-parameters
+            onExited: {
                 provider.disconnectExited = true;
                 provider.checkTimer.start();
             }
         }
 
         property Process registerProcess: Process {
-            onExited: exitCode => { // qmllint disable signal-handler-parameters
+            onExited: exitCode => {
                 if (exitCode === 0)
                     provider.checkTimer.start();
             }

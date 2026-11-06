@@ -8,6 +8,8 @@ import qs.services
 
 Singleton {
     property ShellRoot shellRoot
+    // Set by the lock module
+    property bool locked
 
     function anySidebarOpen(): bool {
         return states.instances.some(s => s.sidebar);

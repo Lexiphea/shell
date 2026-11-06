@@ -34,7 +34,7 @@ PageBase {
     property string origGateway: ""
     property string origDns: ""
 
-    readonly property bool hasChanges: root.ipLoaded && (root.ipMethod !== root.origMethod || (root.ipMethod === "manual" && (addressField.text.trim() !== root.origAddress || gatewayField.text.trim() !== root.origGateway)) || ((root.ipMethod === "manual" || root.ipMethod === "auto-dns") && dnsField.text.trim() !== root.origDns))
+    readonly property bool hasChanges: root.ipLoaded && (root.ipMethod !== root.origMethod || (root.ipMethod === "manual" && (addressField.text.trim() !== root.origAddress || gatewayField.text.trim() !== root.origGateway)) || (root.showDnsSettings && dnsField.text.trim() !== root.origDns))
     readonly property bool showDnsSettings: root.ipMethod === "manual" || root.ipMethod === "auto-dns"
 
     function loadIpConfig(): void {
@@ -110,80 +110,29 @@ PageBase {
             Layout.minimumWidth: Math.round(root.cappedWidth * (root.isActive ? 0.7 : 0.5))
             spacing: Tokens.spacing.small
 
-            ButtonBase {
-                id: forgetBtn
-
-                fillWidth: true
+            ActionButton {
                 shapeMorph: root.isActive
-                isRound: true
                 inactiveColour: Colours.palette.m3errorContainer
                 inactiveOnColour: Colours.palette.m3onErrorContainer
-
-                implicitWidth: forgetLayout.implicitWidth + Tokens.padding.extraLarge * 2
-                implicitHeight: forgetLayout.implicitHeight + Tokens.padding.medium * 2
+                icon: "delete"
+                text: Tr.tr("Forget")
 
                 onClicked: {
                     Nmcli.forgetNetwork(root.ssid);
                     root.nState.closeSubPage();
                 }
-
-                ColumnLayout {
-                    id: forgetLayout
-
-                    anchors.centerIn: parent
-                    spacing: 0
-
-                    MaterialIcon {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "delete"
-                        color: forgetBtn.onColour
-                        fontStyle: Tokens.font.icon.medium
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.tr("Forget")
-                        color: forgetBtn.onColour
-                    }
-                }
             }
 
-            ButtonBase {
-                id: disconnectBtn
-
+            ActionButton {
                 visible: root.isActive
-                fillWidth: true
-                shapeMorph: true
-                isRound: true
                 inactiveColour: Colours.palette.m3primaryContainer
                 inactiveOnColour: Colours.palette.m3onPrimaryContainer
-
-                implicitWidth: disconnectLayout.implicitWidth + Tokens.padding.extraLarge * 2
-                implicitHeight: disconnectLayout.implicitHeight + Tokens.padding.medium * 2
+                icon: "link_off"
+                text: Tr.tr("Disconnect")
 
                 onClicked: {
                     Nmcli.disconnectFromNetwork();
                     root.nState.closeSubPage();
-                }
-
-                ColumnLayout {
-                    id: disconnectLayout
-
-                    anchors.centerIn: parent
-                    spacing: 0
-
-                    MaterialIcon {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "link_off"
-                        color: disconnectBtn.onColour
-                        fontStyle: Tokens.font.icon.medium
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.tr("Disconnect")
-                        color: disconnectBtn.onColour
-                    }
                 }
             }
         }
@@ -247,7 +196,6 @@ PageBase {
         }
 
         ToggleRow {
-            Layout.fillWidth: true
             first: true
             last: true
             text: Tr.tr("Connect automatically")

@@ -45,7 +45,7 @@ Item {
         }
     }
 
-    StyledClippingRect {
+    ClipRect {
         id: image
 
         anchors.horizontalCenter: parent.horizontalCenter
@@ -63,6 +63,8 @@ Item {
             fontStyle: Tokens.font.icon.builders.extraLarge.scale(2).weight(Font.DemiBold).build()
         }
 
+        // Videos show their first frame: the wallpaper behind previews the selected one, so animating it here too
+        // would decode it twice
         CachingImage {
             anchors.fill: parent
             path: root.modelData.path

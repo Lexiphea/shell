@@ -24,8 +24,6 @@ MouseArea {
     }
 
     ColouredIcon {
-        id: icon
-
         anchors.fill: parent
         source: Icons.getTrayIcon(root.modelData.id, root.modelData.icon)
         colour: Colours.palette.m3secondary

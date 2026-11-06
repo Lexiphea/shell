@@ -30,11 +30,10 @@ Singleton {
     readonly property string defaultKbLayout: keyboard?.layout.split(",")[0] ?? "??"
     readonly property string kbLayoutFull: keyboard?.activeKeymap ?? Tr.trCtx("Unknown", "keyboard layout")
     readonly property string kbLayout: kbMap.get(kbLayoutFull) ?? "??"
-    readonly property var kbMap: new Map()
+    property var kbMap: new Map()
 
     readonly property alias extras: extras
     readonly property alias options: extras.options
-    readonly property alias devices: extras.devices
 
     property string lastSpecialWorkspace: ""
 
@@ -58,7 +57,7 @@ Singleton {
         if (openSpecials.length === 0)
             return;
 
-        const activeSpecial = focusedMonitor.lastIpcObject.specialWorkspace.name ?? "";
+        const activeSpecial = focusedMonitor?.lastIpcObject.specialWorkspace?.name ?? "";
 
         if (!activeSpecial) {
             if (lastSpecialWorkspace) {
@@ -85,12 +84,23 @@ Singleton {
         focusWorkspace(openSpecials[nextIndex].name);
     }
 
-    function monitorNames(): list<string> {
-        return monitors.values.map(e => e.name);
-    }
-
     function monitorFor(screen: ShellScreen): HyprlandMonitor {
         return Hyprland.monitorFor(screen);
+    }
+
+    function openSpecialFor(monitor: HyprlandMonitor): HyprlandWorkspace {
+        const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
+        return specialName ? workspaces.values.find(ws => ws.name === specialName) ?? null : null;
+    }
+
+    function hasFullscreen(monitor: HyprlandMonitor): bool {
+        const workspace = openSpecialFor(monitor) ?? monitor?.activeWorkspace;
+        return workspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
+    }
+
+    // Whether only floating, non-fullscreen windows sit over the monitor's desktop, counting an open special workspace
+    function desktopVisible(monitor: HyprlandMonitor): bool {
+        return [monitor?.activeWorkspace, openSpecialFor(monitor)].every(ws => ws?.toplevels.values.every(t => t.lastIpcObject.floating && !t.lastIpcObject.fullscreen) ?? true);
     }
 
     function trimWsName(name: string): string {
@@ -111,9 +121,9 @@ Singleton {
 
     function reloadDynamicConfs(): void {
         if (usingLua) {
-            extras.batchMessage(['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })']);
+            extras.batchMessage(['eval hl.bind("Caps_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("Num_Lock", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })', 'eval hl.bind("code:66", hl.dsp.global("caelestia:refreshDevices"), { locked = true, non_consuming = true, ignore_mods = true, release = true })']);
         } else {
-            extras.batchMessage(["keyword bindlni ,Caps_Lock,global,caelestia:refreshDevices", "keyword bindlni ,Num_Lock,global,caelestia:refreshDevices"]);
+            extras.batchMessage(["keyword bindlni ,Caps_Lock,global,caelestia:refreshDevices", "keyword bindlni ,Num_Lock,global,caelestia:refreshDevices", "keyword bindlni ,code:66,global,caelestia:refreshDevices"]);
         }
     }
 
@@ -164,6 +174,7 @@ Singleton {
 
         path: Quickshell.env("CAELESTIA_XKB_RULES_PATH") || "/usr/share/X11/xkb/rules/base.lst"
         onLoaded: {
+            const map = new Map();
             const layoutMatch = text().match(/! layout\n([\s\S]*?)\n\n/);
             if (layoutMatch) {
                 const lines = layoutMatch[1].split("\n");
@@ -173,7 +184,7 @@ Singleton {
 
                     const match = line.match(/^\s*([a-z]{2,})\s+([a-zA-Z() ]+)$/);
                     if (match)
-                        root.kbMap.set(match[2], match[1]);
+                        map.set(match[2], match[1]);
                 }
             }
 
@@ -186,9 +197,12 @@ Singleton {
 
                     const match = line.match(/^\s*([a-zA-Z0-9_-]+)\s+([a-z]{2,}): (.+)$/);
                     if (match)
-                        root.kbMap.set(match[3], match[2]);
+                        map.set(match[3], match[2]);
                 }
             }
+
+            // Reassign so kbLayout re-evaluates, mutating the map does not notify
+            root.kbMap = map;
         }
     }
 

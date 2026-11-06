@@ -13,8 +13,6 @@ Item {
 
     readonly property NexusState nState: NexusState {
         id: nState
-
-        onClose: root.close()
     }
     property color blobColour: Colours.tPalette.m3surfaceContainerLow
 

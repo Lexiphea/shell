@@ -2,11 +2,9 @@
 
 #include <optional>
 
-namespace caelestia::services::sensorslib {
-
-void ensureInit();
+namespace caelestia::shell::services::sensorslib {
 
 [[nodiscard]] std::optional<double> cpuPackageTemp();
 [[nodiscard]] std::optional<double> gpuPciAverageTemp();
 
-} // namespace caelestia::services::sensorslib
+} // namespace caelestia::shell::services::sensorslib

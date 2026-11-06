@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import Caelestia.Images
 
 Image {
@@ -11,9 +10,8 @@ Image {
 
     asynchronous: true
     fillMode: Image.PreserveAspectCrop
-    source: IUtils.urlForPath(path, fillMode)
-    sourceSize: {
-        const dpr = (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1;
-        return Qt.size(targetSize.width * dpr, targetSize.height * dpr);
-    }
+    // Wait for a size, as each change starts a decode and one without a size decodes the full image
+    source: sourceSize.width > 0 && sourceSize.height > 0 ? IUtils.urlForPath(path, fillMode) : ""
+    // Qt scales this by the screen's pixel ratio itself
+    sourceSize: targetSize
 }

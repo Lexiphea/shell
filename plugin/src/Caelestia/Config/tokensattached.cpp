@@ -4,15 +4,19 @@
 
 #include "common.hpp"
 
-namespace caelestia::config {
+namespace caelestia::shell::config {
 
 namespace {
+
+void warnNoScreen(bool complete, const char* prop, QObject* parent) {
+    if ((complete || !qobject_cast<QQuickItem*>(parent)) && parent)
+        qCWarning(lcConfig, "Tokens.%s accessed without a screen set on %s", prop, parent->metaObject()->className());
+}
 
 const AppearanceConfig* resolveAppearance(const ConfigRoot* config, bool complete, const char* prop, QObject* parent) {
     if (config)
         return config->appearance();
-    if ((complete || !qobject_cast<QQuickItem*>(parent)) && parent)
-        qCWarning(lcConfig, "Tokens.%s accessed without a screen set on %s", prop, parent->metaObject()->className());
+    warnNoScreen(complete, prop, parent);
     return ConfigSingleton::instance()->appearance();
 }
 
@@ -70,8 +74,7 @@ void Tokens::attachedParentChange(
 
 #define TOKENS_ATTACHED_GETTER(Type, name)                                                                             \
     const Type* Tokens::name() const {                                                                                 \
-        auto* a = resolveAppearance(m_config, m_complete, #name, parent());                                            \
-        return a ? a->name() : nullptr;                                                                                \
+        return resolveAppearance(m_config, m_complete, #name, parent())->name();                                       \
     }
 
 TOKENS_ATTACHED_GETTER(AppearanceRounding, rounding)
@@ -87,8 +90,7 @@ const AppearanceTransparency* Tokens::transparency() {
 const SizeTokens* Tokens::sizes() const {
     if (m_tokens)
         return m_tokens->sizes();
-    if ((m_complete || !qobject_cast<QQuickItem*>(parent())) && parent())
-        qCWarning(lcConfig, "Tokens.sizes accessed without a screen set on %s", parent()->metaObject()->className());
+    warnNoScreen(m_complete, "sizes", parent());
     return TokensSingleton::instance()->sizes();
 }
 
@@ -100,12 +102,8 @@ const AnimTokens* Tokens::anim() {
     return AnimTokens::instance();
 }
 
-TokensRoot* Tokens::forScreen(const QString& screen) {
-    return TokensSingleton::instance()->forScreen(screen);
-}
-
 Tokens* Tokens::qmlAttachedProperties(QObject* object) {
     return new Tokens(object);
 }
 
-} // namespace caelestia::config
+} // namespace caelestia::shell::config

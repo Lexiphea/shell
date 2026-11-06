@@ -13,22 +13,12 @@ DialogRowButton {
     required property var model
     property var selectedItem
 
-    function keyFor(item: var): string {
-        return item.id;
-    }
-
-    function labelFor(item: var): string {
-        return item.label;
-    }
-
     onOpenChanged: {
         if (open)
             selectedItem = null;
     }
 
     acceptAllowed: !!selectedItem
-    separateContent: true
-    horizontalContentMargin: -Tokens.padding.small
 
     content: Component {
         VerticalFadeListView {
@@ -42,7 +32,7 @@ DialogRowButton {
                 id: item
 
                 required property var modelData
-                readonly property bool selected: root.selectedItem === root.keyFor(modelData)
+                readonly property bool selected: root.selectedItem === modelData.id
 
                 anchors.left: ListView.view.contentItem.left
                 anchors.right: ListView.view.contentItem.right
@@ -61,7 +51,7 @@ DialogRowButton {
                 StateLayer {
                     id: stateLayer
 
-                    onClicked: root.selectedItem = root.keyFor(item.modelData)
+                    onClicked: root.selectedItem = item.modelData.id
                 }
 
                 StyledText {
@@ -73,7 +63,7 @@ DialogRowButton {
                     anchors.margins: Tokens.padding.large
                     anchors.rightMargin: item.selected ? Tokens.spacing.medium : anchors.margins
 
-                    text: root.labelFor(item.modelData)
+                    text: item.modelData.label
                     color: item.selected ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
                     elide: Text.ElideRight
                 }

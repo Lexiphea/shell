@@ -59,10 +59,7 @@ StyledRect {
             }
 
             StyledText {
-                id: selectText
-
                 anchors.centerIn: parent
-                anchors.margins: Tokens.padding.medium
 
                 text: Tr.trCtx("Select", "button")
                 color: root.dialog.selectionValid ? Colours.palette.m3onSurface : Colours.palette.m3outline
@@ -86,7 +83,6 @@ StyledRect {
                 id: cancelText
 
                 anchors.centerIn: parent
-                anchors.margins: Tokens.padding.medium
 
                 text: Tr.trCtx("Cancel", "button")
             }

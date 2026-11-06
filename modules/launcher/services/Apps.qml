@@ -1,15 +1,27 @@
 pragma Singleton
 
+import QtQml
 import Quickshell
 import Caelestia.Config
 import Caelestia.Models
 import qs.utils
 
-Searcher {
+Singleton {
     id: root
 
+    // Special prefix letter -> the entry field it searches instead of the default fields
+    readonly property var prefixKeys: ({
+            i: "id",
+            c: "categories",
+            d: "comment",
+            e: "execString",
+            w: "startupClass",
+            g: "genericName",
+            k: "keywords"
+        })
+
     function launch(entry: DesktopEntry): void {
-        appDb.incrementFrequency(entry.id);
+        appDb.registerLaunch(entry.id);
 
         if (entry.runInTerminal)
             Exec.app([...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...entry.command], entry.workingDirectory);
@@ -17,50 +29,22 @@ Searcher {
             Exec.app(entry.command, entry.workingDirectory);
     }
 
-    function search(search: string): var {
+    // Counts towards a command's ranking like launches do for apps
+    function registerUse(usageId: string): void {
+        appDb.registerLaunch(usageId);
+    }
+
+    // Commands are ranked in with the apps, except when a prefix narrows the search to an app field
+    function search(search: string, commands: list<QtObject>): var {
         const prefix = GlobalConfig.launcher.specialPrefix;
+        const special = search.startsWith(prefix) && search.charAt(prefix.length + 1) === " " ? search.charAt(prefix.length) : "";
+        const key = prefixKeys[special] ?? "";
+        const text = key || special === "t" ? search.slice(prefix.length + 2) : search;
 
-        if (search.startsWith(`${prefix}i `)) {
-            keys = ["id", "name"];
-            weights = [0.9, 0.1];
-        } else if (search.startsWith(`${prefix}c `)) {
-            keys = ["categories", "name"];
-            weights = [0.9, 0.1];
-        } else if (search.startsWith(`${prefix}d `)) {
-            keys = ["comment", "name"];
-            weights = [0.9, 0.1];
-        } else if (search.startsWith(`${prefix}e `)) {
-            keys = ["execString", "name"];
-            weights = [0.9, 0.1];
-        } else if (search.startsWith(`${prefix}w `)) {
-            keys = ["startupClass", "name"];
-            weights = [0.9, 0.1];
-        } else if (search.startsWith(`${prefix}g `)) {
-            keys = ["genericName", "name"];
-            weights = [0.9, 0.1];
-        } else if (search.startsWith(`${prefix}k `)) {
-            keys = ["keywords", "name"];
-            weights = [0.9, 0.1];
-        } else {
-            keys = ["name"];
-            weights = [1];
-
-            if (!search.startsWith(`${prefix}t `))
-                return query(search).map(e => e.entry);
-        }
-
-        const results = query(search.slice(prefix.length + 2)).map(e => e.entry);
-        if (search.startsWith(`${prefix}t `))
-            return results.filter(a => a.runInTerminal);
-        return results;
+        void appDb.apps; // Rerun bindings calling this when the apps or their order change
+        const results = appDb.search(text, key, special ? [] : commands);
+        return special === "t" ? results.filter(a => a.runInTerminal) : results;
     }
-
-    function selector(item: var): string {
-        return keys.map(k => item[k]).join(" ");
-    }
-
-    list: appDb.apps
-    useFuzzy: GlobalConfig.launcher.useFuzzy.apps
 
     AppDb {
         id: appDb

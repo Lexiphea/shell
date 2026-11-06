@@ -5,7 +5,7 @@
 #include "util/i18n.hpp"
 #include "codecs.hpp"
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -36,16 +36,6 @@ void ObjectNode::resetOption(const QString& key) {
         setValue(key, fallbackNode() ? fallbackNode()->value(key) : desc->defaultValue());
 }
 
-Descriptor ObjectNode::descriptorFor(const QString& key) const {
-    const auto* desc = schema().get(key);
-    if (!desc) {
-        qCWarning(lcSettings) << "Attempted to get descriptor for unknown option" << pathFor(key);
-        return {};
-    }
-
-    return *desc;
-}
-
 QJsonValue ObjectNode::toJson(bool sparse) const {
     QJsonObject json;
 
@@ -70,18 +60,20 @@ QJsonValue ObjectNode::toJson(bool sparse) const {
         json.insert(desc.key, desc.codec->encode(val));
     }
 
-    if (m_quarantine)
-        return m_quarantine->apply(json);
+    for (const auto& [key, value] : m_quarantine.asKeyValueRange())
+        if (!json.contains(key)) // Don't clobber existing values
+            json.insert(key, value);
 
     return json;
 }
 
 bool ObjectNode::syncJson(const QJsonValue& json, QList<Diagnostic>& diagnostics) {
-    m_quarantine.reset(); // Clear out old quarantine
+    m_quarantine.clear(); // Clear out old quarantine
 
     if (!json.isObject()) {
         const auto d = Diagnostic::mismatch(ExpectedType::Object, json, path());
-        qCWarning(lcSettings, "Error decoding option %s: %s", qUtf8Printable(d.option), qUtf8Printable(d.message));
+        qCWarning(lcSettings, "Error decoding option %s: %s", qUtf8Printable(d.option),
+            qUtf8Printable(util::i18n::unmark(d.message)));
         diagnostics << d;
         return false;
     }
@@ -102,9 +94,7 @@ bool ObjectNode::syncJson(const QJsonValue& json, QList<Diagnostic>& diagnostics
 }
 
 void ObjectNode::quarantineKey(const QString& key, const QJsonValue& value) {
-    if (!m_quarantine)
-        m_quarantine = std::make_unique<ObjectQuarantine>();
-    m_quarantine->insert(key, value);
+    m_quarantine.insert(key, value);
 }
 
 QSet<QString> ObjectNode::loadFromJson(const QJsonObject& json, QList<Diagnostic>& diagnostics) {
@@ -198,4 +188,4 @@ void ObjectNode::resetUnvisited(const QSet<QString>& visited) {
     }
 }
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

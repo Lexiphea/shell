@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-namespace caelestia::components {
+namespace caelestia::shell::components {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -41,7 +41,6 @@ void AnimatedRepeaterAttached::setRemoving(bool removing) {
 
 AnimatedRepeater::AnimatedRepeater(QQuickItem* parent)
     : QQuickItem(parent) {
-    setFlag(ItemHasContents, false);
     // Invisible so positioners and layouts skip the repeater itself
     setVisible(false);
 }
@@ -469,4 +468,4 @@ void AnimatedRepeater::onDataChanged(
         updateItemData(i);
 }
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

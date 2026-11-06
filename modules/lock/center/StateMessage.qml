@@ -93,45 +93,33 @@ Item {
         return "";
     }
 
-    property bool stateMsgShouldBeVisible
+    function flash(): void {
+        exitAnim.stop();
+        if (message.scale < 1)
+            appearAnim.restart();
+        else
+            flashAnim.restart();
+    }
 
     onMsgChanged: {
-        if (msg) {
-            if (message.opacity > 0) {
-                message.animate = true;
-                message.text = msg;
-                message.animate = false;
-
-                exitAnim.stop();
-                if (message.scale < 1)
-                    appearAnim.restart();
-                else
-                    flashAnim.restart();
-            } else {
-                message.text = msg;
-                exitAnim.stop();
-                appearAnim.restart();
-            }
-        } else {
+        if (!msg) {
             appearAnim.stop();
             flashAnim.stop();
             exitAnim.start();
+            return;
         }
+        message.animate = message.opacity > 0;
+        message.text = msg;
+        message.animate = false;
+        flash();
     }
 
     onStateMsgChanged: {
-        if (stateMsg) {
-            if (stateMessage.opacity > 0) {
-                stateMessage.animate = true;
-                stateMessage.text = stateMsg;
-                stateMessage.animate = false;
-            } else {
-                stateMessage.text = stateMsg;
-            }
-            stateMsgShouldBeVisible = true;
-        } else {
-            stateMsgShouldBeVisible = false;
-        }
+        if (!stateMsg)
+            return;
+        stateMessage.animate = stateMessage.opacity > 0;
+        stateMessage.text = stateMsg;
+        stateMessage.animate = false;
     }
 
     implicitHeight: Math.max(message.implicitHeight, stateMessage.implicitHeight)
@@ -143,11 +131,13 @@ Item {
     StyledText {
         id: stateMessage
 
+        Component.onCompleted: text = root.stateMsg // onStateMsgChanged doesn't fire for the initial value
+
         anchors.left: parent.left
         anchors.right: parent.right
 
-        scale: root.stateMsgShouldBeVisible && !root.msg ? 1 : 0.7
-        opacity: root.stateMsgShouldBeVisible && !root.msg ? 1 : 0
+        scale: root.stateMsg && !root.msg ? 1 : 0.7
+        opacity: root.stateMsg && !root.msg ? 1 : 0
         color: Colours.palette.m3onSurfaceVariant
 
         font: Tokens.font.body.small
@@ -182,11 +172,7 @@ Item {
 
         Connections {
             function onFlashMsg(): void {
-                exitAnim.stop();
-                if (message.scale < 1)
-                    appearAnim.restart();
-                else
-                    flashAnim.restart();
+                root.flash();
             }
 
             target: root.pam

@@ -27,6 +27,7 @@ Item {
     property string occupiedLabel
     property string label
 
+    readonly property HyprlandWorkspace wsObj: Hypr.workspaces.values.find(w => w.id === ws) ?? null
     readonly property list<HyprlandToplevel> toplevels: Hypr.toplevelsForWs(ws, GlobalConfig.bar.workspaces.ignoredTags)
     readonly property bool isOccupied: toplevels.length > 0
     readonly property bool hasWindows: isOccupied && showWindows && Config.bar.workspaces.maxWindowIcons > 0
@@ -37,7 +38,7 @@ Item {
     readonly property bool onOtherMonitor: {
         if (Config.bar.workspaces.perMonitor)
             return false;
-        const mon = Hypr.workspaces.values.find(w => w.id === ws)?.monitor;
+        const mon = wsObj?.monitor;
         return !!(mon && mon !== monitor);
     }
     readonly property color fgColour: {
@@ -112,24 +113,15 @@ Item {
         StyledText {
             animate: true
             text: {
-                if (root.focused) {
-                    const label = root.activeLabel;
-                    if (label)
-                        return label;
-                }
+                if (root.focused && root.activeLabel)
+                    return root.activeLabel;
+                if ((root.focused || root.isOccupied) && root.occupiedLabel)
+                    return root.occupiedLabel;
+                if (root.label)
+                    return root.label;
 
-                if (root.focused || root.isOccupied) {
-                    const label = root.occupiedLabel;
-                    if (label)
-                        return label;
-                }
-
-                const label = root.label;
-                if (label)
-                    return label;
-
-                const ws = Hypr.workspaces.values.find(w => w.id === root.ws);
-                const wsName = !ws || ws.name == root.ws ? root.ws : Hypr.trimWsName(ws.name)[0];
+                const ws = root.wsObj;
+                const wsName = !ws || Number(ws.name) === root.ws ? root.ws : Hypr.trimWsName(ws.name)[0];
 
                 const capitalisation = Config.bar.workspaces.capitalisation;
                 if (capitalisation === BarWorkspaceCapitalisation.Upper)
@@ -252,7 +244,7 @@ Item {
 
         property string name
         readonly property string icon: Icons.matchIconRuleList(Hypr.trimWsName(name), root.iconRules)
-        readonly property HyprlandWorkspace wsObj: Hypr.workspaces.values.find(w => w.id === root.ws) ?? null
+        readonly property HyprlandWorkspace wsObj: root.wsObj
 
         readonly property Connections conn: Connections {
             function onNameChanged(): void {

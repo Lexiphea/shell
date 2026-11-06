@@ -13,6 +13,7 @@ Built with [Quickshell](https://quickshell.outfoxxed.me) for [Hyprland](https://
 - [`quickshell-git`](https://git.outfoxxed.me/quickshell/quickshell) - the git version, not the latest tag
 - `qt6-base` (6.9 or newer), `qt6-declarative`
 - `qt6-imageformats` - the image cache is stored as WebP
+- `qt6-multimedia` with a backend (`qt6-multimedia-ffmpeg`), `ffmpeg` - video wallpapers
 - [`qt6-m3shapes-git`](https://github.com/soramanew/m3shapes)
 - `ddcutil`, `brightnessctl`, `networkmanager`, `lm_sensors`, `power-profiles-daemon`
 - `libpipewire`, `aubio`, `libcava`
@@ -32,7 +33,7 @@ Build:
 - A C++20 compiler (`gcc` or `clang`)
 - `qt6-shadertools`
 - `git` - the version is read from the latest tag. Without tags, pass `-DVERSION=<version> -DGIT_REVISION=<commit>`
-- Development headers for `libpipewire`, `aubio` and `libcava` (included in the Arch packages)
+- Development headers for `libpipewire`, `aubio`, `libcava`, `libjpeg-turbo` and `ffmpeg` (included in the Arch packages)
 
 ## Building
 
@@ -71,6 +72,8 @@ PartOf=graphical-session.target
 [Service]
 Environment=QML2_IMPORT_PATH=%h/caelestia-shell/build/qml:
 Environment=CAELESTIA_LIB_DIR=%h/caelestia-shell/build/lib
+# Fewer jemalloc arenas, so memory freed on one thread can be reused by the others (~190 MB less heap)
+Environment=MALLOC_CONF=narenas:4
 Type=simple
 ExecStartPre=-/usr/bin/qs -c caelestia kill
 ExecStart=/usr/bin/caelestia shell

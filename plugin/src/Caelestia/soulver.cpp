@@ -4,10 +4,11 @@
 #include <qjsonobject.h>
 #include <qstandardpaths.h>
 
-#include <cstdlib>
 #include <dlfcn.h>
 
-namespace caelestia {
+#include <cstdlib>
+
+namespace caelestia::shell {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -51,4 +52,4 @@ QVariant Soulver::eval(const QString& expr) const {
     return QVariantMap{ { u"value"_s, value }, { u"type"_s, type } };
 }
 
-} // namespace caelestia
+} // namespace caelestia::shell

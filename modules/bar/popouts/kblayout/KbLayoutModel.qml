@@ -15,15 +15,9 @@ Item {
     property string activeLabel: ""
     property int activeIndex: -1
     property var _xkbMap: ({})
-    property bool _notifiedLimit: false
 
     function start() {
         xkbXmlBase.running = true;
-        getKbLayoutOpt.running = true;
-    }
-
-    function refresh() {
-        _notifiedLimit = false;
         getKbLayoutOpt.running = true;
     }
 
@@ -118,11 +112,8 @@ Item {
 
     function _pretty(token) {
         const code = token.replace(/\(.*\)$/, "").trim();
-        if (_xkbMap[code])
-            // TRANSLATORS: %1 = layout code, %2 = layout name
-            return Tr.trCtx("%1 - %2", "keyboard layout code and name").arg(code.toUpperCase()).arg(_xkbMap[code]);
         // TRANSLATORS: %1 = layout code, %2 = layout name
-        return Tr.trCtx("%1 - %2", "keyboard layout code and name").arg(code.toUpperCase()).arg(code);
+        return Tr.trCtx("%1 - %2", "keyboard layout code and name").arg(code.toUpperCase()).arg(_xkbMap[code] || code);
     }
 
     visible: false
@@ -142,8 +133,10 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: model._buildXmlMap(text)
         }
-        onRunningChanged: if (!running && (typeof xkbXmlBase.exitCode !== "undefined") && xkbXmlBase.exitCode !== 0) // qmllint disable missing-property
-            xkbXmlEvdev.running = true
+        onExited: exitCode => {
+            if (exitCode !== 0)
+                xkbXmlEvdev.running = true;
+        }
     }
 
     Process {
@@ -219,7 +212,6 @@ Item {
     Process {
         id: switchProc
 
-        onRunningChanged: if (!running)
-            fetchActiveLayouts.running = true
+        onExited: fetchActiveLayouts.running = true
     }
 }

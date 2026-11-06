@@ -32,25 +32,16 @@ Singleton {
     readonly property alias beatTracker: beatTracker
 
     function setVolume(newVolume: real): void {
-        if (sink?.ready && sink?.audio) {
-            sink.audio.muted = false;
-            sink.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
-        }
+        setStreamVolume(sink, newVolume);
     }
 
-    function incrementVolume(amount: real): void {
-        setVolume(volume + (amount || GlobalConfig.services.audioIncrement));
-    }
-
-    function decrementVolume(amount: real): void {
-        setVolume(volume - (amount || GlobalConfig.services.audioIncrement));
+    function stepVolume(direction: int): void {
+        if (direction) // setVolume unmutes, so a zero step must be a no-op
+            setVolume(volume + direction * GlobalConfig.services.audioIncrement);
     }
 
     function setSourceVolume(newVolume: real): void {
-        if (source?.ready && source?.audio) {
-            source.audio.muted = false;
-            source.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
-        }
+        setStreamVolume(source, newVolume);
     }
 
     function incrementSourceVolume(amount: real): void {
@@ -91,19 +82,15 @@ Singleton {
         }
     }
 
-    function getStreamVolume(stream: PwNode): real {
-        return stream?.audio?.volume ?? 0;
-    }
-
-    function getStreamMuted(stream: PwNode): bool {
-        return !!stream?.audio?.muted;
-    }
-
     function getStreamName(stream: PwNode): string {
         if (!stream)
             return Tr.trCtx("Unknown", "unknown audio stream");
         // Try application name first, then description, then name
         return stream.properties["application.name"] || stream.description || stream.name || Tr.trCtx("Unknown application", "unknown application audio stream");
+    }
+
+    function deviceName(node: PwNode): string {
+        return node?.description || node?.name || Tr.trCtx("Unknown device", "unknown audio device");
     }
 
     function refreshNodes(): void {
@@ -131,7 +118,7 @@ Singleton {
         if (!sink?.ready)
             return;
 
-        const newSinkName = sink.description || sink.name || Tr.trCtx("Unknown device", "unknown audio device");
+        const newSinkName = deviceName(sink);
 
         if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.utilities.toasts.audioOutputChanged)
             Toaster.toast(Tr.tr("Audio output changed"), Tr.tr("Now using: %1").arg(newSinkName), "volume_up");
@@ -143,7 +130,7 @@ Singleton {
         if (!source?.ready)
             return;
 
-        const newSourceName = source.description || source.name || Tr.trCtx("Unknown device", "unknown audio device");
+        const newSourceName = deviceName(source);
 
         if (previousSourceName && previousSourceName !== newSourceName && GlobalConfig.utilities.toasts.audioInputChanged)
             Toaster.toast(Tr.tr("Audio input changed"), Tr.tr("Now using: %1").arg(newSourceName), "mic");
@@ -155,8 +142,8 @@ Singleton {
     // lazily-loaded singleton is created, so onValuesChanged would never fire.
     Component.onCompleted: {
         refreshNodes();
-        previousSinkName = sink?.description || sink?.name || Tr.trCtx("Unknown device", "unknown audio device");
-        previousSourceName = source?.description || source?.name || Tr.trCtx("Unknown device", "unknown audio device");
+        previousSinkName = deviceName(sink);
+        previousSourceName = deviceName(source);
     }
 
     Connections {

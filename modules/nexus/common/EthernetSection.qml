@@ -159,25 +159,24 @@ ColumnLayout {
                 }
 
                 Item {
+                    readonly property bool shown: ethRow.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowEthDetailWidth
+
+                    function snapshot(): void {
+                        if (visible) {
+                            ethIpAddr.value = ethRow.details?.ipAddress ?? "";
+                            ethDns.value = ethRow.details?.dns[0] ?? "";
+                        }
+                    }
+
                     Layout.rightMargin: Tokens.spacing.small
-                    opacity: ethRow.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowEthDetailWidth ? 1 : 0
+                    opacity: shown ? 1 : 0
                     visible: opacity > 0
 
-                    implicitWidth: ethRow.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowEthDetailWidth ? ethDetailRow.implicitWidth : 0
+                    implicitWidth: shown ? ethDetailRow.implicitWidth : 0
                     implicitHeight: ethDetailRow.implicitHeight
 
-                    onVisibleChanged: {
-                        if (visible) {
-                            ethIpAddr.value = ethRow.details?.ipAddress ?? "";
-                            ethDns.value = ethRow.details?.dns[0] ?? "";
-                        }
-                    }
-                    Component.onCompleted: {
-                        if (visible) {
-                            ethIpAddr.value = ethRow.details?.ipAddress ?? "";
-                            ethDns.value = ethRow.details?.dns[0] ?? "";
-                        }
-                    }
+                    onVisibleChanged: snapshot()
+                    Component.onCompleted: snapshot()
 
                     Behavior on opacity {
                         Anim {

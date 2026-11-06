@@ -24,7 +24,6 @@ PageBase {
             first: true
             icon: Icons.getVolumeIcon(Audio.volume, Audio.muted)
             label: Tr.trCtx("Output", "audio output")
-            valueLabel: Strings.percentOne(value)
             value: Audio.volume
             enabled: !Audio.muted
             onMoved: v => Audio.setVolume(v)
@@ -51,7 +50,6 @@ PageBase {
             first: true
             icon: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
             label: Tr.trCtx("Input", "audio input")
-            valueLabel: Strings.percentOne(value)
             value: Audio.sourceVolume
             enabled: !Audio.sourceMuted
             onMoved: v => Audio.setSourceVolume(v)

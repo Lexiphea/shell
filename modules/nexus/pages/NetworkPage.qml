@@ -14,11 +14,11 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    title: Tr.tr("Network")
-
     readonly property Ref vpnRef: Ref {
         service: VPN
     }
+
+    title: Tr.tr("Network")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -67,7 +67,6 @@ PageBase {
             first: true
             text: Tr.tr("Wi-Fi")
             font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
             checked: Nmcli.wifiEnabled
             onToggled: Nmcli.enableWifi(checked)
         }
@@ -85,14 +84,13 @@ PageBase {
         }
 
         // All networks button, only when > max networks
-        RowButton {
+        NavRow {
             Layout.preferredHeight: Nmcli.wifiEnabled && Nmcli.networks.length > GlobalConfig.nexus.maxNetworksShown ? implicitHeight : 0
             clip: true
 
             icon: "expand_content"
             // TRANSLATORS: %1 = number of networks found
             text: Tr.tr("Show all networks (%1)").arg(Nmcli.networks.length)
-            trailingIcon: "chevron_right"
             onClicked: root.nState.openSubPage(5) // All networks sub-page
 
             Behavior on Layout.preferredHeight {
@@ -103,10 +101,9 @@ PageBase {
         }
 
         // Saved networks button
-        RowButton {
+        NavRow {
             icon: "bookmark"
             text: Tr.tr("Saved networks")
-            trailingIcon: "chevron_right"
             onClicked: root.nState.openSubPage(6) // Saved networks sub-page
         }
 
@@ -121,11 +118,9 @@ PageBase {
         // ---- VPN -------------------------------------------------------------
         ToggleRow {
             Layout.topMargin: Tokens.spacing.large
-            Layout.fillWidth: true
             first: true
             text: Tr.tr("VPN")
             font: Tokens.font.body.medium
-            horizontalPadding: Tokens.padding.largeIncreased
             checked: VPN.connected
             disabled: VPN.connecting || VPN.disconnecting || VPN.selectedProviders.length === 0
             onToggled: VPN.toggle()
@@ -237,11 +232,13 @@ PageBase {
                     }
 
                     Item {
+                        readonly property bool shown: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth
+
                         Layout.rightMargin: Tokens.spacing.small
-                        opacity: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? 1 : 0
+                        opacity: shown ? 1 : 0
                         visible: opacity > 0
 
-                        implicitWidth: provider.isConnected && root?.cappedWidth > Tokens.sizes.nexus.networkShowVpnDetailWidth ? providerDetailRow.implicitWidth : 0
+                        implicitWidth: shown ? providerDetailRow.implicitWidth : 0
                         implicitHeight: providerDetailRow.implicitHeight
 
                         Behavior on opacity {

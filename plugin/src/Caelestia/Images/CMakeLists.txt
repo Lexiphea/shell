@@ -2,11 +2,18 @@ qml_module(caelestia-images
     URI Caelestia.Images
     SOURCES
         cachingimageprovider.cpp
+        decoder.cpp
         imagecacher.cpp
         imageanalyser.cpp
         iutils.cpp
+        sharedvideo.cpp
     LIBRARIES
         Qt::Gui
         Qt::Quick
+        Qt::Multimedia
         Qt::Concurrent
+        JPEG::JPEG
+        PkgConfig::Avutil
+        wuffs
+        caelestia-util
 )

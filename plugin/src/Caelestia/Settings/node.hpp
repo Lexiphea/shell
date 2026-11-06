@@ -1,15 +1,15 @@
 #pragma once
 
+#include <qhash.h>
 #include <qjsonvalue.h>
 #include <qobject.h>
 #include <qvariant.h>
 
 #include "changebatcher.hpp"
 #include "common.hpp"
-#include "quarantine.hpp"
 #include "schema.hpp"
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 class Node : public QObject {
     Q_OBJECT
@@ -27,9 +27,7 @@ public:
     [[nodiscard]] Node* fallbackNode() const;
     void detachFallback(); // Recursive, unlinks this and its children from the fallback layer
 
-    [[nodiscard]] Q_INVOKABLE bool isGlobalOnly() const;
     [[nodiscard]] bool isOverride(const QString& key) const;
-    [[nodiscard]] const QSet<QString>& overrides() const;
     [[nodiscard]] bool hasContent() const; // Recursive
 
     [[nodiscard]] virtual const Schema& schema() const = 0;
@@ -41,14 +39,12 @@ public:
     [[nodiscard]] virtual QJsonValue toJson(bool sparse = true) const = 0;
     // Returns false if the entire node was rejected
     virtual bool syncJson(const QJsonValue& json, QList<Diagnostic>& diagnostics) = 0;
-    [[nodiscard]] const Quarantine* quarantine() const;
 
 signals:
     void optionChanged(const QString& key);
 
 protected:
-    // Null means empty, otherwise it has content
-    std::unique_ptr<Quarantine> m_quarantine;
+    QHash<QString, QJsonValue> m_quarantine;
     const bool m_globalOnly; // Own flag or inherited from the parent node
 
     void warnGlobalRead(const QString& key) const;
@@ -97,4 +93,4 @@ template <typename C, typename T> T Node::fallbackValue(T C::* member, std::type
     return fallback ? fallback->*member : defaultValue;
 }
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

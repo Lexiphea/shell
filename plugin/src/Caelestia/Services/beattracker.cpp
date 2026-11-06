@@ -3,7 +3,7 @@
 #include "audiocollector.hpp"
 #include "audioprovider.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 BeatProcessor::BeatProcessor(QObject* parent)
     : AudioProcessor(parent)
@@ -28,11 +28,17 @@ void BeatProcessor::process() {
         return;
     }
 
-    AudioCollector::instance().readChunk(m_in->data);
+    // aubio expects each call to bring exactly one hop of new samples
+    for (;;) {
+        m_filled += AudioCollector::instance().readNew(m_in->data + m_filled, ac::k_chunkSize - m_filled, m_cursor);
+        if (m_filled < ac::k_chunkSize)
+            return;
 
-    aubio_tempo_do(m_tempo, m_in, m_out);
-    if (!qFuzzyIsNull(m_out->data[0])) {
-        emit beat(aubio_tempo_get_bpm(m_tempo));
+        m_filled = 0;
+        aubio_tempo_do(m_tempo, m_in, m_out);
+        if (!qFuzzyIsNull(m_out->data[0])) {
+            emit beat(aubio_tempo_get_bpm(m_tempo));
+        }
     }
 }
 
@@ -56,4 +62,4 @@ void BeatTracker::updateBpm(smpl_t bpm) {
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

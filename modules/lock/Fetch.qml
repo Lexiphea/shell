@@ -8,6 +8,7 @@ import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.effects
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -17,17 +18,19 @@ StyledRect {
     required property real rootHeight
     readonly property int cBoxSize: Tokens.font.body.medium.pointSize * 2
 
-    implicitHeight: layout.implicitHeight + layout.anchors.topMargin + layout.anchors.margins
+    implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
     radius: Tokens.rounding.medium
     color: Colours.tPalette.m3surfaceContainer
+
+    Ref {
+        service: SysInfo
+    }
 
     ColumnLayout {
         id: layout
 
         anchors.fill: parent
         anchors.margins: Tokens.padding.extraLarge
-        anchors.topMargin: Tokens.padding.extraLarge
-        anchors.bottomMargin: Tokens.padding.extraLarge
 
         spacing: Tokens.spacing.small
 

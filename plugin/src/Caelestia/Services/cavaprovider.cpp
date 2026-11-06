@@ -1,8 +1,11 @@
 #include "cavaprovider.hpp"
 
+#include <qdir.h>
+#include <qfile.h>
 #include <qloggingcategory.h>
 
 #include <cava/cavacore.h>
+#include <fftw3.h>
 
 #include <cstddef>
 
@@ -12,16 +15,25 @@
 namespace {
 
 Q_LOGGING_CATEGORY(lcCava, "caelestia.services.cava", QtInfoMsg)
-Q_LOGGING_CATEGORY(lcCavaProcessor, "caelestia.services.cava.processor", QtInfoMsg)
+
+using Qt::StringLiterals::operator""_s;
+
+QByteArray wisdomPath() {
+    QString cache = qEnvironmentVariable("XDG_CACHE_HOME");
+    if (cache.isEmpty())
+        cache = QDir::homePath() + u"/.cache"_s;
+    QDir().mkpath(cache + u"/caelestia"_s);
+    return QFile::encodeName(cache + u"/caelestia/fftw-wisdom"_s);
+}
 
 } // namespace
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 CavaProcessor::CavaProcessor(QObject* parent)
     : AudioProcessor(parent)
     , m_plan(nullptr)
-    , m_in(new double[ac::k_chunkSize])
+    , m_in(new double[ac::k_bufferSize])
     , m_out(nullptr)
     , m_bars(0) {};
 
@@ -31,13 +43,12 @@ CavaProcessor::~CavaProcessor() {
 }
 
 void CavaProcessor::process() {
-    if (!m_plan || m_bars == 0 || !m_out) {
+    if (!m_plan) {
         return;
     }
 
-    const int count = static_cast<int>(AudioCollector::instance().readChunk(m_in));
-
-    // Process in data via cava
+    // cava keeps its own window and wants only the new samples. With none it still lets the bars fall
+    const int count = static_cast<int>(AudioCollector::instance().readNew(m_in, ac::k_bufferSize, m_cursor));
     cava_execute(m_in, count, m_out, m_plan);
 
     // Apply monstercat filter
@@ -66,20 +77,21 @@ void CavaProcessor::process() {
 }
 
 void CavaProcessor::setBars(int bars) {
-    if (bars < 0) {
-        qCWarning(lcCavaProcessor) << "setBars: bars must be greater than 0. Setting to 0.";
-        bars = 0;
+    if (m_bars == bars) {
+        return;
     }
 
-    if (m_bars != bars) {
-        m_bars = bars;
-        reload();
-    }
-}
-
-void CavaProcessor::reload() {
+    m_bars = bars;
     cleanup();
-    initCava();
+    if (m_bars > 0) {
+        // cava plans its FFTs with FFTW_MEASURE, which times candidate algorithms for ~0.3s of CPU on every start.
+        // FFTW wisdom keeps the winners, so only the first start measures. Nothing else here uses double precision FFTW
+        const QByteArray wisdom = wisdomPath();
+        fftw_import_wisdom_from_filename(wisdom.constData());
+        m_plan = cava_init(m_bars, ac::k_sampleRate, 1, 1, 0.85, 50, 10000);
+        fftw_export_wisdom_to_filename(wisdom.constData());
+        m_out = new double[static_cast<size_t>(m_bars)];
+    }
 }
 
 void CavaProcessor::cleanup() {
@@ -92,15 +104,6 @@ void CavaProcessor::cleanup() {
         delete[] m_out;
         m_out = nullptr;
     }
-}
-
-void CavaProcessor::initCava() {
-    if (m_plan || m_bars == 0) {
-        return;
-    }
-
-    m_plan = cava_init(m_bars, ac::k_sampleRate, 1, 1, 0.85, 50, 10000);
-    m_out = new double[static_cast<size_t>(m_bars)];
 }
 
 CavaProvider::CavaProvider(QObject* parent)
@@ -147,4 +150,4 @@ void CavaProvider::updateValues(const QVector<double>& values) {
     }
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

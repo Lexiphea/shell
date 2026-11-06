@@ -63,10 +63,6 @@ Scope {
             root.handleBatteryWarnings();
         }
 
-        target: UPower.displayDevice
-    }
-
-    Connections {
         function onPercentageChanged(): void {
             if (!UPower.displayDevice.ready)
                 return;

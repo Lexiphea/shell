@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qfileinfo.h>
 #include <qimage.h>
 #include <qmutex.h>
 #include <qobject.h>
@@ -7,7 +8,7 @@
 #include <qsize.h>
 #include <qstring.h>
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 class ImageCacher : public QObject {
     Q_OBJECT
@@ -22,7 +23,8 @@ public:
     static ImageCacher* instance();
 
     static const QString& cacheDir();
-    static QString cachePathFor(const QString& sourcePath, const QSize& size, FillMode fillMode);
+    static QString cachePathFor(
+        const QFileInfo& source, const QSize& size, FillMode fillMode, QStringView extension = u"img");
 
     void schedule(const QString& cachePath, const QImage& image);
 
@@ -35,4 +37,4 @@ private:
     QSet<QString> m_inflight;
 };
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

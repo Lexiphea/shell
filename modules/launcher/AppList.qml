@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Widgets
 import Caelestia
 import Caelestia.Config
 import qs.components
@@ -23,25 +24,36 @@ StyledListView {
     // Enter from an app, unless the query starts with "=" to force it
     readonly property var calc: results.calc
     readonly property var results: {
-        const values = Apps.search(displayText).concat(Actions.query(displayText));
+        const values = Apps.search(displayText, Actions.list);
         const query = displayText.trim();
         const forced = query.startsWith("=");
         if (!forced && (values.length > 0 || query.length < 3))
-            return { values };
+            return {
+                values
+            };
 
         const expr = forced ? query.slice(1) : query;
         const result = Soulver.eval(expr);
         if (!result || result.value === expr.trim())
-            return { values };
+            return {
+                values
+            };
         values.unshift(calcEntry);
-        return { values, calc: Object.assign({ question: expr.trim() }, result) };
+        return {
+            values,
+            calc: Object.assign({
+                question: expr.trim()
+            }, result)
+        };
     }
 
     function syncDisplayText(): void {
-        if (screenState.launcher)
+        // Also while hidden, so it reopens on fresh results instead of animating away the last search
+        if (screenState.launcher || !visible)
             displayText = search.text;
     }
 
+    reuseItems: true
     model: ScriptModel {
         values: root.results.values
         onValuesChanged: root.currentIndex = 0
@@ -72,6 +84,7 @@ StyledListView {
     }
 
     Component.onCompleted: displayText = search.text
+    onVisibleChanged: syncDisplayText()
 
     delegate: appItem
 
@@ -82,11 +95,7 @@ StyledListView {
     move: Transition {
         Anim {
             property: "y"
-        }
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            to: 1
+            type: Anim.FastSpatial
         }
     }
 
@@ -95,26 +104,31 @@ StyledListView {
             property: "y"
             type: Anim.StandardSmall
         }
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            to: 1
-        }
     }
 
     displaced: Transition {
         Anim {
             property: "y"
-        }
-        Anim {
-            type: Anim.DefaultEffects
-            property: "opacity"
-            to: 1
+            type: Anim.FastSpatial
         }
     }
 
     QtObject {
         id: calcEntry
+    }
+
+    // Loads every app icon at the row size up front, so a new result doesn't stall typing on its first icon load
+    Repeater {
+        model: DesktopEntries.applications
+
+        IconImage {
+            required property DesktopEntry modelData
+
+            visible: false
+            asynchronous: true
+            implicitSize: (Tokens.sizes.launcher.itemHeight - Tokens.padding.small * 2) * 0.8
+            source: Quickshell.iconPath(modelData.icon, "image-missing")
+        }
     }
 
     Component {
@@ -126,7 +140,8 @@ StyledListView {
             required property var modelData
 
             function activate(): void {
-                item.activate();
+                // AppItem, ActionItem and SoulverItem all have activate()
+                item.activate(); // qmllint disable missing-property
             }
 
             anchors.left: parent?.left
@@ -168,13 +183,5 @@ StyledListView {
         }
 
         target: root.search
-    }
-
-    Connections {
-        function onLauncherChanged() {
-            root.syncDisplayText();
-        }
-
-        target: root.screenState
     }
 }

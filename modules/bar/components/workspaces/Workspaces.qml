@@ -10,15 +10,15 @@ import Caelestia.Config
 import qs.components
 import qs.services
 
-StyledClippingRect {
+ClipRect {
     id: root
 
     required property ShellScreen screen
     required property bool fullscreen
 
     readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
-    readonly property bool onSpecial: monitor?.lastIpcObject.specialWorkspace?.name !== ""
-    readonly property int activeWsId: monitor.activeWorkspace?.id ?? 1
+    readonly property bool onSpecial: !!monitor?.lastIpcObject.specialWorkspace?.name
+    readonly property int activeWsId: monitor?.activeWorkspace?.id ?? 1
     readonly property int activeWsIdx: workspaceIndex(activeWsId)
     readonly property int shown: Math.max(1, Config.bar.workspaces.shown)
     readonly property real nonAnimHeight: workspaces.layoutHeight + workspaces.anchors.margins * 2
@@ -43,7 +43,7 @@ StyledClippingRect {
     }
 
     readonly property var workspaces: {
-        workspaces.itemsDirty;
+        CUtils.dependency(workspaces.itemsDirty);
         return wsIds.map(id => workspaces.itemAtIndex(workspaceIndex(id)));
     }
 
@@ -163,7 +163,7 @@ StyledClippingRect {
 
             sourceComponent: ActiveIndicator {
                 activeWs: {
-                    workspaces.itemsDirty;
+                    CUtils.dependency(workspaces.itemsDirty);
                     return workspaces.itemAtIndex(root.activeWsIdx) as Workspace;
                 }
                 mask: workspaces
@@ -195,8 +195,6 @@ StyledClippingRect {
     }
 
     Loader {
-        id: specialWs
-
         anchors.fill: parent
 
         asynchronous: true

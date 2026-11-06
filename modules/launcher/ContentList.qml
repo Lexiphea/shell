@@ -16,8 +16,6 @@ Item {
     required property var panels
     required property real maxHeight
     required property SearchBar search
-    required property int padding
-    required property int rounding
 
     readonly property bool showWallpapers: search.text.startsWith("wallpaper ")
     readonly property var currentList: showWallpapers ? wallpaperList.item : appList.item // Can be either ListView or PathView, so can't type properly
@@ -62,7 +60,7 @@ Item {
                 property: "opacity"
                 from: 1
                 to: 0
-                type: Anim.DefaultEffects
+                type: Anim.FastEffects
             }
             PropertyAction {}
             Anim {
@@ -70,7 +68,7 @@ Item {
                 property: "opacity"
                 from: 0
                 to: 1
-                type: Anim.DefaultEffects
+                type: Anim.FastEffects
             }
         }
     }
@@ -166,6 +164,9 @@ Item {
     Behavior on implicitHeight {
         enabled: root.screenState.launcher
 
-        Anim {}
+        // Follows the result count while typing, so kept quick
+        Anim {
+            type: Anim.FastSpatial
+        }
     }
 }

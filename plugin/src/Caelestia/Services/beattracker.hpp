@@ -6,7 +6,7 @@
 
 #include "audioprovider.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 class BeatProcessor : public AudioProcessor {
     Q_OBJECT
@@ -25,6 +25,8 @@ private:
     aubio_tempo_t* m_tempo;
     fvec_t* m_in;
     fvec_t* m_out;
+    quint64 m_cursor = 0;
+    quint32 m_filled = 0; // Samples gathered in m_in towards the next hop
 };
 
 class BeatTracker : public AudioProvider {
@@ -40,7 +42,6 @@ public:
 
 signals:
     void bpmChanged();
-    void beat(smpl_t bpm);
 
 private:
     smpl_t m_bpm;
@@ -48,4 +49,4 @@ private:
     void updateBpm(smpl_t bpm);
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

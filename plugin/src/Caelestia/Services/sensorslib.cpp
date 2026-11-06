@@ -8,9 +8,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <mutex>
-#include <utility>
 
 namespace {
 
@@ -18,7 +16,7 @@ Q_LOGGING_CATEGORY(lcSensorsLib, "caelestia.services.sensorslib", QtInfoMsg)
 
 } // namespace
 
-namespace caelestia::services::sensorslib {
+namespace caelestia::shell::services::sensorslib {
 
 namespace {
 
@@ -58,15 +56,6 @@ void doInit() {
     return out;
 }
 
-bool labelEquals(const QByteArray& label, const char* literal) {
-    return label == QByteArrayView(literal);
-}
-
-bool labelStartsWith(const QByteArray& label, const char* prefix) {
-    const auto n = std::strlen(prefix);
-    return std::cmp_greater_equal(label.size(), n) && std::memcmp(label.constData(), prefix, n) == 0;
-}
-
 // Walks every labelled temperature feature, optionally restricted to one bus type
 template <typename F> void forEachTempFeature(short busType, F&& fn) {
     int chipNr = 0;
@@ -97,14 +86,11 @@ enum class GpuTempKind : std::uint8_t {
 // Indexed tempN labels and the vendor die labels are the reading we want,
 // junction/mem only stand in when no primary sensor exists
 GpuTempKind classifyGpuTempLabel(const QByteArray& label) {
-    if (label.isEmpty())
-        return GpuTempKind::None;
-
-    const auto tempIndexed =
-        labelStartsWith(label, "temp") && label.size() > 4 && std::isdigit(static_cast<unsigned char>(label[4]));
-    if (tempIndexed || labelEquals(label, "GPU core") || labelEquals(label, "edge"))
+    const auto tempIndexed = label.startsWith(QByteArrayView("temp")) && label.size() > 4 &&
+                             std::isdigit(static_cast<unsigned char>(label[4]));
+    if (tempIndexed || label == QByteArrayView("GPU core") || label == QByteArrayView("edge"))
         return GpuTempKind::Primary;
-    if (labelEquals(label, "junction") || labelEquals(label, "mem"))
+    if (label == QByteArrayView("junction") || label == QByteArrayView("mem"))
         return GpuTempKind::Fallback;
 
     return GpuTempKind::None;
@@ -129,11 +115,11 @@ std::optional<double> TempAccum::average() const {
     return sum / count;
 }
 
-} // namespace
-
 void ensureInit() {
     std::call_once(g_initFlag, doInit);
 }
+
+} // namespace
 
 std::optional<double> cpuPackageTemp() {
     ensureInit();
@@ -145,10 +131,10 @@ std::optional<double> cpuPackageTemp() {
 
     forEachTempFeature(
         SENSORS_BUS_TYPE_ANY, [&](const sensors_chip_name* chip, const sensors_feature* feat, const QByteArray& label) {
-            if (labelStartsWith(label, "Package id ") || labelEquals(label, "Tdie")) {
+            if (label.startsWith(QByteArrayView("Package id ")) || label == QByteArrayView("Tdie")) {
                 if (const auto v = readTempInput(chip, feat))
                     primary = v;
-            } else if (labelEquals(label, "Tctl")) {
+            } else if (label == QByteArrayView("Tctl")) {
                 if (const auto v = readTempInput(chip, feat))
                     fallback = v;
             }
@@ -186,4 +172,4 @@ std::optional<double> gpuPciAverageTemp() {
     return fallback.average();
 }
 
-} // namespace caelestia::services::sensorslib
+} // namespace caelestia::shell::services::sensorslib

@@ -11,8 +11,8 @@ import qs.modules.nexus
 Singleton {
     id: root
 
-    function create(parent: Item, props: var): void {
-        nexusComp.createObject(parent ?? dummy, props);
+    function create(): void {
+        nexusComp.createObject(dummy);
     }
 
     QtObject {

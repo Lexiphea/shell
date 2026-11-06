@@ -7,7 +7,7 @@
 
 #include "sensorslib.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -64,7 +64,7 @@ void Cpu::refreshPercentage() {
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return;
     }
-    const QByteArray data = f.readAll();
+    const QByteArray data = f.readLine();
     f.close();
 
     static const QRegularExpression k_re(
@@ -116,4 +116,4 @@ QString Cpu::cleanName(QString s) {
     return s.trimmed();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

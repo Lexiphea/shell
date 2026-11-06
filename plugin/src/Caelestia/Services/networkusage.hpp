@@ -6,7 +6,7 @@
 #include "core/circularbuffer.hpp"
 #include "tickingservice.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 class NetworkUsage : public TickingService {
     Q_OBJECT
@@ -19,8 +19,8 @@ class NetworkUsage : public TickingService {
     Q_PROPERTY(qreal uploadTotal READ uploadTotal NOTIFY changed)
     Q_PROPERTY(int historyLength READ historyLength CONSTANT)
 
-    Q_PROPERTY(caelestia::CircularBuffer* downloadBuffer READ downloadBuffer CONSTANT)
-    Q_PROPERTY(caelestia::CircularBuffer* uploadBuffer READ uploadBuffer CONSTANT)
+    Q_PROPERTY(caelestia::shell::CircularBuffer* downloadBuffer READ downloadBuffer CONSTANT)
+    Q_PROPERTY(caelestia::shell::CircularBuffer* uploadBuffer READ uploadBuffer CONSTANT)
 
 public:
     explicit NetworkUsage(QObject* parent = nullptr);
@@ -52,8 +52,7 @@ private:
 
     quint64 m_prevRx = 0;
     quint64 m_prevTx = 0;
-    bool m_initialized = false;
     QElapsedTimer m_timer;
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

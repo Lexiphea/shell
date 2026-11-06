@@ -3,10 +3,12 @@ pragma Singleton
 import Quickshell
 
 Singleton {
-    readonly property list<string> validImageTypes: ["jpeg", "png", "webp", "tiff", "svg"]
     readonly property list<string> validImageExtensions: ["jpg", "jpeg", "png", "webp", "tif", "tiff", "svg"]
+    // Matches util::videoExtensions in the plugin and VIDEO_EXTENSIONS in the CLI
+    readonly property list<string> validVideoExtensions: ["mp4", "mkv", "webm", "mov", "avi"]
+    readonly property list<string> validWallpaperExtensions: [...validImageExtensions, ...validVideoExtensions]
 
-    function isValidImageByName(name: string): bool {
-        return validImageExtensions.some(t => name.endsWith(`.${t}`));
+    function isVideo(path: string): bool {
+        return validVideoExtensions.includes(path.slice(path.lastIndexOf(".") + 1).toLowerCase());
     }
 }

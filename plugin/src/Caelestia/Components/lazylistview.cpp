@@ -22,7 +22,7 @@ QRectF clipVertical(const QRectF& rect, qreal top, qreal bottom) {
 
 } // namespace
 
-namespace caelestia::components {
+namespace caelestia::shell::components {
 
 using Qt::StringLiterals::operator""_s;
 
@@ -111,9 +111,7 @@ void LazyListViewAttached::setTrackViewport(bool track) {
 // --- LazyListView ---
 
 LazyListView::LazyListView(QQuickItem* parent)
-    : QQuickItem(parent) {
-    setFlag(ItemHasContents, false);
-}
+    : QQuickItem(parent) {}
 
 LazyListViewAttached* LazyListView::qmlAttachedProperties(QObject* object) {
     return new LazyListViewAttached(object);
@@ -271,12 +269,8 @@ void LazyListView::setAsynchronous(bool async) {
     emit asynchronousChanged();
 }
 
-LazyListViewAttached* LazyListView::attachedFor(QQuickItem* item) {
-    return qobject_cast<LazyListViewAttached*>(qmlAttachedPropertiesObject<LazyListView>(item, false));
-}
-
-LazyListViewAttached* LazyListView::attachedForCreate(QQuickItem* item) {
-    return qobject_cast<LazyListViewAttached*>(qmlAttachedPropertiesObject<LazyListView>(item, true));
+LazyListViewAttached* LazyListView::attachedFor(QQuickItem* item, bool create) {
+    return qobject_cast<LazyListViewAttached*>(qmlAttachedPropertiesObject<LazyListView>(item, create));
 }
 
 qreal LazyListView::effectiveEstimatedHeight() const {
@@ -692,8 +686,7 @@ std::pair<int, int> LazyListView::computeVisibleRange() const {
 
     while (lo <= hi) {
         const int mid = lo + (hi - lo) / 2;
-        const auto& record = m_layout[mid];
-        const qreal itemBottom = record.targetY + (record.heightKnown ? record.height : effectiveEstimatedHeight());
+        const qreal itemBottom = m_layout[mid].targetY + layoutHeightAt(mid);
 
         if (itemBottom >= vpTop) {
             first = mid;
@@ -722,14 +715,7 @@ std::pair<int, int> LazyListView::computeVisibleRange() const {
 void LazyListView::syncDelegates() {
     const auto [first, last] = computeVisibleRange();
 
-    // Collect indices that should be alive
-    QSet<int> visibleIndices;
-    if (first >= 0) {
-        for (int i = first; i <= last; ++i)
-            visibleIndices.insert(i);
-    }
-
-    const auto toRemove = delegatesOutsideViewport(visibleIndices, effectiveViewport());
+    const auto toRemove = delegatesOutsideViewport(first, last, effectiveViewport());
     const int destroyed =
         destroyDelegates(toRemove, m_asynchronous ? k_asyncBatchDestroy : static_cast<int>(toRemove.size()));
 
@@ -748,13 +734,13 @@ void LazyListView::syncDelegates() {
         emit itemsDirtyChanged();
 }
 
-// Delegates safe to destroy - outside the range to keep and no longer visually
+// Delegates safe to destroy - outside [first, last] and no longer visually
 // overlapping the viewport, so nothing mid-animation disappears.
-QList<int> LazyListView::delegatesOutsideViewport(const QSet<int>& keep, const QRectF& viewport) const {
-    QList<int> outside;
+LazyListView::IndexList LazyListView::delegatesOutsideViewport(int first, int last, const QRectF& viewport) const {
+    IndexList outside;
 
     for (auto it = m_delegates.constBegin(); it != m_delegates.constEnd(); ++it) {
-        if (keep.contains(it.key()))
+        if (it.key() >= first && it.key() <= last)
             continue;
 
         if (!it->item || viewport.isEmpty()) {
@@ -771,11 +757,11 @@ QList<int> LazyListView::delegatesOutsideViewport(const QSet<int>& keep, const Q
     return outside;
 }
 
-QList<int> LazyListView::missingDelegates(int first, int last) const {
+LazyListView::IndexList LazyListView::missingDelegates(int first, int last) const {
     if (first < 0)
         return {};
 
-    QList<int> missing;
+    IndexList missing;
     for (int i = first; i <= last; ++i) {
         if (!m_delegates.contains(i))
             missing.append(i);
@@ -784,20 +770,19 @@ QList<int> LazyListView::missingDelegates(int first, int last) const {
     return missing;
 }
 
-int LazyListView::destroyDelegates(const QList<int>& indices, int budget) {
+int LazyListView::destroyDelegates(const IndexList& indices, int budget) {
     // Take entries out of the maps first so destruction cannot observe
     // a delegate that is already unreachable from the view.
-    QVector<DelegateEntry> removed;
-    removed.reserve(std::min(budget, static_cast<int>(indices.size())));
+    QVarLengthArray<DelegateEntry, k_asyncBatchDestroy> removed;
 
     for (const int idx : indices) {
         if (static_cast<int>(removed.size()) >= budget)
             break;
 
-        auto entry = m_delegates.take(idx);
+        const auto entry = m_delegates.take(idx);
         if (entry.item)
             m_itemToIndex.remove(entry.item);
-        removed.append(std::move(entry));
+        removed.append(entry);
     }
 
     for (auto& entry : removed)
@@ -806,7 +791,7 @@ int LazyListView::destroyDelegates(const QList<int>& indices, int budget) {
     return static_cast<int>(removed.size());
 }
 
-int LazyListView::createDelegates(const QList<int>& indices, int budget) {
+int LazyListView::createDelegates(const IndexList& indices, int budget) {
     int created = 0;
 
     for (const int idx : indices) {
@@ -867,7 +852,7 @@ LazyListView::DelegateEntry LazyListView::createDelegate(int modelIndex) {
     // Only set adding = true for genuinely new model items (not viewport entries).
     // Cleared on the next frame in updatePolish when the item becomes visible.
     if (modelIndex < static_cast<int>(m_layout.size()) && m_layout[modelIndex].isNew) {
-        auto* attached = attachedForCreate(entry.item);
+        auto* attached = attachedFor(entry.item, true);
         if (attached)
             attached->setAdding(true);
     }
@@ -1252,4 +1237,4 @@ void LazyListView::onModelReset() {
     resetContent();
 }
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

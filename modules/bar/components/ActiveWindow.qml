@@ -11,7 +11,6 @@ Item {
     id: root
 
     required property var bar
-    required property Brightness.Monitor monitor
     property color colour: Colours.palette.m3primary
 
     readonly property string windowTitle: {
@@ -30,7 +29,6 @@ Item {
     readonly property int maxHeight: {
         const otherModules = bar.children.filter(c => c.entryId && c.item !== this && c.entryId !== "spacer");
         const otherHeight = otherModules.reduce((acc, curr) => acc + (curr.item.nonAnimHeight ?? curr.height), 0);
-        // Length - 2 cause repeater counts as a child
         return bar.height - otherHeight - bar.spacing * (bar.children.length - 1) - bar.vPadding * 2;
     }
     property Title current: text1

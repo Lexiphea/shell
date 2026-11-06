@@ -4,11 +4,10 @@
 #include <qlist.h>
 #include <qmetaobject.h>
 #include <qmetatype.h>
-#include <qqmlintegration.h>
 #include <qstring.h>
 #include <qvariant.h>
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 class ValueCodec;
 
@@ -19,37 +18,7 @@ struct Annotation {
     QList<QMetaType> allowedTypes = {}; // For QVariant properties
 };
 
-namespace detail {
-
-// Return trivially copyable types (e.g. bool) by value and others (e.g. QVariant) by const ref
-template <typename T>
-using AnnotationReturn = std::conditional_t<std::is_trivially_copyable_v<T> && sizeof(T) <= sizeof(void*), T, const T&>;
-
-} // namespace detail
-
-#define ANNOTATION(Type, name)                                                                                         \
-    Q_PROPERTY(Type name READ name)                                                                                    \
-                                                                                                                       \
-public:                                                                                                                \
-    [[nodiscard]] detail::AnnotationReturn<Type> name() const {                                                        \
-        return annotation.name;                                                                                        \
-    }                                                                                                                  \
-                                                                                                                       \
-private:
-
 struct Descriptor {
-    Q_GADGET
-    QML_VALUE_TYPE(descriptor)
-
-    Q_PROPERTY(QString key MEMBER key)
-    Q_PROPERTY(QString type READ typeString)
-    Q_PROPERTY(int metaIndex MEMBER metaIndex)
-    Q_PROPERTY(bool isNode MEMBER isNode)
-
-    ANNOTATION(QVariant, defaultValue)
-    ANNOTATION(bool, globalOnly)
-
-public:
     QString key;
     QMetaType type;
     int metaIndex;
@@ -57,11 +26,13 @@ public:
     Annotation annotation;
     const ValueCodec* codec = nullptr; // Null for nodes and unsupported types
 
+    [[nodiscard]] const QVariant& defaultValue() const { return annotation.defaultValue; }
+
+    [[nodiscard]] bool globalOnly() const { return annotation.globalOnly; }
+
     [[nodiscard]] QString typeString() const;
     [[nodiscard]] bool accepts(const QMetaType& valueType) const;
 };
-
-#undef ANNOTATION
 
 class Schema {
 public:
@@ -78,4 +49,4 @@ private:
     QHash<QString, qsizetype> m_keyToIndex;
 };
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

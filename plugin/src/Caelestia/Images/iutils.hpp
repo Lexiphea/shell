@@ -6,7 +6,7 @@
 #include <qqmlintegration.h>
 #include <qurl.h>
 
-namespace caelestia::images {
+namespace caelestia::shell::images {
 
 class IUtils : public QObject {
     Q_OBJECT
@@ -22,4 +22,4 @@ private:
     explicit IUtils(QObject* parent = nullptr);
 };
 
-} // namespace caelestia::images
+} // namespace caelestia::shell::images

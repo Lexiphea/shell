@@ -9,12 +9,16 @@
 #include "util/i18n.hpp"
 #include "util/metaenum.hpp"
 
-namespace caelestia::settings {
+namespace caelestia::shell::settings {
 
 using Qt::StringLiterals::operator""_s;
 using util::i18n::mark;
 
 namespace {
+
+DecodeResult ok(QVariant value) {
+    return { .value = std::move(value), .error = std::nullopt, .indexPath = {} };
+}
 
 // We don't know the option here so it isn't set, it should be set by the caller
 DecodeResult error(DiagnosticType::Type type, const QString& message) {
@@ -163,7 +167,7 @@ DecodeResult BoolCodec::decode(const QJsonValue& value) const {
     if (!value.isBool())
         return mismatch(ExpectedType::Bool, value);
 
-    return { .value = value.toBool(), .error = std::nullopt, .indexPath = {} };
+    return ok(value.toBool());
 }
 
 QJsonValue IntCodec::encode(const QVariant& value) const {
@@ -191,7 +195,7 @@ DecodeResult IntCodec::decode(const QJsonValue& value) const {
         return error(DiagnosticType::InvalidValue, message);
     }
 
-    return { .value = static_cast<int>(num), .error = std::nullopt, .indexPath = {} };
+    return ok(static_cast<int>(num));
 }
 
 QJsonValue RealCodec::encode(const QVariant& value) const {
@@ -202,7 +206,7 @@ DecodeResult RealCodec::decode(const QJsonValue& value) const {
     if (!value.isDouble())
         return mismatch(ExpectedType::Real, value);
 
-    return { .value = QVariant::fromValue<qreal>(value.toDouble()), .error = std::nullopt, .indexPath = {} };
+    return ok(QVariant::fromValue<qreal>(value.toDouble()));
 }
 
 QJsonValue StringCodec::encode(const QVariant& value) const {
@@ -213,7 +217,7 @@ DecodeResult StringCodec::decode(const QJsonValue& value) const {
     if (!value.isString())
         return mismatch(ExpectedType::String, value);
 
-    return { .value = value.toString(), .error = std::nullopt, .indexPath = {} };
+    return ok(value.toString());
 }
 
 QJsonValue VariantListCodec::encode(const QVariant& value) const {
@@ -224,7 +228,7 @@ DecodeResult VariantListCodec::decode(const QJsonValue& value) const {
     if (!value.isArray())
         return mismatch(ExpectedType::Array, value);
 
-    return { .value = value.toArray().toVariantList(), .error = std::nullopt, .indexPath = {} };
+    return ok(value.toArray().toVariantList());
 }
 
 QJsonValue VariantMapCodec::encode(const QVariant& value) const {
@@ -235,7 +239,7 @@ DecodeResult VariantMapCodec::decode(const QJsonValue& value) const {
     if (!value.isObject())
         return mismatch(ExpectedType::Object, value);
 
-    return { .value = value.toObject().toVariantMap(), .error = std::nullopt, .indexPath = {} };
+    return ok(value.toObject().toVariantMap());
 }
 
 EnumCodec::EnumCodec(const QMetaType& type, const QMetaEnum& metaEnum)
@@ -272,7 +276,7 @@ DecodeResult EnumCodec::decode(const QJsonValue& value) const {
                 mark(u"Could not convert %1 to %2"_s, { key, QString::fromUtf8(m_type.name()) }));
         }
 
-        return { .value = decoded, .error = std::nullopt, .indexPath = {} };
+        return ok(decoded);
     }
 
     QStringList options;
@@ -318,7 +322,7 @@ template <typename Container> DecodeResult ListCodec<Container>::decode(const QJ
         list.append(result.value.value<Value>());
     }
 
-    return { .value = QVariant::fromValue(list), .error = std::nullopt, .indexPath = {} };
+    return ok(QVariant::fromValue(list));
 }
 
 UnionCodec::UnionCodec(const QList<const ValueCodec*>& alternatives)
@@ -375,4 +379,4 @@ DecodeResult UnionCodec::decode(const QJsonValue& value) const {
 template class ListCodec<QStringList>;
 template class ListCodec<QList<qreal>>;
 
-} // namespace caelestia::settings
+} // namespace caelestia::shell::settings

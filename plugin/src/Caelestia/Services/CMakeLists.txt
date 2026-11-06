@@ -27,6 +27,7 @@ qml_module(caelestia-services
         PkgConfig::Pipewire
         PkgConfig::Aubio
         PkgConfig::Cava
+        PkgConfig::Fftw
         Sensors::Sensors
         caelestia-util
         caelestia-core

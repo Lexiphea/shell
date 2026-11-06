@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace caelestia::components {
+namespace caelestia::shell::components {
 
 VisualiserBars::VisualiserBars(QQuickItem* parent)
     : QQuickPaintedItem(parent) {
@@ -37,7 +37,8 @@ void VisualiserBars::advance(qreal dt) {
         }
     }
 
-    update();
+    // Bars only reach the bottom 40%, so skip clearing and uploading the rest
+    update(QRectF(0, height() * 0.6, width(), height() * 0.4).toAlignedRect());
 
     if (allSettled && !m_settled) {
         m_settled = true;
@@ -196,4 +197,4 @@ void VisualiserBars::setAnimationDuration(int duration) {
     emit animationDurationChanged();
 }
 
-} // namespace caelestia::components
+} // namespace caelestia::shell::components

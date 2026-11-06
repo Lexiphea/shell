@@ -1,8 +1,5 @@
 #pragma once
 
-#include <qmutex.h>
-#include <qqmlintegration.h>
-
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
@@ -13,12 +10,14 @@
 #include "util/ringbuffer.hpp"
 #include "service.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 namespace ac {
 
 constexpr quint32 k_sampleRate = 44100;
 constexpr quint32 k_chunkSize = 512;
+// Holds the samples that can arrive between two reads, as PipeWire delivers them in bursts
+constexpr quint32 k_bufferSize = 4096;
 
 // Lockable which never makes the RT writer wait, as it only try_locks. Readers spin, they only wait on a short copy.
 class SpinLock {
@@ -48,8 +47,6 @@ class PipeWireWorker {
 public:
     explicit PipeWireWorker(std::stop_token token, AudioCollector* collector);
 
-    void run();
-
 private:
     pw_main_loop* m_loop;
     pw_stream* m_stream;
@@ -75,9 +72,13 @@ public:
     static AudioCollector& instance();
 
     void clearBuffer();
+    // Feeds the readers a chunk of silence, so they stop analysing the last audio while the stream is paused
+    void pushSilence();
     void loadChunk(const qint16* samples, quint32 count);
-    quint32 readChunk(float* out, quint32 count = 0);
-    quint32 readChunk(double* out, quint32 count = 0);
+    // Copies up to max samples that arrived after cursor, oldest first, and moves cursor past them. Each reader keeps
+    // its own cursor, so no sample is read twice
+    quint32 readNew(float* out, quint32 max, quint64& cursor);
+    quint32 readNew(double* out, quint32 max, quint64& cursor);
 
 private:
     explicit AudioCollector(QObject* parent = nullptr);
@@ -88,13 +89,12 @@ private:
     ac::SpinLock m_samplesLock;
     util::RingBuffer<float> m_pending; // Writer thread only, holds chunks which arrived while a reader had the lock
     std::atomic<bool> m_discardPending;
-    quint32 m_sampleCount;
+    quint64 m_written = 0; // Samples ever pushed onto m_samples, guarded by m_samplesLock
 
-    template <typename T> quint32 readLatest(T* out, quint32 count);
+    template <typename T> quint32 readNewImpl(T* out, quint32 max, quint64& cursor);
 
-    void reload();
     void start() override;
     void stop() override;
 };
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

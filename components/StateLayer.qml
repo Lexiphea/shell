@@ -8,10 +8,8 @@ MouseArea {
     id: root
 
     property bool disabled
-    property bool showHoverBackground: true
     property bool manualPressOverride
     property bool manualHoverOverride
-    readonly property alias rect: base
 
     property bool shapeMorph
     property real stateOpacity: containsMouse || manualHoverOverride ? 0.08 : 0
@@ -44,6 +42,11 @@ MouseArea {
         return Math.max(0, Math.min(r, width / 2, height / 2));
     }
 
+    function fadeIfReleased(): void {
+        if (!(pressed || manualPressOverride) && circleRadius > endRadiusAtPress * 0.99 && !fadeAnim.running)
+            fadeAnim.start();
+    }
+
     function press(x: real, y: real): void {
         pressX = x;
         pressY = y;
@@ -66,15 +69,9 @@ MouseArea {
             fadeAnim.start();
     }
 
-    onManualPressOverrideChanged: {
-        if (!(pressed || manualPressOverride) && circleRadius > endRadiusAtPress * 0.99 && !fadeAnim.running)
-            fadeAnim.start();
-    }
+    onManualPressOverrideChanged: fadeIfReleased()
 
-    onCircleRadiusChanged: {
-        if (!(pressed || manualPressOverride) && circleRadius > endRadiusAtPress * 0.99 && !fadeAnim.running)
-            fadeAnim.start();
-    }
+    onCircleRadiusChanged: fadeIfReleased()
 
     Anim {
         id: rippleAnim

@@ -25,17 +25,19 @@ PageBase {
         MenuItem {
             text: Tr.trCtx("Off", "show toasts over fullscreen apps")
             icon: "notifications_off"
+            value: "off"
         },
         MenuItem {
             text: Tr.trCtx("Important", "show toasts over fullscreen apps: important ones only")
             icon: "priority_high"
+            value: "important"
         },
         MenuItem {
             text: Tr.trCtx("On", "show toasts over fullscreen apps")
             icon: "notifications"
+            value: "all"
         }
     ]
-    readonly property list<string> toastFullscreenValues: ["off", "important", "all"]
 
     title: Tr.tr("Notifications")
     isSubPage: true
@@ -107,8 +109,8 @@ PageBase {
             label: Tr.tr("Show in fullscreen")
             subtext: Tr.tr("Whether toasts appear over fullscreen apps")
             menuItems: root.toastFullscreenItems
-            active: root.toastFullscreenItems[Math.max(0, root.toastFullscreenValues.indexOf(GlobalConfig.utilities.toasts.fullscreen))]
-            onSelected: item => GlobalConfig.utilities.toasts.fullscreen = root.toastFullscreenValues[root.toastFullscreenItems.indexOf(item)]
+            active: root.toastFullscreenItems.find(i => i.value === GlobalConfig.utilities.toasts.fullscreen) ?? root.toastFullscreenItems[0]
+            onSelected: item => GlobalConfig.utilities.toasts.fullscreen = item.value
         }
 
         StepperRow {

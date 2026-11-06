@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   changes:
     uses: ./.github/workflows/detect-changes.yml
@@ -19,7 +23,7 @@ jobs:
     if: needs.changes.outputs.format-qml == 'true'
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/shell-arch-env:latest
+      image: ghcr.io/lexiphea/shell-arch-env:latest
 
     steps:
       - name: Checkout repo
@@ -39,7 +43,7 @@ jobs:
     if: needs.changes.outputs.format-cpp == 'true'
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/shell-arch-env:latest
+      image: ghcr.io/lexiphea/shell-arch-env:latest
 
     steps:
       - name: Checkout repo
@@ -49,7 +53,7 @@ jobs:
         shell: fish {0}
         run: |
           clang-format --version
-          find plugin extras -name '*.cpp' -o -name '*.hpp' \
+          find plugin extras -path plugin/vendor -prune -o \( -name '*.cpp' -o -name '*.hpp' \) -print \
             | xargs clang-format --dry-run --Werror
 
   format-check:

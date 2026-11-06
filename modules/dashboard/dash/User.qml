@@ -8,6 +8,7 @@ import qs.components
 import qs.components.effects
 import qs.components.filedialog
 import qs.components.images
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -24,6 +25,10 @@ Item {
 
     Behavior on pfpFallbackColour {
         CAnim {}
+    }
+
+    Ref {
+        service: SysInfo
     }
 
     Item {
@@ -96,7 +101,7 @@ Item {
                 anchors.fill: parent
                 color: Qt.alpha(Colours.palette.m3scrim, pfp.status === Image.Ready ? 0.4 : 0)
                 opacity: mouse.containsMouse ? 1 : 0
-                layer.enabled: opacity < 1
+                layer.enabled: opacity > 0 && opacity < 1
 
                 Behavior on opacity {
                     Anim {

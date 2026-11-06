@@ -13,17 +13,11 @@
 #include <algorithm>
 #include <cmath>
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 using Qt::StringLiterals::operator""_s;
 
 namespace {
-
-[[nodiscard]] QString sysfsRealPath(uint major, uint minor) {
-    const QString link = u"/sys/dev/block/%1:%2"_s.arg(major).arg(minor);
-    const QString resolved = QFileInfo(link).canonicalFilePath();
-    return resolved;
-}
 
 [[nodiscard]] bool readDevtFromSysfs(const QString& sysfsBlockDir, uint& major, uint& minor) {
     QFile f(sysfsBlockDir + u"/dev"_s);
@@ -88,7 +82,7 @@ QStringList resolveAtNode(const QString& node, int depth) {
 }
 
 QStringList resolveByDevt(uint major, uint minor, int depth) {
-    return resolveAtNode(sysfsRealPath(major, minor), depth);
+    return resolveAtNode(QFileInfo(u"/sys/dev/block/%1:%2"_s.arg(major).arg(minor)).canonicalFilePath(), depth);
 }
 
 } // namespace
@@ -109,18 +103,6 @@ qreal Storage::percentage() const {
         totalSize += d->total();
     }
     return totalSize > 0.0 ? totalUsed / totalSize : 0.0;
-}
-
-bool Storage::sameOrder(const QList<DiskInfo*>& a, const QList<DiskInfo*>& b) {
-    if (a.size() != b.size()) {
-        return false;
-    }
-    for (qsizetype i = 0; i < a.size(); ++i) {
-        if (a.at(i) != b.at(i)) {
-            return false;
-        }
-    }
-    return true;
 }
 
 QQmlListProperty<DiskInfo> Storage::disksProp() {
@@ -316,7 +298,7 @@ void Storage::applyDisks(const AccumHash& byDisk) {
     for (auto* const stale : std::as_const(existing))
         stale->deleteLater();
 
-    const auto listChanged = !sameOrder(m_disks, next);
+    const auto listChanged = m_disks != next;
     const auto* prevPrimary = primaryDisk();
     m_disks = std::move(next);
 
@@ -330,4 +312,4 @@ void Storage::applyDisks(const AccumHash& byDisk) {
         emit primaryDiskChanged();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

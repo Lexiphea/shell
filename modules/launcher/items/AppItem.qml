@@ -14,8 +14,9 @@ Item {
     required property ScreenState screenState
 
     function activate(): void {
-        Apps.launch(modelData);
+        // Close first so recording the launch doesn't delay it
         screenState.launcher = false;
+        Apps.launch(modelData);
     }
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
@@ -75,7 +76,6 @@ Item {
         Loader {
             id: favouriteIcon
 
-            asynchronous: true
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
             active: root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)

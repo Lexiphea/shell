@@ -7,7 +7,6 @@ import Quickshell.Services.Notifications
 import Caelestia.Config
 import qs.components
 import qs.components.effects
-import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -31,6 +30,7 @@ StyledRect {
             return NotificationUrgency.Normal;
         return NotificationUrgency.Low;
     }
+    readonly property color onUrgencyColour: urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
 
     readonly property int nonAnimHeight: {
         const headerHeight = header.implicitHeight + (root.expanded ? Math.round(Tokens.spacing.extraSmall) : 0);
@@ -63,10 +63,6 @@ StyledRect {
 
     Behavior on implicitHeight {
         Anim {}
-    }
-
-    Ref {
-        service: Notifs
     }
 
     RowLayout {
@@ -107,7 +103,7 @@ StyledRect {
                 ColouredIcon {
                     implicitSize: Math.round(TokenConfig.sizes.notifs.image * 0.6)
                     source: Quickshell.iconPath(root.appIcon)
-                    colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    colour: root.onUrgencyColour
                     layer.enabled: root.appIcon.endsWith("symbolic")
                 }
             }
@@ -117,12 +113,12 @@ StyledRect {
 
                 MaterialIcon {
                     text: Icons.getNotifIcon(root.activeNotifs[0]?.summary, root.urgency)
-                    color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    color: root.onUrgencyColour
                     fontStyle: Tokens.font.icon.medium
                 }
             }
 
-            StyledClippingRect {
+            ClipRect {
                 anchors.fill: parent
                 color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3error : root.urgency === NotificationUrgency.Low ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 3) : Colours.palette.m3secondaryContainer
                 radius: Tokens.rounding.full
@@ -152,7 +148,7 @@ StyledRect {
                         anchors.centerIn: parent
                         implicitSize: Math.round(Tokens.sizes.notifs.badge * 0.6)
                         source: Quickshell.iconPath(root.appIcon)
-                        colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                        colour: root.onUrgencyColour
                         layer.enabled: root.appIcon.endsWith("symbolic")
                     }
                 }

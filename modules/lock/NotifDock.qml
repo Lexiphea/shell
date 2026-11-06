@@ -15,8 +15,6 @@ import qs.utils
 ColumnLayout {
     id: root
 
-    required property var lock
-
     anchors.fill: parent
     anchors.margins: Tokens.padding.large
 
@@ -30,7 +28,7 @@ ColumnLayout {
         elide: Text.ElideRight
     }
 
-    ClippingRectangle {
+    ClipRect {
         id: clipRect
 
         Layout.fillWidth: true
@@ -83,10 +81,7 @@ ColumnLayout {
             clip: true
 
             model: ScriptModel {
-                values: {
-                    const list = Notifs.notClosed.map(n => [n.appName, null]);
-                    return [...new Map(list).keys()];
-                }
+                values: [...new Set(Notifs.notClosed.map(n => n.appName))]
             }
 
             delegate: NotifGroup {}

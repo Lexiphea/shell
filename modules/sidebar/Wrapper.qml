@@ -1,9 +1,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import Caelestia
 import Caelestia.Config
 import qs.components
+import qs.components.misc
+import qs.services
 
 Item {
     id: root
@@ -34,13 +37,22 @@ Item {
         anchors.margins: CUtils.clamp(anchors.leftMargin - Config.border.thickness, 0, anchors.leftMargin)
         anchors.bottomMargin: 0
 
-        // Preloaded on the focused monitor so the animation starts immediately
-        active: Config.sidebar.enabled && (root.screenState.focused || root.visible)
+        // Preloaded once the monitor has had focus so the animation starts immediately
+        active: Config.sidebar.enabled && (root.screenState.preload || root.visible)
 
         sourceComponent: Content {
             implicitWidth: Tokens.sizes.sidebar.width - content.anchors.leftMargin - content.anchors.margins
             props: root.props
             screenState: root.screenState
+        }
+    }
+
+    // The content stays loaded while hidden, so only tick notification ages while it is shown
+    LazyLoader {
+        active: root.visible
+
+        Ref {
+            service: Notifs
         }
     }
 }

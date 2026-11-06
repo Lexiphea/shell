@@ -3,49 +3,38 @@
 #include "config/dashboardconfig.hpp"
 #include "config/rootnodes.hpp"
 
-namespace caelestia::services {
+namespace caelestia::shell::services {
 
 TickingService::TickingService(QObject* parent)
     : Service(parent)
     , m_timer(new QTimer(this)) {
-    m_timer->setSingleShot(false);
+    m_timer->setInterval(1000);
     QObject::connect(m_timer, &QTimer::timeout, this, [this] {
         tick();
     });
 
-    const auto* dash = caelestia::config::ConfigSingleton::instance()->dashboard();
+    const auto* dash = caelestia::shell::config::ConfigSingleton::instance()->dashboard();
     applyInterval(dash->resourceUpdateInterval());
-    QObject::connect(dash, &caelestia::config::DashboardConfig::resourceUpdateIntervalChanged, this, [this, dash] {
-        applyInterval(dash->resourceUpdateInterval());
-    });
-}
-
-int TickingService::updateInterval() const {
-    return m_interval;
+    QObject::connect(
+        dash, &caelestia::shell::config::DashboardConfig::resourceUpdateIntervalChanged, this, [this, dash] {
+            applyInterval(dash->resourceUpdateInterval());
+        });
 }
 
 void TickingService::start() {
-    m_running = true;
-    if (m_interval > 0) {
-        m_timer->start(m_interval);
-    }
+    m_timer->start();
     tick();
 }
 
 void TickingService::stop() {
-    m_running = false;
     m_timer->stop();
+    stopped();
 }
 
 void TickingService::applyInterval(int ms) {
-    if (ms <= 0 || ms == m_interval) {
-        return;
+    if (ms > 0 && ms != m_timer->interval()) {
+        m_timer->setInterval(ms);
     }
-    m_interval = ms;
-    if (m_running) {
-        m_timer->start(m_interval);
-    }
-    emit updateIntervalChanged();
 }
 
-} // namespace caelestia::services
+} // namespace caelestia::shell::services

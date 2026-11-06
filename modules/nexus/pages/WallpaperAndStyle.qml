@@ -8,7 +8,6 @@ import qs.components
 import qs.components.controls
 import qs.components.images
 import qs.services
-import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
@@ -22,9 +21,7 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.large
 
-        StyledClippingRect {
-            id: wallWrapper
-
+        ClipRect {
             Layout.alignment: Qt.AlignHCenter
             implicitWidth: {
                 const screen = root.nState.screen;
@@ -69,73 +66,14 @@ PageBase {
                 }
             }
 
-            Item {
+            WallpaperImage {
                 anchors.fill: parent
                 opacity: Config.background.wallpaperEnabled ? 1 : 0
+                playing: !ShellState.locked
 
                 Behavior on opacity {
                     Anim {
                         type: Anim.SlowEffects
-                    }
-                }
-
-                Loader {
-                    id: wallIndicatorLoader
-
-                    anchors.centerIn: parent
-
-                    opacity: 0
-                    active: opacity > 0
-
-                    sourceComponent: StyledRect {
-                        implicitWidth: wallLoadingIndicator.implicitSize + Tokens.padding.largeIncreased * 2
-                        implicitHeight: wallLoadingIndicator.implicitSize + Tokens.padding.largeIncreased * 2
-
-                        color: Colours.palette.m3primaryContainer
-                        radius: Tokens.rounding.full
-
-                        LoadingIndicator {
-                            id: wallLoadingIndicator
-
-                            anchors.centerIn: parent
-                            containsIcon: true
-                            implicitSize: Math.min(wallWrapper.implicitWidth, wallWrapper.implicitHeight) * 0.4
-                        }
-                    }
-
-                    Behavior on opacity {
-                        Anim {
-                            type: Anim.DefaultEffects
-                        }
-                    }
-                }
-
-                Timer {
-                    id: wallLoadDebounceTimer
-
-                    interval: 100
-                    onTriggered: {
-                        if (wallImg.status !== Image.Ready)
-                            wallIndicatorLoader.opacity = 1;
-                    }
-                }
-
-                FadeImage {
-                    id: wallImg
-
-                    anchors.fill: parent
-                    source: Wallpapers.current
-                    preventInit: wallIndicatorLoader.opacity > 0
-                    fadeOutAnim: Anim.DefaultEffects
-                    fadeInAnim: Anim.SlowEffects
-
-                    onSourceChanged: wallLoadDebounceTimer.restart()
-
-                    onStatusChanged: {
-                        if (status === Image.Ready) {
-                            wallLoadDebounceTimer.stop();
-                            wallIndicatorLoader.opacity = 0;
-                        }
                     }
                 }
             }
@@ -176,7 +114,6 @@ PageBase {
             visible: Colours.transparency.enabled
             icon: "opacity"
             label: Tr.tr("Base opacity")
-            valueLabel: Strings.percentOne(value)
             value: GlobalConfig.appearance.transparency.base
             onMoved: v => GlobalConfig.appearance.transparency.base = v
         }
@@ -187,7 +124,6 @@ PageBase {
             visible: Colours.transparency.enabled
             icon: "layers"
             label: Tr.tr("Layer opacity")
-            valueLabel: Strings.percentOne(value)
             value: GlobalConfig.appearance.transparency.layers
             onMoved: v => GlobalConfig.appearance.transparency.layers = v
         }
